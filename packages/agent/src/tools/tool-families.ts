@@ -162,23 +162,3 @@ export const TOOL_FAMILIES = [
     },
   },
 ] as const;
-
-const destinations = new Map<string, { name: string; operation: string }>(
-  TOOL_FAMILIES.flatMap((family) =>
-    Object.entries(family.members).map(([operation, name]) => [name, { name: family.name, operation }]),
-  ),
-);
-
-/** Migrate instruction references, not executable compatibility aliases. */
-export function rewriteToolReferences(text: string): string {
-  return text.replace(/\b[a-z][a-z_]+\b/g, (name) => {
-    const destination = destinations.get(name);
-    return destination
-      ? `${destination.name}(request.operation=${destination.operation})`
-      : name === "get_navigation_toc"
-        ? "get_toc(view=navigation)"
-        : name === "edit_annotation"
-          ? "apply_annotation_changes"
-          : name;
-  });
-}

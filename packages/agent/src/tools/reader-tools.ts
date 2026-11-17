@@ -66,7 +66,7 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
               }),
             ),
           },
-          { description: "Copy the complete location returned by get_navigation_toc or find_book_locations." },
+          { description: "Copy the complete location returned by get_toc(view=navigation) or find_book_locations." },
         ),
       ),
     }),
@@ -341,7 +341,7 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
     name: "set_reader_panel",
     label: "Set reader panel",
     description:
-      "Explicitly open or close toc, annotations, appearance or chat for a user request. Query get_reader_panels first. Opening also reveals reader controls; In docked layout TOC/chat choices persist per book; in exclusive (narrow-window) layout they are transient full-screen sheets, only one open at a time, and close when controls hide. Annotations/appearance are always transient. Completes after required persistence and a UI commit, not animation or data loading. Does not change reading position or start an AI turn.",
+      "Explicitly open or close toc, annotations, appearance or chat for a user request. Query reader_panels(request.operation=inspect) first. Opening also reveals reader controls; In docked layout TOC/chat choices persist per book; in exclusive (narrow-window) layout they are transient full-screen sheets, only one open at a time, and close when controls hide. Annotations/appearance are always transient. Completes after required persistence and a UI commit, not animation or data loading. Does not change reading position or start an AI turn.",
     parameters: obj({
       panel: oneOf(["toc", "annotations", "appearance", "chat"]),
       open: bool(),
@@ -362,7 +362,7 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
     name: "set_reader_panel_width",
     label: "Resize reader panel",
     description:
-      "Set a preferred TOC/chat width for an explicit user request. Integer 240..640 CSS pixels, shared across books and persisted on this device. Query get_reader_panels first. Completes after persistence and a matching UI commit; does not open the panel, reveal controls, move reading position or focus. Exclusive narrow-window layout ignores the saved width until docked layout resumes. Cancellation cannot undo an already dispatched write.",
+      "Set a preferred TOC/chat width for an explicit user request. Integer 240..640 CSS pixels, shared across books and persisted on this device. Query reader_panels(request.operation=inspect) first. Completes after persistence and a matching UI commit; does not open the panel, reveal controls, move reading position or focus. Exclusive narrow-window layout ignores the saved width until docked layout resumes. Cancellation cannot undo an already dispatched write.",
     parameters: obj({
       panel: oneOf(["toc", "chat"]),
       width: int({ minimum: 240, maximum: 640 }),

@@ -34,7 +34,7 @@ export function buildShelfTools(scope: ThreadScope, deps: RuntimeDeps): AgentToo
     name: "get_reading_stats",
     label: "Reading stats",
     description:
-      "Get SETTLED reading history and progress, with durations already formatted for the reader. For current time including unfinished sessions, use get_reading_time instead. Quote formatted durations as given. Call only for reading time, streaks, or progress, not content questions. With bookId returns that book; otherwise the whole-shelf aggregate and every book's stats. In a book thread defaults to the current book; allBooks=true requests the aggregate.",
+      "Get SETTLED reading history and progress, with durations already formatted for the reader. For current time including unfinished sessions, use query_reading_stats(request.operation=time) instead. Quote formatted durations as given. Call only for reading time, streaks, or progress, not content questions. With bookId returns that book; otherwise the whole-shelf aggregate and every book's stats. In a book thread defaults to the current book; allBooks=true requests the aggregate.",
     parameters: obj({
       bookId: opt(str()),
       allBooks: opt(bool({ description: "Return the whole-shelf aggregate even in a book thread" })),

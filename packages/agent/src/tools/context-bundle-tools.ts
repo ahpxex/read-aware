@@ -55,14 +55,14 @@ export function buildContextBundleTools(scope: ThreadScope, deps: RuntimeDeps): 
       name: "capture_context_bundle",
       label: "Capture context bundle",
       executionMode: "sequential",
-      description: `Only when the reader asks for a context bundle or export: assemble one recipe from current durable sources, publish it as an immutable version and return the artifact. ${SHARED} The host resolves scope, privacy and the spoiler boundary; omissions list what was withheld and why. changed=false means this exact content version already existed. Publication is a synced local event, not a file; use export_context_bundle then save_resource to hand the reader a file. Sources changing during assembly fail the call instead of mixing reads; cancellation after native dispatch still yields the real receipt.`,
+      description: `Only when the reader asks for a context bundle or export: assemble one recipe from current durable sources, publish it as an immutable version and return the artifact. ${SHARED} The host resolves scope, privacy and the spoiler boundary; omissions list what was withheld and why. changed=false means this exact content version already existed. Publication is a synced local event, not a file; use manage_context_bundle(request.operation=export) then manage_resource(request.operation=save) to hand the reader a file. Sources changing during assembly fail the call instead of mixing reads; cancellation after native dispatch still yields the real receipt.`,
       parameters: obj({ kind: KIND, bookId: BOOK }),
       execute: async (_id, params, signal) => textResult(await deps.contextBundles.capture(selector(params), signal)),
     },
     {
       name: "list_context_bundles",
       label: "List context bundle versions",
-      description: `List retained versions of one recipe and scope, newest first, as version IDs and publication times without text. ${SHARED} Follow nextOffset with the returned cbhist1 expectedRevision; a changed archive conflicts and restarts at offset 0. Retention is not disclosure authority: read_context_bundle may still refuse a version whose text exceeds the current reading boundary.`,
+      description: `List retained versions of one recipe and scope, newest first, as version IDs and publication times without text. ${SHARED} Follow nextOffset with the returned cbhist1 expectedRevision; a changed archive conflicts and restarts at offset 0. Retention is not disclosure authority: query_context_bundles(request.operation=read) may still refuse a version whose text exceeds the current reading boundary.`,
       parameters: obj({
         kind: KIND,
         bookId: BOOK,
@@ -88,7 +88,7 @@ export function buildContextBundleTools(scope: ThreadScope, deps: RuntimeDeps): 
     {
       name: "read_context_bundle",
       label: "Read context bundle",
-      description: `Read one retained version exactly as published. ${SHARED} null means the version is not retained for this recipe and scope. A book_memory_context version is delivered only when its recorded spoiler fence lies within the reader's current boundary; otherwise the call fails and the text is withheld rather than redacted. This reads the archive, not live sources; capture_context_bundle reflects the current state.`,
+      description: `Read one retained version exactly as published. ${SHARED} null means the version is not retained for this recipe and scope. A book_memory_context version is delivered only when its recorded spoiler fence lies within the reader's current boundary; otherwise the call fails and the text is withheld rather than redacted. This reads the archive, not live sources; manage_context_bundle(request.operation=capture) reflects the current state.`,
       parameters: obj({ kind: KIND, bookId: BOOK, version: VERSION }),
       execute: async (_id, params, signal) =>
         textResult(
@@ -102,7 +102,7 @@ export function buildContextBundleTools(scope: ThreadScope, deps: RuntimeDeps): 
       name: "export_context_bundle",
       label: "Export context bundle",
       executionMode: "sequential",
-      description: `Seal one retained version into a temporary JSON resource of this conversation so the reader can save it with save_resource. ${SHARED} The same boundary rules as read_context_bundle apply. The handle is read-only and export-only: its bytes do not enter the model, and it is revoked when tracked sources, the reading position of that book, or the app's data change, so acquire a fresh handle after such changes. A save the reader already confirmed is not undone by a later revocation. Release with release_resource when done; handles expire after one hour.`,
+      description: `Seal one retained version into a temporary JSON resource of this conversation so the reader can save it with manage_resource(request.operation=save). ${SHARED} The same boundary rules as query_context_bundles(request.operation=read) apply. The handle is read-only and export-only: its bytes do not enter the model, and it is revoked when tracked sources, the reading position of that book, or the app's data change, so acquire a fresh handle after such changes. A save the reader already confirmed is not undone by a later revocation. Release with manage_resource(request.operation=release) when done; handles expire after one hour.`,
       parameters: obj({ kind: KIND, bookId: BOOK, version: VERSION }),
       execute: async (_id, params, signal) => {
         const resource = await deps.contextBundles.export(

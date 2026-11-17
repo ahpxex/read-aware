@@ -1,7 +1,7 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { validateToolArguments, type JsonObject } from "@earendil-works/pi-ai";
 import { AppError } from "@read-aware/core";
-import { TOOL_FAMILIES, rewriteToolReferences } from "./tool-families";
+import { TOOL_FAMILIES } from "./tool-families";
 import { setToolAvailability, toolAvailability } from "./tool-availability";
 import { lit, obj, union } from "@earendil-works/pi-schema";
 
@@ -46,7 +46,7 @@ export function consolidateHostTools(all: AgentTool[]): { all: AgentTool[]; enab
               properties: { operation: lit(operation), ...schema.properties },
               required: ["operation", ...(schema.required ?? [])],
               additionalProperties: false,
-              description: rewriteToolReferences(tool.description),
+              description: tool.description,
             };
           }),
         ),
@@ -78,22 +78,5 @@ export function consolidateHostTools(all: AgentTool[]): { all: AgentTool[]; enab
     );
     result.push(grouped);
   }
-  for (const tool of result) {
-    tool.description = rewriteToolReferences(tool.description);
-    tool.parameters = rewriteSchemaDescriptions(tool.parameters);
-  }
   return { all: result, enabled: result.filter((tool) => toolAvailability(tool)?.state !== "unavailable") };
-}
-
-/** Only schema metadata is rewritten; runtime book/user content is never touched. */
-function rewriteSchemaDescriptions<T>(value: T): T {
-  if (Array.isArray(value)) return value.map(rewriteSchemaDescriptions) as T;
-  if (!value || typeof value !== "object") return value;
-  const copy = { ...value } as Record<string, unknown>;
-  for (const [key, child] of Object.entries(copy))
-    copy[key] =
-      key === "description" && typeof child === "string"
-        ? rewriteToolReferences(child)
-        : rewriteSchemaDescriptions(child);
-  return copy as T;
 }

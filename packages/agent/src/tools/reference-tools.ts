@@ -36,7 +36,7 @@ export function buildReferenceTools(scope: ThreadScope, deps: RuntimeDeps, state
       name: "list_book_references",
       label: "Book references",
       description:
-        "List links and inline notes in one versioned book section. Get sectionIndex and contentVersion from get_navigation_toc, not read_chapter's chapter index. Returns opaque reference descriptors, bounded labels and nextOffset. Does not read destinations, fetch URLs, or move the reader. Narrative source sections remain behind the reading fence.",
+        "List links and inline notes in one versioned book section. Get sectionIndex and contentVersion from get_toc(view=navigation), not read_chapter's chapter index. Returns opaque reference descriptors, bounded labels and nextOffset. Does not read destinations, fetch URLs, or move the reader. Narrative source sections remain behind the reading fence.",
       parameters: obj({
         bookId: opt(str()),
         contentVersion: str({ minLength: 1, maxLength: 256 }),
@@ -55,7 +55,7 @@ export function buildReferenceTools(scope: ThreadScope, deps: RuntimeDeps, state
       name: "read_book_reference",
       label: "Read book reference",
       description:
-        "Resolve a reference returned by list_book_references and preview bounded plain text without moving the reader. Copy its descriptor unchanged. Both source and internal target must satisfy the narrative reading fence; known links do not bypass it. A resolved location can be passed to open_book. External URLs are only reported, never fetched/opened; blocked/missing/unsupported are explicit. Supports PDF link annotations and text notes; an internal PDF link previews the destination page text, without guessing its exact rectangle. Named actions, attachments and scripts are blocked. Follow nextOffset for more text; oversized source sections fail with library/content-budget-exceeded instead of being silently truncated.",
+        "Resolve a reference returned by query_book_references(request.operation=list) and preview bounded plain text without moving the reader. Copy its descriptor unchanged. Both source and internal target must satisfy the narrative reading fence; known links do not bypass it. A resolved location can be passed to open_book. External URLs are only reported, never fetched/opened; blocked/missing/unsupported are explicit. Supports PDF link annotations and text notes; an internal PDF link previews the destination page text, without guessing its exact rectangle. Named actions, attachments and scripts are blocked. Follow nextOffset for more text; oversized source sections fail with library/content-budget-exceeded instead of being silently truncated.",
       parameters: referenceParameters,
       execute: async (_id, params, signal) => {
         const query = normalizeBookReferenceQuery(params as BookReferenceQuery);
@@ -88,7 +88,7 @@ export function buildReferenceTools(scope: ThreadScope, deps: RuntimeDeps, state
       name: "close_book_reference",
       label: "Close book reference",
       description:
-        "Close only this thread's current native reference preview using the ID returned by show_book_reference. A replaced, dismissed, retired or other actor's preview returns not-current; it cannot close an unrelated native note.",
+        "Close only this thread's current native reference preview using the ID returned by control_book_reference(request.operation=show). A replaced, dismissed, retired or other actor's preview returns not-current; it cannot close an unrelated native note.",
       parameters: obj({ id: str({ minLength: 1, maxLength: 256 }) }),
       executionMode: "sequential",
       execute: async (_id, params, signal) =>

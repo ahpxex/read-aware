@@ -53,7 +53,7 @@ export function buildResourceTools(scope: ThreadScope, deps: RuntimeDeps): Agent
       label: "Prepare directory file",
       executionMode: "sequential",
       description:
-        "Copy one current regular file below this conversation's chosen directory to an immutable resource reference. Use a relativePath from list_resource_directory; no absolute paths or parent traversal. The listing is not content-versioned. Read with read_resource_text, inspect/import through existing resource tools, then release_resource. The snapshot remains valid after the directory grant is released.",
+        "Copy one current regular file below this conversation's chosen directory to an immutable resource reference. Use a relativePath from resource_directory(request.operation=list); no absolute paths or parent traversal. The listing is not content-versioned. Read with read_resource_text, inspect/import through existing resource tools, then manage_resource(request.operation=release). The snapshot remains valid after the directory grant is released.",
       parameters: obj({
         id: str({ minLength: 1, maxLength: 256 }),
         relativePath: str({ minLength: 1, maxLength: 4096 }),
@@ -101,7 +101,7 @@ export function buildResourceTools(scope: ThreadScope, deps: RuntimeDeps): Agent
       label: "Prepare original book file",
       executionMode: "sequential",
       description:
-        "After user approval, obtain a temporary export-only reference to a book's locally available original file. null means no local original; it does not download missing content. Book threads are limited to the current book. Never use this to bypass spoiler/privacy-aware reading tools: original book bytes cannot be read into the model. No path or storage key is returned. Use save_resource to let the user choose a destination, then release_resource.",
+        "After user approval, obtain a temporary export-only reference to a book's locally available original file. null means no local original; it does not download missing content. Book threads are limited to the current book. Never use this to bypass spoiler/privacy-aware reading tools: original book bytes cannot be read into the model. No path or storage key is returned. Use manage_resource(request.operation=save) to let the user choose a destination, then manage_resource(request.operation=release).",
       parameters: obj({ bookId: opt(str({ minLength: 1, maxLength: 256 })) }),
       execute: async (toolCallId, params, signal, onUpdate) => {
         const bookId = (params as { bookId?: string }).bookId ?? (scope.kind === "book" ? scope.bookId : "");
@@ -129,7 +129,7 @@ export function buildResourceTools(scope: ThreadScope, deps: RuntimeDeps): Agent
       label: "Prepare book cover",
       executionMode: "sequential",
       description:
-        "Obtain a temporary reference to the book's existing local cover. Book threads are restricted to their own book. null means no locally available cover; this never generates, downloads or opens the cover. No image bytes enter the model. Use save_resource or copy_resource_image only when the user requests it, then release_resource. This is a snapshot, not a live link to future cover changes.",
+        "Obtain a temporary reference to the book's existing local cover. Book threads are restricted to their own book. null means no locally available cover; this never generates, downloads or opens the cover. No image bytes enter the model. Use manage_resource(request.operation=save) or manage_resource(request.operation=copyImage) only when the user requests it, then manage_resource(request.operation=release). This is a snapshot, not a live link to future cover changes.",
       parameters: obj({ bookId: opt(str({ minLength: 1, maxLength: 256 })) }),
       execute: async (_id, params, signal) => {
         const bookId = (params as { bookId?: string }).bookId ?? (scope.kind === "book" ? scope.bookId : "");
@@ -224,7 +224,7 @@ export function buildResourceTools(scope: ThreadScope, deps: RuntimeDeps): Agent
         label: "Import selected book",
         executionMode: "sequential",
         description:
-          "After user approval, start this conversation's import task over a sealed file resource using the normal format/deduplication/event pipeline. Returns queued, NOT a completed import. Use get_book_import_tasks to follow preparing/staging/committing and read the final imported/duplicate receipt or errorCode; never claim success from a task ID. cancel_book_import_task cancels before the first durable write; accepted writes still finalize. Start-call cancellation only controls admission. At most 2 physical task executions per owner and 4 across task owners (direct/picker imports use their own path); keep at most 64 in-memory task handles, lost at app restart or owner retirement. No bytes enter the model. Does not open the reader, delete the original or release the resource. Library data follows existing sync settings.",
+          "After user approval, start this conversation's import task over a sealed file resource using the normal format/deduplication/event pipeline. Returns queued, NOT a completed import. Use query_book_imports(request.operation=tasks) to follow preparing/staging/committing and read the final imported/duplicate receipt or errorCode; never claim success from a task ID. manage_book_import(request.operation=cancel) cancels before the first durable write; accepted writes still finalize. Start-call cancellation only controls admission. At most 2 physical task executions per owner and 4 across task owners (direct/picker imports use their own path); keep at most 64 in-memory task handles, lost at app restart or owner retirement. No bytes enter the model. Does not open the reader, delete the original or release the resource. Library data follows existing sync settings.",
         parameters: obj({ id: str({ minLength: 1, maxLength: 256 }) }),
         execute: async (toolCallId, params, signal, onUpdate) => {
           const id = (params as { id: string }).id,
@@ -267,7 +267,7 @@ export function buildResourceTools(scope: ThreadScope, deps: RuntimeDeps): Agent
         label: "Cancel book import",
         executionMode: "sequential",
         description:
-          "Request cancellation of one import task owned by this conversation. The response is a current snapshot, not proof nothing was written. Before durable admission the task can cancel; after staging begins it keeps its real imported/duplicate receipt or failure. Inspect get_book_import_tasks for the final state. Does not delete an imported book or release the input resource. Terminal tasks are unchanged.",
+          "Request cancellation of one import task owned by this conversation. The response is a current snapshot, not proof nothing was written. Before durable admission the task can cancel; after staging begins it keeps its real imported/duplicate receipt or failure. Inspect query_book_imports(request.operation=tasks) for the final state. Does not delete an imported book or release the input resource. Terminal tasks are unchanged.",
         parameters: obj({ taskId: str({ minLength: 1, maxLength: 256 }) }),
         execute: async (_id, params) =>
           textResult(await deps.library.cancelImportTask(threadScopeKey(scope), (params as { taskId: string }).taskId)),

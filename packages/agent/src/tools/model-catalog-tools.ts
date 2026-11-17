@@ -33,7 +33,7 @@ export function buildModelCatalogTools(deps: RuntimeDeps): AgentTool[] {
       label: "Refresh model catalog",
       executionMode: "sequential",
       description:
-        "Only on explicit user request, refresh a known provider's public model catalog using the native host's fixed discovery endpoint/cache. Shares existing in-flight refreshes, never uses API keys, changes configuration or runs inference. Returns first 25 metadata rows after success; failures reject, old cache remains available via get_model_catalog. Cancellation stops this caller's wait, not another caller's shared refresh or an accepted cache write. This is not a connection test. Custom, ReadAware relay and Codex catalogs are unsupported.",
+        "Only on explicit user request, refresh a known provider's public model catalog using the native host's fixed discovery endpoint/cache. Shares existing in-flight refreshes, never uses API keys, changes configuration or runs inference. Returns first 25 metadata rows after success; failures reject, old cache remains available via model_catalog(request.operation=query). Cancellation stops this caller's wait, not another caller's shared refresh or an accepted cache write. This is not a connection test. Custom, ReadAware relay and Codex catalogs are unsupported.",
       parameters: obj({ provider: str({ minLength: 1, maxLength: 256 }) }),
       execute: async (_id, params, signal) => {
         signal?.throwIfAborted();

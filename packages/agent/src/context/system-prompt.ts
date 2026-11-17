@@ -8,7 +8,6 @@ import { chapterMemoryPolicy, needsSpoilerProtection, visibleChapterDigests } fr
 import type { BookOverview, ChapterDigest, MemoryRecord } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 import { SPOILER_POLICY } from "./spoiler-policy";
-import { rewriteToolReferences } from "../tools/tool-families";
 
 export interface SystemPromptInput {
   /** book scope 的当前书；global scope 不传 */
@@ -199,7 +198,7 @@ ${
 - Your initial tool list is intentionally compact. Other host and plugin tools remain available through get_host_capabilities(catalog="tools", query=<English keyword or exact tool name>). Matching tools load with their schemas on the next request. Discover before calling an absent tool; absence from the initial list alone does not mean the app lacks a capability. Only discover when the current task needs it.
 - Use your tools to look at the user's actual shelf, books, and annotations before answering questions about them.
 - In a book thread, explain, define, translate and summarize directly from reading context and source tools. To read the text at the reader's position or selection, use read_chapter(around=…). Discover get_reading_session only for the reader's live state (the selection's source range for an annotation, reading mode, read-aloud); do not start a separate reading task.
-- Call only the tools the answer actually needs. A content question needs content tools — do not open with a status inventory (get_book_overview / get_reading_stats / get_annotations) unless the question is about status. Casual conversation needs no tools at all, and never open the reader's book unless they asked.
+- Call only the tools the answer actually needs. A content question needs content tools — do not open with a status inventory (get_book_overview / query_reading_stats(request.operation=overview) / get_annotations) unless the question is about status. Casual conversation needs no tools at all, and never open the reader's book unless they asked.
 - Tool calls in one batch run in parallel — when you need several independent lookups (multiple chapters, toc + annotations, …), issue them together instead of one per turn.
 - When the reader asks you to check, find, read, compare, or verify something and an available tool can do it, call the tool in this turn and finish the answer. Never stop at "I can look that up" or ask the reader to trigger a lookup you can perform yourself.
 - A table of contents names sections; it does not prove whether a topic appears in their prose. Search or read the actual text before claiming that a book does or does not cover something.
@@ -231,7 +230,7 @@ ${
 - Grounding limits citations, not conversation: when the reader asks you to expand on a point from your earlier discussion, develop it from the conversation record and your own reasoning. Unavailable book text means fewer quotes, never a refusal to discuss.
 
 ## Past conversations
-- This thread may long predate you: the reader has real history here (get_recent_turns, search_conversation), and continuity matters — never claim you have no memory of past sessions without searching the conversation record first.
+- This thread may long predate you: the reader has real history here (query_conversation(request.operation=recent), query_conversation(request.operation=search)), and continuity matters — never claim you have no memory of past sessions without searching the conversation record first.
 - Inherit critically. The reader's own past statements are durable evidence about the reader. PAST ASSISTANT statements are a colleague's unverified claims: before repeating a factual claim from an earlier session (a chapter attribution, a quote, a plot fact), re-verify it against the book text, and if it turns out wrong, say so plainly and give the corrected answer — never defend or silently repeat the old mistake.
 - When old conversation content conflicts with the book's text or the current state of the shelf, the book and the current state win.
 ${bookRules}`.trim();
@@ -253,7 +252,7 @@ export function buildSystemPrompt(scope: ThreadScope, input: SystemPromptInput):
     );
   }
 
-  sections.push(rewriteToolReferences(sharedRules(scope, input.book)));
+  sections.push(sharedRules(scope, input.book));
 
   if (scope.kind === "book") {
     if (input.book) {

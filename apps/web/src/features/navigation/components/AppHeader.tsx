@@ -28,10 +28,11 @@ type AppHeaderProps = {
   leadingStatus?: ReactNode;
   /** Optional context-specific control (e.g. the shelf view menu) shown in the cluster. */
   viewControl?: ReactNode;
-  /** When set, replaces the customizable right-hand utility cluster. The
-   *  Agent page uses this for conversation actions. Atomized so narrow
-   *  windows collapse them one by one into the dots menu (never squeezing
-   *  the primary navigation); on phones they render before that menu. */
+  /** The surface's own actions (the Agent page's conversation controls),
+   *  shown ahead of the user-arranged shelf items. Atomized so narrow
+   *  windows collapse the cluster one icon at a time into the dots menu —
+   *  shelf items first — never squeezing the primary navigation; on phones
+   *  they render before that menu. */
   actions?: HeaderActionEntry[];
   /**
    * Which window chrome the shell draws. Defaults to the running platform's.
@@ -86,17 +87,20 @@ export function AppHeader({
   });
 
   // The primary navigation is canonical: it never yields width. When the
-  // window narrows, cluster ICONS collapse into the dots menu instead — the
-  // user-arranged shelf items on desktop, contextual actions when a surface
-  // supplies them, and (on phones) the inline search icon.
+  // window narrows, cluster ICONS collapse into the dots menu instead — on
+  // desktop the shelf items, then the surface's own actions; on phones the
+  // inline search icon, then the surface's one inline action.
   const actionCount = actions?.length ?? 0;
   // On phones a contextual surface keeps ONE inline action — its primary —
   // no matter how many it supplies or how much width the measurement finds:
   // the centered navigation owns a phone header, and a row of surface icons
   // visibly squeezes it. Everything else stays reachable from the dots menu.
   const phoneActionCap = Math.min(actionCount, 1);
+  // Desktop: the surface's actions, then the shelf items — one row that
+  // collapses from its tail, so the page's own controls stay inline longest.
+  const clusterEntries = [...(actions ?? []), ...shelfEntries.visible];
   const { containerRef, fixedLeftRef, navBoxRef, rightSpacerRef, capacity } = useHeaderClusterCapacity(
-    isPhone ? 1 + phoneActionCap : actions ? actionCount : shelfEntries.visible.length,
+    isPhone ? 1 + phoneActionCap : clusterEntries.length,
   );
   // Contextual actions collapse from the tail; on phones the search icon
   // folds FIRST (it stays reachable from the dots menu either way).
@@ -223,23 +227,23 @@ export function AppHeader({
     );
   }
 
-  // Visible items past the current capacity collapse into the dots menu,
-  // ahead of the items the user parked there deliberately.
-  const inlineShelfEntries = shelfEntries.visible.slice(0, capacity);
-  const shelfOverflowRows = overflowRows([...shelfEntries.visible.slice(capacity), ...shelfEntries.overflow]);
+  // Entries past the current capacity collapse into the dots menu, ahead of
+  // the shelf items the user parked there deliberately.
+  const inlineEntries = clusterEntries.slice(0, capacity);
+  const clusterOverflowRows = overflowRows([...clusterEntries.slice(capacity), ...shelfEntries.overflow]);
 
-  // The utility cluster: contextual actions when a surface supplies them,
-  // otherwise the user-arranged shelf items — either way with a dots menu
-  // holding whatever the current width cannot show.
-  const inlineEntries = actions ? inlineActionEntries : inlineShelfEntries;
+  // The utility cluster: the surface's actions and the user-arranged shelf
+  // items, with a dots menu holding whatever the current width cannot show.
   const headerCluster = (
     <div className="flex items-center gap-1.5">
-      {inlineEntries.map((entry) => (
-        <span key={entry.id} className="contents">
+      {inlineEntries.map((entry, index) => (
+        // Keyed by source as well: a surface action and a shelf item are
+        // separate entries even if their ids coincide.
+        <span key={`${index < actionCount ? "action" : "shelf"}:${entry.id}`} className="contents">
           {entry.inline}
         </span>
       ))}
-      <MenuOverflow entries={actions ? collapsedActionEntries : shelfOverflowRows} />
+      <MenuOverflow entries={clusterOverflowRows} />
     </div>
   );
 

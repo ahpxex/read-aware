@@ -33,7 +33,7 @@ const pluginActions: RegisteredHeaderAction[] = [
   },
 ];
 
-/** The Agent page replaces the utility cluster with conversation actions. */
+/** The Agent page's conversation actions, shown ahead of the shelf items. */
 const conversationActions: HeaderActionEntry[] = [
   {
     id: "new",
@@ -180,7 +180,8 @@ export const WithLeadingStatus: Story = {
   },
 };
 
-/** The Agent page's own actions, which replace the utility cluster wholesale. */
+/** The Agent page: its own actions first, then the user-arranged shelf items —
+ *  as the window narrows the shelf items fold into the dots menu first. */
 export const WithConversationActions: Story = {
   args: { activeTopNav: "agent", actions: conversationActions },
 };

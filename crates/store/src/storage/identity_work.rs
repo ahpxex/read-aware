@@ -1,5 +1,6 @@
 //! Device-local immutable inference pages, conditionally appended against the complete source set.
 use super::identity_consolidation;
+use super::revision::is_content_revision;
 use crate::error::CommandError;
 use rusqlite::{Connection, OptionalExtension, TransactionBehavior};
 use serde::Serialize;
@@ -33,13 +34,7 @@ fn conflict() -> CommandError {
     CommandError::new("memory/conflict", "Identity work or source set changed")
 }
 fn validate(revision: &str, index: i64) -> Result<(), CommandError> {
-    if revision.len() != 69
-        || !revision.starts_with("icg1:")
-        || !revision[5..]
-            .bytes()
-            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
-        || !(0..MAX_INDEX).contains(&index)
-    {
+    if !is_content_revision(revision, "icg1") || !(0..MAX_INDEX).contains(&index) {
         return Err(invalid());
     }
     Ok(())

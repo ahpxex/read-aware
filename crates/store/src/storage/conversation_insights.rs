@@ -1,10 +1,10 @@
 //! Durable, target-scoped rolling summaries. Never loads message contents.
+use super::revision::content_revision;
 use super::user_profile;
 use crate::error::CommandError;
 use rusqlite::{Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 
 const INSIGHTS_KEY: &str = "read-aware-agent-insights";
@@ -101,15 +101,17 @@ pub fn conversation_insights_snapshot_inner(
             ("present", Some(text.clone()))
         }
     };
-    let bytes = serde_json::to_vec(&(
-        "conversation-insights",
-        1,
-        &target.kind,
-        &target.id,
-        status,
-        &summary,
-    ))?;
-    let revision = format!("cins1:{:x}", Sha256::digest(bytes));
+    let revision = content_revision(
+        "cins1",
+        &(
+            "conversation-insights",
+            1,
+            &target.kind,
+            &target.id,
+            status,
+            &summary,
+        ),
+    )?;
     tx.commit()?;
     Ok(ConversationInsightsSnapshot {
         target,

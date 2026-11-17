@@ -1,10 +1,10 @@
 //! A digest is committed against the classification and chapter observed before inference.
+use super::revision::{content_revision, is_content_revision};
 use super::{book_classification, events::commit_events_in_transaction, EventRow};
 use crate::error::CommandError;
 use rusqlite::{params, Connection, OptionalExtension, TransactionBehavior};
 use serde::Serialize;
 use serde_json::Value;
-use sha2::{Digest, Sha256};
 
 /// Whether the log holds exactly this `book.chapterDigested` event. Host
 /// checkpoint reconciliation checks an immutable event, never an old projection.
@@ -98,14 +98,17 @@ fn snapshot(
     let row = read_digest(conn, id, index)?;
     let event: Option<String> = conn.query_row("SELECT id FROM domain_events WHERE aggregate_type='book' AND aggregate_id=?1 AND type='book.chapterDigested' AND json_extract(payload_json,'$.chapterIndex')=?2 ORDER BY rowid DESC LIMIT 1", params![id,index], |r| r.get(0)).optional()?;
     let content_version = file_content_version(conn, id)?;
-    let bytes = serde_json::to_vec(&(
-        id,
-        index,
-        &classification.revision,
-        &content_version,
-        row,
-        event,
-    ))
+    let revision = content_revision(
+        "bdg1",
+        &(
+            id,
+            index,
+            &classification.revision,
+            &content_version,
+            row,
+            event,
+        ),
+    )
     .map_err(|e| CommandError::internal(e.to_string()))?;
     Ok(Some(BookDigestSnapshot {
         book_id: id.into(),
@@ -114,7 +117,7 @@ fn snapshot(
         flavor: classification
             .narrativity
             .unwrap_or_else(|| "narrative".into()),
-        revision: format!("bdg1:{:x}", Sha256::digest(bytes)),
+        revision,
     }))
 }
 pub fn book_digest_inspect_inner(
@@ -212,11 +215,7 @@ pub fn book_digest_commit_inner(
             ]
             .contains(&k.as_str())
         })
-        || !expected_revision.strip_prefix("bdg1:").is_some_and(|v| {
-            v.len() == 64
-                && v.bytes()
-                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
-        })
+        || !is_content_revision(expected_revision, "bdg1")
     {
         return Err(invalid());
     }

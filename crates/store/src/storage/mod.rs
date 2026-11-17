@@ -18,6 +18,7 @@ pub mod connection;
 pub use connection::SharedConnection;
 pub mod library;
 pub mod reading_progress;
+pub mod revision;
 pub use library::*;
 pub mod library_cleanup;
 pub use library_cleanup::*;

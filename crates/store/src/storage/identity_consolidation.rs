@@ -1,10 +1,10 @@
 //! Complete native read set and device-local completion state for identity synthesis.
+use super::revision::content_revision;
 use super::{entity_registry, memory_mutations, user_profile};
 use crate::error::CommandError;
 use rusqlite::{Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use sha2::{Digest, Sha256};
 
 #[cfg(test)]
 #[path = "identity_consolidation_tests.rs"]
@@ -74,12 +74,14 @@ pub(super) fn read_snapshot(
     let profile = user_profile::read_snapshot(conn)?;
     let entities_revision = entity_registry::revision(conn)?;
     let sources = read_sources(conn)?;
-    let bytes = serde_json::to_vec(&(
-        &profile.revision,
-        &entities_revision,
-        source_conditions(&sources),
-    ))?;
-    let revision = format!("icg1:{:x}", Sha256::digest(bytes));
+    let revision = content_revision(
+        "icg1",
+        &(
+            &profile.revision,
+            &entities_revision,
+            source_conditions(&sources),
+        ),
+    )?;
     let settled = conn
         .query_row(
             "SELECT revision FROM identity_consolidation_checkpoint WHERE id=1",

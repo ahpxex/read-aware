@@ -1,10 +1,10 @@
 //! Conditional summary writes and retirement of the pre-event KV summary.
 use super::local_event_guard::validate_new_event;
+use super::revision::content_revision;
 use super::{checkpoints, events, EventRow};
 use crate::error::CommandError;
 use rusqlite::{Connection, OptionalExtension, Transaction, TransactionBehavior};
 use serde::Serialize;
-use sha2::{Digest, Sha256};
 
 #[cfg(test)]
 #[path = "user_profile_tests.rs"]
@@ -83,11 +83,8 @@ pub fn read_snapshot(conn: &Connection) -> Result<ProfileSnapshot, CommandError>
         .optional()?
         .unwrap_or((None, None));
     // The projected event identity survives checkpoint bootstrap without its log tail.
-    let bytes = serde_json::to_vec(&(&summary, event))?;
-    Ok(ProfileSnapshot {
-        summary,
-        revision: format!("profile2:{:x}", Sha256::digest(bytes)),
-    })
+    let revision = content_revision("profile2", &(&summary, event))?;
+    Ok(ProfileSnapshot { summary, revision })
 }
 
 fn validate_envelope(event: &EventRow) -> Result<(), CommandError> {

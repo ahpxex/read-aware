@@ -1,9 +1,9 @@
 //! Conditional annotation writes share the event log's transaction and outbox.
+use super::revision::{content_revision, is_content_revision};
 use super::{events::commit_events_in_transaction, row_to_annotation, Annotation, EventRow};
 use crate::error::CommandError;
 use rusqlite::{Connection, OptionalExtension, TransactionBehavior};
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 
 #[cfg(test)]
@@ -42,9 +42,8 @@ pub fn snapshot_for_annotation(
     let event: Option<String> = conn.query_row(
         "SELECT id FROM domain_events WHERE aggregate_id=?1 AND aggregate_type IN ('note','highlight','ask') ORDER BY rowid DESC LIMIT 1",
         [&annotation.id], |row| row.get(0)).optional()?;
-    let bytes = serde_json::to_vec(&(&annotation, event))
+    let revision = content_revision("ann1", &(&annotation, event))
         .map_err(|error| CommandError::internal(error.to_string()))?;
-    let revision = format!("ann1:{:x}", Sha256::digest(bytes));
     Ok(AnnotationSnapshot {
         annotation,
         revision,
@@ -181,11 +180,7 @@ pub fn annotations_commit_inner(
             || !ids.insert(id)
             || !event_ids.insert(&event.id)
             || event.id.is_empty()
-            || token.len() != 69
-            || !token.starts_with("ann1:")
-            || !token[5..]
-                .bytes()
-                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+            || !is_content_revision(token, "ann1")
         {
             return Err(invalid());
         }

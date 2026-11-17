@@ -1,9 +1,9 @@
 //! User feedback changes only existing active memories, inside the event transaction.
+use super::revision::{content_revision, is_content_revision};
 use super::{events::commit_events_in_transaction, EventRow, Memory};
 use crate::error::CommandError;
 use rusqlite::{Connection, OptionalExtension, TransactionBehavior};
 use serde::Serialize;
-use sha2::{Digest, Sha256};
 
 #[cfg(test)]
 #[path = "memory_mutations_tests.rs"]
@@ -48,12 +48,9 @@ pub(crate) fn read_snapshot(
         "SELECT id FROM domain_events WHERE aggregate_type='memory' AND aggregate_id=?1 ORDER BY rowid DESC LIMIT 1",
         [id], |row| row.get(0),
     ).optional()?;
-    let bytes =
-        serde_json::to_vec(&(&memory, event)).map_err(|e| CommandError::internal(e.to_string()))?;
-    Ok(Some(MemorySnapshot {
-        memory,
-        revision: format!("mem1:{:x}", Sha256::digest(bytes)),
-    }))
+    let revision = content_revision("mem1", &(&memory, event))
+        .map_err(|e| CommandError::internal(e.to_string()))?;
+    Ok(Some(MemorySnapshot { memory, revision }))
 }
 pub fn memory_inspect_inner(
     conn: &mut Connection,
@@ -120,12 +117,7 @@ pub fn memory_commit_inner(
     expected_revision: &str,
 ) -> Result<MemoryMutationReceipt, CommandError> {
     let id = target(event)?;
-    if expected_revision.len() != 69
-        || !expected_revision.starts_with("mem1:")
-        || !expected_revision[5..]
-            .bytes()
-            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
-    {
+    if !is_content_revision(expected_revision, "mem1") {
         return Err(invalid());
     }
     let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;

@@ -37,12 +37,8 @@ pub fn require_fresh(conn: &Connection) -> Result<(), CommandError> {
 }
 
 pub fn valid_revision(value: &str) -> bool {
-    value.strip_prefix("entities1:").is_some_and(|hash| {
-        hash.len() == 64
-            && hash
-                .bytes()
-                .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
-    })
+    // A streamed hash with its own framing, in the shared revision shape.
+    super::revision::is_content_revision(value, "entities1")
 }
 
 pub fn revision(conn: &Connection) -> Result<String, CommandError> {

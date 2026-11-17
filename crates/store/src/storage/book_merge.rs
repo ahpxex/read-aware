@@ -1,3 +1,4 @@
+use super::revision::content_revision;
 use super::{
     blobs::{copy_blob_file, get_blob_record_inner, register_blob_inner},
     events::{commit_events_in_transaction, projections_stale_conn},
@@ -6,7 +7,6 @@ use super::{
 use crate::error::CommandError;
 use rusqlite::{Connection, OptionalExtension, TransactionBehavior};
 use serde::Serialize;
-use sha2::{Digest, Sha256};
 use std::path::Path;
 
 fn invalid() -> CommandError {
@@ -115,10 +115,7 @@ pub fn merge_preview(conn: &Connection, id: &str) -> Result<Option<MergePreview>
             .optional()?;
         identities.push(event);
     }
-    let revision = format!(
-        "bmg1:{:x}",
-        Sha256::digest(serde_json::to_vec(&(&source, &members, identities))?)
-    );
+    let revision = content_revision("bmg1", &(&source, &members, identities))?;
     let keep = members.remove(0);
     Ok(Some(MergePreview {
         revision,

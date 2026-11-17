@@ -7,6 +7,7 @@ use super::super::{
 };
 use super::*;
 use serde_json::json;
+use sha2::{Digest, Sha256};
 
 fn event(id: &str, kind: &str, book: &str, payload: serde_json::Value, counter: i64) -> EventRow {
     EventRow {

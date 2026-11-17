@@ -1,9 +1,9 @@
 //! Classification is conditional state, not an unconditional late LLM write.
+use super::revision::{content_revision, is_content_revision};
 use super::{events::commit_events_in_transaction, EventRow};
 use crate::error::CommandError;
 use rusqlite::{Connection, OptionalExtension, TransactionBehavior};
 use serde::Serialize;
-use sha2::{Digest, Sha256};
 
 #[cfg(test)]
 #[path = "book_classification_tests.rs"]
@@ -65,13 +65,13 @@ pub fn read_snapshot(
         "SELECT id FROM domain_events WHERE aggregate_type='book' AND aggregate_id=?1 AND type IN ('book.imported','book.narrativityClassified','book.merged','book.removed') ORDER BY rowid DESC LIMIT 1",
         [id], |row| row.get(0),
     ).optional()?;
-    let bytes = serde_json::to_vec(&(id, &narrativity, spoiler_sensitive, event))
+    let revision = content_revision("bcl1", &(id, &narrativity, spoiler_sensitive, event))
         .map_err(|e| CommandError::internal(e.to_string()))?;
     Ok(Some(BookClassificationSnapshot {
         book_id: id.into(),
         narrativity,
         spoiler_sensitive,
-        revision: format!("bcl1:{:x}", Sha256::digest(bytes)),
+        revision,
     }))
 }
 pub fn book_classification_inspect_inner(
@@ -125,15 +125,7 @@ pub fn book_classification_commit_inner(
         if expected_revision.is_some() || event.origin.as_deref() != Some("agent") {
             return Err(invalid());
         }
-    } else if !expected_revision
-        .and_then(|value| value.strip_prefix("bcl1:"))
-        .is_some_and(|token| {
-            token.len() == 64
-                && token
-                    .bytes()
-                    .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
-        })
-    {
+    } else if !expected_revision.is_some_and(|value| is_content_revision(value, "bcl1")) {
         return Err(invalid());
     }
     let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;

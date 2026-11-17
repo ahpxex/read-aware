@@ -1,4 +1,5 @@
 //! Apply derived profile/entity decisions and idle completion in one transaction.
+use super::revision::is_content_revision;
 use super::{
     entity_mutations, events, identity_consolidation as identity, local_event_guard, EventRow,
 };
@@ -93,13 +94,7 @@ pub fn identity_commit_inner(
     entity_events: &[EventRow],
     complete: bool,
 ) -> Result<IdentityConsolidationReceipt, CommandError> {
-    if entity_events.len() > 32
-        || expected_revision.len() != 69
-        || !expected_revision.starts_with("icg1:")
-        || !expected_revision[5..]
-            .bytes()
-            .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
-    {
+    if entity_events.len() > 32 || !is_content_revision(expected_revision, "icg1") {
         return Err(invalid());
     }
     let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;

@@ -218,7 +218,7 @@ export function BookCover({
       {selecting ? (
         <div
           className={cn(
-            "pointer-events-none absolute left-2 top-2 flex h-5 w-5 items-center justify-center rounded-mark transition-colors",
+            "pointer-events-none absolute left-2 top-2 flex h-5 w-5 items-center justify-center rounded-full transition-colors",
             selected ? "bg-fg text-inverse-fg shadow-sm" : "border border-white/90 bg-stone-950/30 text-transparent",
           )}
           aria-hidden="true"
@@ -228,7 +228,7 @@ export function BookCover({
       ) : (
         book.starred && (
           <div
-            className="pointer-events-none absolute left-2 top-2 flex h-5 w-5 items-center justify-center rounded-mark bg-stone-950/55 text-white"
+            className="pointer-events-none absolute left-2 top-2 flex h-5 w-5 items-center justify-center rounded-full bg-stone-950/55 text-white"
             aria-hidden="true"
           >
             <Star size={11} weight="fill" />

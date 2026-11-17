@@ -63,10 +63,10 @@ export function Slider({ label, value, min, max, step, onChange, formatValue, di
           "h-4 w-full cursor-pointer appearance-none bg-transparent disabled:cursor-not-allowed",
           "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
           // Thin quiet track; the fill-strong token keeps it visible on paper.
-          "[&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:rounded-fine [&::-webkit-slider-runnable-track]:bg-fill-strong",
-          "[&::-moz-range-track]:h-1 [&::-moz-range-track]:rounded-fine [&::-moz-range-track]:bg-fill-strong",
-          "[&::-webkit-slider-thumb]:mt-[-4px] [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-mark [&::-webkit-slider-thumb]:bg-fg",
-          "[&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-mark [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-fg",
+          "[&::-webkit-slider-runnable-track]:h-1 [&::-webkit-slider-runnable-track]:rounded-full [&::-webkit-slider-runnable-track]:bg-fill-strong",
+          "[&::-moz-range-track]:h-1 [&::-moz-range-track]:rounded-full [&::-moz-range-track]:bg-fill-strong",
+          "[&::-webkit-slider-thumb]:mt-[-4px] [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-fg",
+          "[&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-0 [&::-moz-range-thumb]:bg-fg",
         )}
       />
     </label>

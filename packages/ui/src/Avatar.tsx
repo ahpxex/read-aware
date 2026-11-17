@@ -34,7 +34,7 @@ export function Avatar({ src, alt, initials, size = "md", className }: AvatarPro
     return (
       <span
         className={cn(
-          "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-mark bg-fill-strong",
+          "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-fill-strong",
           sizeClasses[size],
           className,
         )}
@@ -47,7 +47,7 @@ export function Avatar({ src, alt, initials, size = "md", className }: AvatarPro
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-mark bg-fill-strong font-sans font-medium text-fg-muted",
+        "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-fill-strong font-sans font-medium text-fg-muted",
         sizeClasses[size],
         className,
       )}

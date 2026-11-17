@@ -56,7 +56,7 @@ export function ReaderPassageMarks({ mark, defaultColor, onMark, onRemove, class
           >
             <span
               className={cn(
-                "block h-3.5 w-3.5 rounded-mark ring-1 ring-inset",
+                "block h-3.5 w-3.5 rounded-full ring-1 ring-inset",
                 mark && value === mark.color ? "ring-fg" : "ring-black/15 dark:ring-white/20",
               )}
               style={{ backgroundColor: HIGHLIGHT_COLORS[value] }}

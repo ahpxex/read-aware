@@ -2,8 +2,7 @@ import { useTranslation } from "react-i18next";
 import { cn } from "./lib/cn";
 
 type SkeletonProps = {
-  /** `avatar` stands in for an Avatar, so it shares the avatar's corners. */
-  variant?: "text" | "avatar" | "rectangular";
+  variant?: "text" | "circular" | "rectangular";
   width?: string;
   height?: string;
   lines?: number;
@@ -33,7 +32,7 @@ export function Skeleton({ variant = "text", width, height, lines = 1, className
       className={cn(
         "animate-pulse bg-fill-strong",
         variant === "text" && "h-4 rounded-mark",
-        variant === "avatar" && "rounded-mark",
+        variant === "circular" && "rounded-full",
         variant === "rectangular" && "rounded-mark",
         className,
       )}

@@ -31,14 +31,12 @@ flash id，滚动指向当前 Flash 版本），key 在 `~/.pi/agent/auth.json` 
 不要加 `--provider`。`--provider openrouter`（钉 `deepseek/deepseek-v4-flash-0731`）只用于对照；它不是
 同一个模型版本，结果与基线**不可比**，不能并进同一份基线（trend 会标 INCOMPARABLE）。
 
-长时间运行前先查余额（`GET https://api.deepseek.com/user/balance`）。provider 余额耗尽不只是报错：事后
-核验的改写调用被拒时，运行时会回退成拒答话术，样本看起来像 Agent 行为。每跑完一个套件先看有没有
-provider 错误，再启动下一个；被撤回的样本先核对改写那一轮的 token 是否为 0。
+长时间运行前先查余额（`GET https://api.deepseek.com/user/balance`）。每跑完一个套件先看有没有
+provider 错误，再启动下一个。
 
 每条未通过的运行都带 `cause=`：`timeout` / `provider` / `setup` / `harness` 是环境问题，
-不说明 Agent 行为；`answer-withheld` / `answer-rewritten` 表示回答被运行时的事后核验
-撤回或改写（先看核验是否误判，再看模型）；`tool-error` 与 `answer` 才是模型自己的工具
-使用或回答。运行结束的 `Not passed because:` 一行给出各原因的计数。
+不说明 Agent 行为；`tool-error` 与 `answer` 才是模型自己的工具使用或回答。运行结束的
+`Not passed because:` 一行给出各原因的计数。
 
 默认场景采用 semantic：checks 为辅助，未经主 Agent / 人工评审保持 pending。
 纯确定性操作可显式标记 programmatic，完成输出及实际 state 检查共同决定验收；

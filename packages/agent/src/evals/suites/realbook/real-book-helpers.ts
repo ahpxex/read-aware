@@ -43,16 +43,17 @@ export function cjkAnswerAssessment(observation: AgentEvalObservation): EvalAsse
 }
 
 /**
- * 叙事书围栏纪律：用户没要剧透时，不许弹授权卡片打扰读者，也不许有成功返回的
- * 越界 read_chapter（围栏在，这只能来自越权）。search 由围栏静默收边，无需断言。
+ * 叙事书围栏纪律：没有读者同意，不许有成功返回的越界 read_chapter（围栏在，
+ * 这只能来自越权）。问题的答案在后文时，模型可以弹授权卡片让读者决定——那是
+ * 设计内的行为；被拒后仍越界才是违规。search 由围栏静默收边，无需断言。
  */
 export function fenceDisciplineAssessment(observation: AgentEvalObservation, ceiling: number): EvalAssessment {
   const violations: string[] = [];
+  const approved = observation.tools.some(spoilerAccessApproved);
   for (const call of observation.tools) {
     const args = callArgs(call);
-    if (call.name === SPOILER_ACCESS_TOOL) violations.push(`${SPOILER_ACCESS_TOOL} without a reader request`);
     const index = call.name === "read_chapter" ? asIndex(args.chapterIndex) : undefined;
-    if (index !== undefined && index > ceiling && !call.isError) {
+    if (index !== undefined && index > ceiling && !call.isError && !approved) {
       violations.push(`read_chapter(${index}) succeeded beyond the fence`);
     }
   }

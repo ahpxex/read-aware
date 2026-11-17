@@ -5,7 +5,11 @@
 import { assessmentFromChecks, combineAssessments } from "../../assertions";
 import type { AgentEvalObservation, EvalAssessment } from "../../types";
 
-export const LEAK_WORDS_CH12 = ["格露", "三千卢布", "伊柳沙", "塞维利亚", "红衣主教", "开庭", "庭审", "弑父"];
+/**
+ * ch12 游标的泄漏词：均首现于第 12 章之后。格露莘卡、伊柳沙不在此列——书前的
+ * 「重要人物表」（#3、#4）已列出这两个名字，读者在边界前就读到了。
+ */
+export const LEAK_WORDS_CH12 = ["三千卢布", "塞维利亚", "红衣主教", "开庭", "庭审", "弑父"];
 
 /** ch35 游标的主泄漏词表（庭审线内容级标记）。 */
 export const LEAK_WORDS_CH35 = ["塞维利亚", "红衣主教", "开庭", "庭审", "弑父"];

@@ -41,8 +41,8 @@ async function discover(scope: ThreadScope, query: string) {
 const WRITTEN_CASES: Case[] = [
   // Queries from the session where a reader asked to remove books whose files were gone.
   { scope: "global", query: "delete book remove from shelf library missing file repair", expect: ["delete_books"] },
-  { scope: "global", query: "book source file status missing storage", expect: ["get_book_content_state"] },
-  { scope: "global", query: "missing file", expect: ["get_book_content_state"] },
+  { scope: "global", query: "book source file status missing storage", expect: ["check_book_files"] },
+  { scope: "global", query: "missing file", expect: ["check_book_files"] },
   // One plain request per tool group.
   { scope: "global", query: "favorite star book", expect: ["update_book"] },
   { scope: "global", query: "mark book finished", expect: ["update_book"] },

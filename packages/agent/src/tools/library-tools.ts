@@ -9,7 +9,14 @@ import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 import { normalizeBookIdParam } from "./current-book";
 import { textResult } from "./tool-result";
-import { int, obj, oneOf, opt, str } from "@earendil-works/pi-schema";
+import { bool, int, nullable, obj, oneOf, opt, str } from "@earendil-works/pi-schema";
+import {
+  BOOK_LIST_DEFAULT_LIMIT,
+  BOOK_LIST_MAX_LIMIT,
+  BOOK_LIST_SORTS,
+  queryBookList,
+  type BookListQuery,
+} from "./book-list-query";
 
 export function buildThreadTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
   const defaultBookId = scope.kind === "book" ? scope.bookId : undefined;
@@ -18,9 +25,36 @@ export function buildThreadTools(scope: ThreadScope, deps: RuntimeDeps): AgentTo
     name: "list_books",
     label: "List books",
     description:
-      "List every book on the user's shelf with title, author, collection, and reading progress. Books imported from a folder carry sourcePath (the picked folder's name plus the path below it, e.g. Books/Sci-fi/Dune.epub): use it to group them by their original folders with manage_collection when the user asks.",
-    parameters: obj({}),
-    execute: async () => textResult(await deps.library.listBooks()),
+      "List the user's shelf: {books,total,nextOffset}. Each book has title, author, format, collection, reading progress and status, fileSize in bytes, annotationCount, and fileOnDevice. fileOnDevice=false means only the shelf entry is here (title, cover, progress) and the file is not on this device; whether it can still be fetched is answered by check_book_files, so never call such a book lost or deletable from this field alone. Two entries can be the same book imported twice: entries of one format with the same fileSize are likely one file, so say so before treating either as a leftover (get_book_overview adds the original fileName). Filter instead of scanning the whole shelf (search, status, format, starred, collectionId, fileOnDevice, hasAnnotations); follow nextOffset with the same filters and sort. Books imported from a folder carry sourcePath (the picked folder's name plus the path below it, e.g. Books/Sci-fi/Dune.epub): use it to group them by their original folders with manage_collection when the user asks.",
+    parameters: obj({
+      search: opt(
+        str({ maxLength: 200, description: "Case-insensitive part of the title, author or original file name" }),
+      ),
+      status: opt(oneOf(["unread", "reading", "finished"])),
+      format: opt(oneOf(["epub", "mobi", "azw3", "fb2", "cbz", "cbr", "txt", "html", "pdf", "virtual"])),
+      starred: opt(bool()),
+      collectionId: opt(
+        nullable(str({ minLength: 1, maxLength: 256 }), {
+          description: "A collection id from list_collections, or null for books in no collection",
+        }),
+      ),
+      fileOnDevice: opt(bool({ description: "false: books whose file is not on this device" })),
+      hasAnnotations: opt(bool()),
+      sort: opt(
+        oneOf(BOOK_LIST_SORTS, {
+          description:
+            "recent = last opened first; added = newest first; progress and size = largest first. Omit for shelf order.",
+        }),
+      ),
+      offset: opt(int({ minimum: 0 })),
+      limit: opt(int({ minimum: 1, maximum: BOOK_LIST_MAX_LIMIT, description: `Default ${BOOK_LIST_DEFAULT_LIMIT}` })),
+    }),
+    execute: async (_id, params) => {
+      const page = queryBookList(await deps.library.listBooks(), params as BookListQuery);
+      // The file name mostly repeats the title and is the longest field on a large shelf;
+      // search still matches it, and get_book_overview returns it.
+      return textResult({ ...page, books: page.books.map(({ fileName: _fileName, ...book }) => book) });
+    },
   };
 
   const getBookOverview: AgentTool = {

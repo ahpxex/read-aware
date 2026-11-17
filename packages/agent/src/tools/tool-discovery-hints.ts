@@ -25,9 +25,25 @@ export const TOOL_DISCOVERY_HINTS: Readonly<Record<string, ToolDiscoveryHint>> =
     companions: ["list_collections"],
   },
   delete_collection: { keywords: ["folder", "group", "remove"], companions: ["list_collections"] },
-  get_book_content_state: {
-    keywords: ["file", "missing", "exists", "local", "downloaded", "openable", "broken", "placeholder"],
+  check_book_files: {
+    keywords: [
+      "missing",
+      "exists",
+      "lost",
+      "gone",
+      "broken",
+      "placeholder",
+      "fake",
+      "ghost",
+      "cannot open",
+      "downloaded",
+      "local",
+      "cloud",
+      "source",
+      "storage",
+    ],
   },
+  get_book_content_state: { keywords: ["revision", "changed", "source"] },
   get_book_enrichment: { keywords: ["cover", "metadata", "thumbnail"] },
   retry_book_enrichment: { keywords: ["cover", "metadata", "refresh"], companions: ["get_book_enrichment"] },
   list_duplicate_books: {

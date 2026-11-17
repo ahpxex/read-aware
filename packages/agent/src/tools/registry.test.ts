@@ -17,7 +17,7 @@ describe("agent tool registry", () => {
       };
       const tools = buildAgentTools(scope, deps);
       const names = tools.map((tool) => tool.name);
-      expect(names).toHaveLength(scope.kind === "book" ? 92 : 110);
+      expect(names).toHaveLength(scope.kind === "book" ? 93 : 111);
       expect(new Set(names).size).toBe(names.length);
       const retired = [
         ...TOOL_FAMILIES.flatMap((f) => Object.values(f.members)),

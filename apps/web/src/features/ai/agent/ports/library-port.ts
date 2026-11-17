@@ -7,6 +7,7 @@ import type { BookOverview, LibraryPort } from "@read-aware/agent";
 import type { BookStats, BookSummary, Id } from "@read-aware/core";
 import { createDomainApi } from "../../../../domain";
 import { classifyBookIfUnclassified } from "../../../../domain/book-classification";
+import { checkBookFiles } from "../../../library";
 import { agentBookImportTasks } from "../../../../domain/library-import-tasks";
 import { inspectResourceBook } from "../../../../domain/book-inspection";
 import { agentResources } from "../../../../services/resources";
@@ -24,6 +25,10 @@ function toOverview(book: BookSummary, state: BookStats | undefined): BookOvervi
     narrativity: book.narrativity,
     spoilerSensitive: book.spoilerSensitive ?? undefined,
     sourcePath: book.sourcePath,
+    fileName: book.fileName,
+    fileSize: book.fileSize,
+    fileOnDevice: book.fileOnDevice,
+    annotationCount: book.annotationCount,
     addedAt: book.addedAt,
     updatedAt: book.updatedAt,
     lastOpenedAt: book.lastOpenedAt,
@@ -49,6 +54,8 @@ export function createLibraryPort(): LibraryPort {
     resolveBookId: library.queries.books.resolveId,
     getEnrichment: library.queries.books.getEnrichment,
     getContentState: library.queries.books.getContentState,
+    // Host composition, like import tasks: not part of the library domain surface plugins receive.
+    checkBookFiles: (bookIds, signal) => checkBookFiles(bookIds, signal),
     retryEnrichment: library.commands.books.retryEnrichment,
     startImportResource: (threadKey, id, signal) =>
       agentBookImportTasks(threadKey).start({ kind: "resource", resourceId: id }, signal),

@@ -585,6 +585,27 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
         if (!books.some((book) => book.id === bookId)) throw new AppError("library/book-not-found", "Book not found");
         return { bookId, source: "file", availability: "local", sourceRevision: "fixture", contentVersion: "fixture" };
       },
+      // The fixture has no sync backend: a book marked fileOnDevice=false is a shelf entry and nothing more.
+      checkBookFiles: async (bookIds) => {
+        const unknown = (bookIds ?? []).filter((id) => !books.some((book) => book.id === id));
+        if (unknown.length) throw new AppError("library/book-not-found", `Unknown book IDs: ${unknown.join(", ")}`);
+        const targets = bookIds
+          ? books.filter((book) => bookIds.includes(book.id))
+          : books.filter((book) => book.format !== "virtual" && book.fileOnDevice === false);
+        return {
+          checks: targets.map((book) => ({
+            bookId: book.id,
+            title: book.title,
+            file:
+              book.format === "virtual"
+                ? { state: "virtual" as const }
+                : book.fileOnDevice === false
+                  ? { state: "unretrievable" as const, reason: "no-sync" as const }
+                  : { state: "on-device" as const },
+          })),
+          remaining: 0,
+        };
+      },
       retryEnrichment: async () => {
         throw new AppError("ui/unavailable", "Attach an enrichment fixture");
       },

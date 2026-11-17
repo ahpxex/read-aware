@@ -65,6 +65,17 @@ export interface BookOverview {
    * path below it (`Books/Sci-fi/Dune.epub`). Absent for books imported one by one.
    */
   sourcePath?: string;
+  /** Original file name and size in bytes; absent on virtual books. */
+  fileName?: string;
+  fileSize?: number;
+  /**
+   * Whether the book's file is on this device; absent on virtual books. False
+   * means a shelf entry (title, cover, progress) whose bytes were never fetched
+   * here: the book opens only if sync can still retrieve them.
+   */
+  fileOnDevice?: boolean;
+  /** How many highlights, notes and questions the book carries. */
+  annotationCount?: number;
   addedAt?: string;
   updatedAt?: string;
   lastOpenedAt?: string;
@@ -111,6 +122,11 @@ export interface LibraryPort {
   resolveBookId(bookId: string, signal?: AbortSignal): Promise<string | null>;
   getEnrichment(bookId: string, signal?: AbortSignal): Promise<import("@read-aware/core").BookEnrichmentSnapshot>;
   getContentState(bookId: string, signal?: AbortSignal): Promise<import("@read-aware/core").BookContentState>;
+  /** Whether each book can be opened here; no ids = the books whose file is not on this device. */
+  checkBookFiles(
+    bookIds?: readonly string[],
+    signal?: AbortSignal,
+  ): Promise<import("@read-aware/core").BookFileCheckResult>;
   retryEnrichment(bookId: string, signal?: AbortSignal): Promise<import("@read-aware/core").BookEnrichmentReceipt>;
   startImportResource(
     threadKey: string,

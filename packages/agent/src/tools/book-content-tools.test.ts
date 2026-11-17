@@ -42,3 +42,37 @@ test("both tool scopes use the content-state port with exact book scope, cancell
   await expect(book.execute("state", {}, abort.signal)).rejects.toMatchObject({ code: "plugin/cancelled" });
   expect(calls).toBe(2);
 });
+
+test("file checks cover the shelf's missing files globally and exactly one book in a book conversation", async () => {
+  const { deps } = createInMemoryDeps({
+    books: [
+      { id: "here" as Id, title: "Here", fileOnDevice: true },
+      { id: "entry-only" as Id, title: "Entry only", fileOnDevice: false },
+      { id: "feed" as Id, title: "Feed", format: "virtual" },
+    ],
+  });
+  const find = (tools: ReturnType<typeof buildBookContentTools>) =>
+    tools.find((tool) => tool.name === "check_book_files")!;
+  const read = async (tool: ReturnType<typeof find>, input: object) => {
+    const result = await tool.execute("check", input);
+    return JSON.parse((result.content[0] as { text: string }).text) as {
+      checks: Array<{ bookId: string; title: string; file: { state: string; reason?: string } }>;
+      remaining: number;
+    };
+  };
+  const global = find(buildBookContentTools({ kind: "global", threadId: "thread" }, deps));
+  // No ids: only the books whose file is not on this device, never the whole shelf.
+  expect((await read(global, {})).checks).toEqual([
+    { bookId: "entry-only", title: "Entry only", file: { state: "unretrievable", reason: "no-sync" } },
+  ]);
+  expect((await read(global, { bookIds: ["here", "feed"] })).checks.map((check) => check.file.state)).toEqual([
+    "on-device",
+    "virtual",
+  ]);
+  await expect(global.execute("check", { bookIds: ["absent"] })).rejects.toMatchObject({
+    code: "library/book-not-found",
+  });
+  const book = find(buildBookContentTools({ kind: "book", bookId: "entry-only" as Id }, deps));
+  expect((await read(book, {})).checks.map((check) => check.bookId)).toEqual(["entry-only"]);
+  await expect(book.execute("check", { bookIds: ["here"] })).rejects.toMatchObject({ code: "memory/forbidden" });
+});

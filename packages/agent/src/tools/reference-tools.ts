@@ -1,3 +1,4 @@
+import { requires } from "./tool-availability";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import {
   AppError,
@@ -64,26 +65,29 @@ export function buildReferenceTools(scope: ThreadScope, deps: RuntimeDeps, state
         return textResult(result);
       },
     },
-    {
-      name: "show_book_reference",
-      label: "Show book reference",
-      description:
-        "Show one bounded reference preview in the open book's native note popup, without navigating. Use only when the user wants to see it. Open that book first. Source and target reading fences still apply. Returns opened only after the host surface commits, or not-opened for external/blocked/missing/unsupported references. Retain the returned ID to close only this thread's preview. Offset/nextOffset can select another preview page.",
-      parameters: referenceParameters,
-      executionMode: "sequential",
-      execute: async (_id, params, signal) => {
-        const query = normalizeBookReferenceQuery(params as BookReferenceQuery);
-        const fence = access(query.reference.bookId);
-        const session = await deps.reader.getSession();
-        if (session.status !== "ready" || !session.sessionId)
-          throw new AppError("reader/unavailable", "Open the reference book first");
-        const result = await deps.reader.previewReference(threadScopeKey(scope), { ...query, ...fence }, signal, {
-          sessionId: session.sessionId,
-          bookId: query.reference.bookId,
-        });
-        return textResult(result);
+    requires(
+      {
+        name: "show_book_reference",
+        label: "Show book reference",
+        description:
+          "Show one bounded reference preview in the open book's native note popup, without navigating. Use only when the user wants to see it. Open that book first. Source and target reading fences still apply. Returns opened only after the host surface commits, or not-opened for external/blocked/missing/unsupported references. Retain the returned ID to close only this thread's preview. Offset/nextOffset can select another preview page.",
+        parameters: referenceParameters,
+        executionMode: "sequential",
+        execute: async (_id, params, signal) => {
+          const query = normalizeBookReferenceQuery(params as BookReferenceQuery);
+          const fence = access(query.reference.bookId);
+          const session = await deps.reader.getSession();
+          if (session.status !== "ready" || !session.sessionId)
+            throw new AppError("reader/unavailable", "Open the reference book first");
+          const result = await deps.reader.previewReference(threadScopeKey(scope), { ...query, ...fence }, signal, {
+            sessionId: session.sessionId,
+            bookId: query.reference.bookId,
+          });
+          return textResult(result);
+        },
       },
-    },
+      { kind: "reader" },
+    ),
     {
       name: "close_book_reference",
       label: "Close book reference",

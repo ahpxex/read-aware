@@ -1,3 +1,4 @@
+import { requires } from "./tool-availability";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import { AppError, normalizeReaderImageRequest, type ReaderImageRequest } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
@@ -20,36 +21,39 @@ export function buildImageViewerTools(scope: ThreadScope, deps: RuntimeDeps): Ag
         return textResult(scope.kind === "book" && image?.bookId !== scope.bookId ? null : image);
       },
     },
-    {
-      name: "control_reader_image",
-      label: "Adjust image viewer",
-      description:
-        "On explicit user intent, zoom in/out, rotate clockwise 90 degrees, reset, pan, or close the already-open image viewer. Copy id from get_reader_image; stale IDs cannot control another image. Pan dx/dy are fractions of viewport width/height, each -1..1; positive moves right/down, ignored at fit. Rotate resets zoom/pan, reset also clears rotation. Updated means React committed the returned state, not completed animation or a lock against concurrent user gestures. Does not open or discover images, copy bytes, or alter the reading position.",
-      parameters: obj({
-        request: union([
-          obj({
-            id: str({ minLength: 1, maxLength: 256 }),
-            action: oneOf(["zoom-in", "zoom-out", "rotate", "reset", "close"]),
-          }),
-          obj({
-            id: str({ minLength: 1, maxLength: 256 }),
-            action: lit("pan"),
-            dx: num({ minimum: -1, maximum: 1 }),
-            dy: num({ minimum: -1, maximum: 1 }),
-          }),
-        ]),
-      }),
-      executionMode: "sequential",
-      execute: async (_id, input, signal) => {
-        signal?.throwIfAborted();
-        const request = normalizeReaderImageRequest((input as { request: ReaderImageRequest }).request);
-        const current = await deps.reader.getImage();
-        signal?.throwIfAborted();
-        if (!current) throw new AppError("reader/unavailable", "No active image viewer");
-        if (current.id !== request.id || (scope.kind === "book" && current.bookId !== scope.bookId))
-          throw new AppError("reader/superseded", "Image viewer belongs to another image or book");
-        return textResult(await deps.reader.controlImage(request, signal));
+    requires(
+      {
+        name: "control_reader_image",
+        label: "Adjust image viewer",
+        description:
+          "On explicit user intent, zoom in/out, rotate clockwise 90 degrees, reset, pan, or close the already-open image viewer. Copy id from get_reader_image; stale IDs cannot control another image. Pan dx/dy are fractions of viewport width/height, each -1..1; positive moves right/down, ignored at fit. Rotate resets zoom/pan, reset also clears rotation. Updated means React committed the returned state, not completed animation or a lock against concurrent user gestures. Does not open or discover images, copy bytes, or alter the reading position.",
+        parameters: obj({
+          request: union([
+            obj({
+              id: str({ minLength: 1, maxLength: 256 }),
+              action: oneOf(["zoom-in", "zoom-out", "rotate", "reset", "close"]),
+            }),
+            obj({
+              id: str({ minLength: 1, maxLength: 256 }),
+              action: lit("pan"),
+              dx: num({ minimum: -1, maximum: 1 }),
+              dy: num({ minimum: -1, maximum: 1 }),
+            }),
+          ]),
+        }),
+        executionMode: "sequential",
+        execute: async (_id, input, signal) => {
+          signal?.throwIfAborted();
+          const request = normalizeReaderImageRequest((input as { request: ReaderImageRequest }).request);
+          const current = await deps.reader.getImage();
+          signal?.throwIfAborted();
+          if (!current) throw new AppError("reader/unavailable", "No active image viewer");
+          if (current.id !== request.id || (scope.kind === "book" && current.bookId !== scope.bookId))
+            throw new AppError("reader/superseded", "Image viewer belongs to another image or book");
+          return textResult(await deps.reader.controlImage(request, signal));
+        },
       },
-    },
+      { kind: "image-viewer" },
+    ),
   ];
 }

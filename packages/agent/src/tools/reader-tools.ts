@@ -1,3 +1,4 @@
+import { requires } from "./tool-availability";
 import type { AgentTool } from "@earendil-works/pi-agent-core";
 import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
@@ -202,130 +203,142 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
       }
     },
   };
-  const control: AgentTool = {
-    name: "navigate_reading",
-    label: "Navigate reading",
-    description:
-      "Move back/forward through explicit jumps and ordinary in-book links; turn next/previous page; next-chapter/previous-chapter follows flattened TOC targets (including subsections), while next-section/previous-section follows linear source sections; start/end jumps to book boundaries. Chapter steps skip consecutive duplicate targets, stay put at TOC boundaries or without a TOC; an unknown current TOC position uses first/last target. These are not printed chapter numbers. Section steps skip non-linear notes. Chapter/section/start/end jumps enter shared history; ordinary page and unit steps do not. next-unit/previous-unit continues the active text mode, reporting moved/start-of-book/end-of-book; return-to-unit requires get_reading_session.mode.position. close closes reading. reload reopens the current source in a new session and clears selection. Virtual sections preserve a source-verified unchanged location across reorder; changed/missing/legacy locations and file sources restart at the beginning; use only for an explicit refresh request. A virtual provider may fetch new content, but reload does not itself refresh its private cache. Returns the actual completed location, not dispatch acknowledgement or permission to read spoilers. Use open_book for a specific target.",
-    parameters: obj({
-      action: oneOf([
-        "back",
-        "forward",
-        "next",
-        "previous",
-        "next-section",
-        "previous-section",
-        "next-chapter",
-        "previous-chapter",
-        "start",
-        "end",
-        "next-unit",
-        "previous-unit",
-        "return-to-unit",
-        "close",
-        "reload",
-      ]),
-    }),
-    executionMode: "sequential",
-    execute: async (_id, params, signal) => {
-      const current = await deps.reader.getSession();
-      if (scope.kind === "book" && current.bookId !== scope.bookId)
-        throw new Error("This book is not the active reader");
-      const { action } = params as {
-        action:
-          | ReadingStep
-          | "back"
-          | "forward"
-          | "next-unit"
-          | "previous-unit"
-          | "return-to-unit"
-          | "close"
-          | "reload";
-      };
-      const guard = {
-        sessionId: current.sessionId ?? undefined,
-        ...(scope.kind === "book" ? { bookId: scope.bookId } : {}),
-      };
-      if (action === "close") {
-        await deps.reader.close(signal, guard);
-        return textResult({ status: "completed", closed: true });
-      }
-      if (action === "reload") return textResult(await deps.reader.reload(signal, guard));
-      if (action === "return-to-unit") return textResult(await deps.reader.returnToMode(signal, guard));
-      if (action === "next-unit" || action === "previous-unit")
-        return textResult(await deps.reader.stepMode(action === "next-unit" ? "next" : "previous", signal, guard));
-      const result =
-        action === "back"
-          ? await deps.reader.back(signal, guard)
-          : action === "forward"
-            ? await deps.reader.forward(signal, guard)
-            : await deps.reader.step(action, signal, guard);
-      return textResult(result);
-    },
-  };
-  const playback: AgentTool = {
-    name: "control_read_aloud",
-    label: "Control read aloud",
-    description:
-      "Start or stop read aloud in the active text-unit reading mode. Inspect get_reading_session.playback first; an inactive mode or missing unit/voice is unavailable. Start completes only when audio starts, not when synthesis is requested. Does not grant access to passage text. Stop does not rewind the reading position.",
-    parameters: obj({ action: oneOf(["start", "stop"]) }),
-    executionMode: "sequential",
-    execute: async (_id, params, signal) => {
-      const current = await deps.reader.getSession();
-      if (!current.sessionId || (scope.kind === "book" && current.bookId !== scope.bookId))
-        throw new Error("This book is not the active reader");
-      const { action } = params as { action: "start" | "stop" };
-      return textResult(
-        await deps.reader.controlPlayback(action, signal, {
-          sessionId: current.sessionId,
+  const control: AgentTool = requires(
+    {
+      name: "navigate_reading",
+      label: "Navigate reading",
+      description:
+        "Move back/forward through explicit jumps and ordinary in-book links; turn next/previous page; next-chapter/previous-chapter follows flattened TOC targets (including subsections), while next-section/previous-section follows linear source sections; start/end jumps to book boundaries. Chapter steps skip consecutive duplicate targets, stay put at TOC boundaries or without a TOC; an unknown current TOC position uses first/last target. These are not printed chapter numbers. Section steps skip non-linear notes. Chapter/section/start/end jumps enter shared history; ordinary page and unit steps do not. next-unit/previous-unit continues the active text mode, reporting moved/start-of-book/end-of-book; return-to-unit requires get_reading_session.mode.position. close closes reading. reload reopens the current source in a new session and clears selection. Virtual sections preserve a source-verified unchanged location across reorder; changed/missing/legacy locations and file sources restart at the beginning; use only for an explicit refresh request. A virtual provider may fetch new content, but reload does not itself refresh its private cache. Returns the actual completed location, not dispatch acknowledgement or permission to read spoilers. Use open_book for a specific target.",
+      parameters: obj({
+        action: oneOf([
+          "back",
+          "forward",
+          "next",
+          "previous",
+          "next-section",
+          "previous-section",
+          "next-chapter",
+          "previous-chapter",
+          "start",
+          "end",
+          "next-unit",
+          "previous-unit",
+          "return-to-unit",
+          "close",
+          "reload",
+        ]),
+      }),
+      executionMode: "sequential",
+      execute: async (_id, params, signal) => {
+        const current = await deps.reader.getSession();
+        if (scope.kind === "book" && current.bookId !== scope.bookId)
+          throw new Error("This book is not the active reader");
+        const { action } = params as {
+          action:
+            | ReadingStep
+            | "back"
+            | "forward"
+            | "next-unit"
+            | "previous-unit"
+            | "return-to-unit"
+            | "close"
+            | "reload";
+        };
+        const guard = {
+          sessionId: current.sessionId ?? undefined,
           ...(scope.kind === "book" ? { bookId: scope.bookId } : {}),
-        }),
-      );
+        };
+        if (action === "close") {
+          await deps.reader.close(signal, guard);
+          return textResult({ status: "completed", closed: true });
+        }
+        if (action === "reload") return textResult(await deps.reader.reload(signal, guard));
+        if (action === "return-to-unit") return textResult(await deps.reader.returnToMode(signal, guard));
+        if (action === "next-unit" || action === "previous-unit")
+          return textResult(await deps.reader.stepMode(action === "next-unit" ? "next" : "previous", signal, guard));
+        const result =
+          action === "back"
+            ? await deps.reader.back(signal, guard)
+            : action === "forward"
+              ? await deps.reader.forward(signal, guard)
+              : await deps.reader.step(action, signal, guard);
+        return textResult(result);
+      },
     },
-  };
-  const mode: AgentTool = {
-    name: "configure_reading_mode",
-    label: "Configure reading mode",
-    description:
-      "Enable or disable a text-unit reading mode. Discover registered providers and their units in get_reading_session.mode.availableModes. selectModeKey chooses one of those keys; modeKey is only a precondition for the previously selected provider. Without unitId a new provider uses its saved/default unit. Selection preserves no old provider's ordinal and waits for actual indexing (or inactive cleanup); empty means no units, failure rejects. It never installs providers or starts audio.",
-    parameters: obj({
-      active: bool(),
-      modeKey: opt(str()),
-      selectModeKey: opt(str()),
-      unitId: opt(str()),
-    }),
-    executionMode: "sequential",
-    execute: async (_id, params, signal) => {
-      const current = await deps.reader.getSession();
-      if (!current.sessionId || (scope.kind === "book" && current.bookId !== scope.bookId))
-        throw new Error("This book is not the active reader");
-      return textResult(
-        await deps.reader.configureMode(params as import("@read-aware/core").ReadingModeConfiguration, signal, {
-          sessionId: current.sessionId,
-          ...(scope.kind === "book" ? { bookId: scope.bookId } : {}),
-        }),
-      );
+    { kind: "reader", whileLoading: true },
+  );
+  const playback: AgentTool = requires(
+    {
+      name: "control_read_aloud",
+      label: "Control read aloud",
+      description:
+        "Start or stop read aloud in the active text-unit reading mode. Inspect get_reading_session.playback first; an inactive mode or missing unit/voice is unavailable. Start completes only when audio starts, not when synthesis is requested. Does not grant access to passage text. Stop does not rewind the reading position.",
+      parameters: obj({ action: oneOf(["start", "stop"]) }),
+      executionMode: "sequential",
+      execute: async (_id, params, signal) => {
+        const current = await deps.reader.getSession();
+        if (!current.sessionId || (scope.kind === "book" && current.bookId !== scope.bookId))
+          throw new Error("This book is not the active reader");
+        const { action } = params as { action: "start" | "stop" };
+        return textResult(
+          await deps.reader.controlPlayback(action, signal, {
+            sessionId: current.sessionId,
+            ...(scope.kind === "book" ? { bookId: scope.bookId } : {}),
+          }),
+        );
+      },
     },
-  };
-  const controls: AgentTool = {
-    name: "set_reader_controls",
-    label: "Reader controls",
-    description:
-      "Show or hide the current reader's header and docked panels. Query get_reading_session.controls first. This changes only chrome visibility: it does not open/close a book, change saved panel choices, start/stop audio, or move the reading position. Completes when the UI commits. Use only for an explicit user request.",
-    parameters: obj({ visible: bool() }),
-    executionMode: "sequential",
-    execute: async (_id, params, signal) => {
-      const current = await deps.reader.getSession();
-      if (!current.sessionId || (scope.kind === "book" && current.bookId !== scope.bookId))
-        throw new Error("This book is not the active reader");
-      return textResult(
-        await deps.reader.setControls((params as { visible: boolean }).visible, signal, {
-          sessionId: current.sessionId,
-          ...(scope.kind === "book" ? { bookId: scope.bookId } : {}),
-        }),
-      );
+    { kind: "reader", needs: ["playback"] },
+  );
+  const mode: AgentTool = requires(
+    {
+      name: "configure_reading_mode",
+      label: "Configure reading mode",
+      description:
+        "Enable or disable a text-unit reading mode. Discover registered providers and their units in get_reading_session.mode.availableModes. selectModeKey chooses one of those keys; modeKey is only a precondition for the previously selected provider. Without unitId a new provider uses its saved/default unit. Selection preserves no old provider's ordinal and waits for actual indexing (or inactive cleanup); empty means no units, failure rejects. It never installs providers or starts audio.",
+      parameters: obj({
+        active: bool(),
+        modeKey: opt(str()),
+        selectModeKey: opt(str()),
+        unitId: opt(str()),
+      }),
+      executionMode: "sequential",
+      execute: async (_id, params, signal) => {
+        const current = await deps.reader.getSession();
+        if (!current.sessionId || (scope.kind === "book" && current.bookId !== scope.bookId))
+          throw new Error("This book is not the active reader");
+        return textResult(
+          await deps.reader.configureMode(params as import("@read-aware/core").ReadingModeConfiguration, signal, {
+            sessionId: current.sessionId,
+            ...(scope.kind === "book" ? { bookId: scope.bookId } : {}),
+          }),
+        );
+      },
     },
-  };
+    { kind: "reader", needs: ["modes"] },
+  );
+  const controls: AgentTool = requires(
+    {
+      name: "set_reader_controls",
+      label: "Reader controls",
+      description:
+        "Show or hide the current reader's header and docked panels. Query get_reading_session.controls first. This changes only chrome visibility: it does not open/close a book, change saved panel choices, start/stop audio, or move the reading position. Completes when the UI commits. Use only for an explicit user request.",
+      parameters: obj({ visible: bool() }),
+      executionMode: "sequential",
+      execute: async (_id, params, signal) => {
+        const current = await deps.reader.getSession();
+        if (!current.sessionId || (scope.kind === "book" && current.bookId !== scope.bookId))
+          throw new Error("This book is not the active reader");
+        return textResult(
+          await deps.reader.setControls((params as { visible: boolean }).visible, signal, {
+            sessionId: current.sessionId,
+            ...(scope.kind === "book" ? { bookId: scope.bookId } : {}),
+          }),
+        );
+      },
+    },
+    { kind: "reader", needs: ["controls"] },
+  );
   const panelState: AgentTool = {
     name: "get_reader_panels",
     label: "Reader panels",
@@ -337,48 +350,57 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
       return textResult(scope.kind === "book" && snapshot?.bookId !== scope.bookId ? null : snapshot);
     },
   };
-  const panelControl: AgentTool = {
-    name: "set_reader_panel",
-    label: "Set reader panel",
-    description:
-      "Explicitly open or close toc, annotations, appearance or chat for a user request. Query reader_panels(request.operation=inspect) first. Opening also reveals reader controls; In docked layout TOC/chat choices persist per book; in exclusive (narrow-window) layout they are transient full-screen sheets, only one open at a time, and close when controls hide. Annotations/appearance are always transient. Completes after required persistence and a UI commit, not animation or data loading. Does not change reading position or start an AI turn.",
-    parameters: obj({
-      panel: oneOf(["toc", "annotations", "appearance", "chat"]),
-      open: bool(),
-    }),
-    executionMode: "sequential",
-    execute: async (_id, params, signal) => {
-      const current = await deps.reader.getPanels();
-      if (!current) throw new AppError("reader/unavailable", "Reader panels are not attached");
-      if (scope.kind === "book" && current.bookId !== scope.bookId)
-        throw new AppError("reader/superseded", "This book is not the active reader");
-      const { panel, open } = params as { panel: import("@read-aware/core").ReaderPanel; open: boolean };
-      return textResult(
-        await deps.reader.setPanel(panel, open, signal, { bookId: current.bookId, sessionId: current.sessionId }),
-      );
+  const panelControl: AgentTool = requires(
+    {
+      name: "set_reader_panel",
+      label: "Set reader panel",
+      description:
+        "Explicitly open or close toc, annotations, appearance or chat for a user request. Query reader_panels(request.operation=inspect) first. Opening also reveals reader controls; In docked layout TOC/chat choices persist per book; in exclusive (narrow-window) layout they are transient full-screen sheets, only one open at a time, and close when controls hide. Annotations/appearance are always transient. Completes after required persistence and a UI commit, not animation or data loading. Does not change reading position or start an AI turn.",
+      parameters: obj({
+        panel: oneOf(["toc", "annotations", "appearance", "chat"]),
+        open: bool(),
+      }),
+      executionMode: "sequential",
+      execute: async (_id, params, signal) => {
+        const current = await deps.reader.getPanels();
+        if (!current) throw new AppError("reader/unavailable", "Reader panels are not attached");
+        if (scope.kind === "book" && current.bookId !== scope.bookId)
+          throw new AppError("reader/superseded", "This book is not the active reader");
+        const { panel, open } = params as { panel: import("@read-aware/core").ReaderPanel; open: boolean };
+        return textResult(
+          await deps.reader.setPanel(panel, open, signal, { bookId: current.bookId, sessionId: current.sessionId }),
+        );
+      },
     },
-  };
-  const panelWidth: AgentTool = {
-    name: "set_reader_panel_width",
-    label: "Resize reader panel",
-    description:
-      "Set a preferred TOC/chat width for an explicit user request. Integer 240..640 CSS pixels, shared across books and persisted on this device. Query reader_panels(request.operation=inspect) first. Completes after persistence and a matching UI commit; does not open the panel, reveal controls, move reading position or focus. Exclusive narrow-window layout ignores the saved width until docked layout resumes. Cancellation cannot undo an already dispatched write.",
-    parameters: obj({
-      panel: oneOf(["toc", "chat"]),
-      width: int({ minimum: 240, maximum: 640 }),
-    }),
-    executionMode: "sequential",
-    execute: async (_id, params, signal) => {
-      const current = await deps.reader.getPanels();
-      if (!current) throw new AppError("reader/unavailable", "Reader panels are not attached");
-      if (scope.kind === "book" && current.bookId !== scope.bookId)
-        throw new AppError("reader/superseded", "This book is not the active reader");
-      const { panel, width } = params as { panel: import("@read-aware/core").ResizableReaderPanel; width: number };
-      return textResult(
-        await deps.reader.setPanelWidth(panel, width, signal, { bookId: current.bookId, sessionId: current.sessionId }),
-      );
+    { kind: "reader", needs: ["panels"] },
+  );
+  const panelWidth: AgentTool = requires(
+    {
+      name: "set_reader_panel_width",
+      label: "Resize reader panel",
+      description:
+        "Set a preferred TOC/chat width for an explicit user request. Integer 240..640 CSS pixels, shared across books and persisted on this device. Query reader_panels(request.operation=inspect) first. Completes after persistence and a matching UI commit; does not open the panel, reveal controls, move reading position or focus. Exclusive narrow-window layout ignores the saved width until docked layout resumes. Cancellation cannot undo an already dispatched write.",
+      parameters: obj({
+        panel: oneOf(["toc", "chat"]),
+        width: int({ minimum: 240, maximum: 640 }),
+      }),
+      executionMode: "sequential",
+      execute: async (_id, params, signal) => {
+        const current = await deps.reader.getPanels();
+        if (!current) throw new AppError("reader/unavailable", "Reader panels are not attached");
+        if (scope.kind === "book" && current.bookId !== scope.bookId)
+          throw new AppError("reader/superseded", "This book is not the active reader");
+        const { panel, width } = params as { panel: import("@read-aware/core").ResizableReaderPanel; width: number };
+        return textResult(
+          await deps.reader.setPanelWidth(panel, width, signal, {
+            bookId: current.bookId,
+            sessionId: current.sessionId,
+          }),
+        );
+      },
     },
-  };
+    { kind: "reader", needs: ["panels"] },
+  );
   return [
     openBook,
     session,

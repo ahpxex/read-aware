@@ -121,6 +121,12 @@ pub(super) fn table(name: &str) -> Result<RowPolicy, CommandError> {
         | "annotations_fts_content"
         | "annotations_fts_docsize"
         | "annotations_fts_config"
+        | "memories_fts"
+        | "memories_fts_data"
+        | "memories_fts_idx"
+        | "memories_fts_content"
+        | "memories_fts_docsize"
+        | "memories_fts_config"
         | "sqlite_sequence"
         | "sqlite_stat1"
         | "sqlite_stat4" => Rebuild,

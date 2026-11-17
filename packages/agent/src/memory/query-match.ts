@@ -59,7 +59,7 @@ function parts(query: string): Part[] {
   const out: Part[] = [];
   segment(
     query,
-    (word) => out.push({ tokens: [fold(word)], prefix: true, distinctive: [...word].length >= 4 }),
+    (word) => out.push({ tokens: [fold(word)], prefix: true, distinctive: Array.from(word).length >= 4 }),
     (run) =>
       out.push(
         run.length === 1

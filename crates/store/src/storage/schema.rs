@@ -1372,7 +1372,17 @@ pub fn register_sql_functions(conn: &Connection) -> Result<(), CommandError> {
         1,
         FunctionFlags::SQLITE_UTF8 | FunctionFlags::SQLITE_DETERMINISTIC,
         |ctx| {
-            let text: String = ctx.get(0)?;
+            // Index whatever the row holds: SQLite keeps invalid UTF-8 or a blob
+            // in a TEXT column, and a trigger must not fail the write for it.
+            use rusqlite::types::ValueRef;
+            let text = match ctx.get_raw(0) {
+                ValueRef::Text(bytes) | ValueRef::Blob(bytes) => {
+                    String::from_utf8_lossy(bytes).into_owned()
+                }
+                ValueRef::Integer(value) => value.to_string(),
+                ValueRef::Real(value) => value.to_string(),
+                ValueRef::Null => String::new(),
+            };
             Ok(fts_segment(&text))
         },
     )?;

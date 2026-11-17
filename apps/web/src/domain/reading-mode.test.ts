@@ -526,3 +526,40 @@ test("changing mode cancels an in-flight return before it can commit navigation 
   expect(runtime.snapshot().history.canGoBack).toBe(false);
   runtime.closed();
 });
+
+test("a book opened with the mode on keeps stepping after its controller is bound again", async () => {
+  const runtime = new ReadingSessionController();
+  const id = runtime.begin("book");
+  const location = { bookId: "book", contentVersion: "v1", cfi: "first" };
+  runtime.attach(id, { navigate: async () => location, step: async () => location }, location);
+  // Opened with the mode already on: no configuration request ever runs.
+  const controller = new ReadingModeController(true, "sentence", 1000, "test:mode");
+  controller.requireDurability();
+  controller.environment(
+    { key: "test:mode", label: "Test mode", defaultUnitId: "sentence", units: [{ id: "sentence", label: "Sentence" }] },
+    true,
+  );
+  const ready = { status: "ready" as const, progress: { ordinal: 1, total: 2 }, cfiRange: "first" };
+  controller.feedback(controller.generation(), "test:mode", "sentence", ready);
+  // The reader binds, releases and binds the same controller again (a session
+  // rebind retires the previous binding's adapter, which is this controller).
+  runtime.bindMode(id, controller)();
+  runtime.bindMode(id, controller);
+  const position = (cfi: string) => ({
+    modeKey: "test:mode",
+    unitId: "sentence",
+    location: { bookId: "book", contentVersion: "v1", cfi },
+  });
+  controller.bindStepper(async () => {
+    const feedback = {
+      status: "ready" as const,
+      progress: { ordinal: 2, total: 2 },
+      cfiRange: "next",
+      position: position("next"),
+    };
+    controller.feedback(controller.generation(), "test:mode", "sentence", feedback);
+    controller.persistPosition(controller.generation(), "test:mode", "sentence", async () => {}, position("next"));
+    return { outcome: "moved", feedback };
+  });
+  expect(await runtime.stepMode("next")).toMatchObject({ status: "completed", outcome: "moved" });
+});

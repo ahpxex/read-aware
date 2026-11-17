@@ -23,25 +23,26 @@ function samePosition(a: ReadingModePosition | null, b: ReadingModePosition | nu
 export class ReadingModePositionWrites {
   private revision = 0;
   private serial = 0;
-  private retired = false;
+  /** Bumped when the reader binding ends: receipts already awaited then are
+   * superseded, while the next binding of the same request saves afresh. */
+  private binding = 0;
   private latest: Receipt | undefined;
   private readonly writes = new ReadingModeWrites();
 
   start(revision: number): void {
     this.revision = revision;
-    this.retired = false;
     this.latest = undefined;
     this.writes.start(++this.serial);
   }
 
   retire(): void {
-    this.retired = true;
+    this.binding++;
     this.latest = undefined;
     this.writes.start(++this.serial);
   }
 
   track(revision: number, position: ReadingModePosition | null, done: Promise<void>, retry: () => void): void {
-    if (this.retired || revision !== this.revision) {
+    if (revision !== this.revision) {
       void done.catch(() => {}); // The obsolete writer still owns logging its failure.
       return;
     }
@@ -64,11 +65,12 @@ export class ReadingModePositionWrites {
     signal: AbortSignal,
     retry?: number,
   ): Promise<void> {
+    const binding = this.binding;
     // Let the commit's remaining React effects register their exact position.
     await Promise.resolve();
     const check = () => {
       if (signal.aborted) throw signal.reason;
-      if (this.retired || revision !== this.revision)
+      if (binding !== this.binding || revision !== this.revision)
         throw new AppError("reader/superseded", "Reading mode changed during position persistence");
       if (!this.latest) {
         if (position) throw new AppError("reader/unavailable", "Reading position has no persistence receipt");

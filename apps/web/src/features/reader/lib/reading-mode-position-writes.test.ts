@@ -100,7 +100,7 @@ test("cancelling a waiter releases it without waiting for an unresponsive storag
   await expect(done).rejects.toThrow("caller cancelled");
 });
 
-test("retirement rejects outstanding and same-position waiters even without a mode change", async () => {
+test("retirement supersedes outstanding waiters, and the next binding of the same request saves afresh", async () => {
   const writes = new ReadingModePositionWrites();
   writes.start(1);
   writes.track(1, position, new Promise(() => {}), () => {});
@@ -108,7 +108,9 @@ test("retirement rejects outstanding and same-position waiters even without a mo
   await Promise.resolve();
   writes.retire();
   await expect(done).rejects.toMatchObject({ code: "reader/superseded" });
-  await expect(writes.wait(1, null, signal())).rejects.toMatchObject({ code: "reader/superseded" });
+  // The same controller bound again (no mode change): its saves are receipts again.
+  writes.track(1, position, Promise.resolve(), () => {});
+  await writes.wait(1, position, signal());
   writes.start(2);
   writes.track(2, position, Promise.resolve(), () => {});
   await writes.wait(2, position, signal());

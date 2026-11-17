@@ -41,7 +41,9 @@ function channelFor(pluginId: string): DocumentWriteChannel {
 /** Private query snapshots, not write events. Each owner shares one limit.
  * A snapshot is re-read only when something announces a change: a committed
  * write through any observer of the plugin, or a projection invalidation
- * (sync pulls, restores and other processes' commits). Nothing polls. */
+ * (another process's commits). Documents are device-local, never synced; a
+ * full restore and a plugin update rollback restart the plugin, so its
+ * observers start over. Nothing polls. */
 export class PluginDocumentObserver {
   private count = 0;
   private readonly channel: DocumentWriteChannel;

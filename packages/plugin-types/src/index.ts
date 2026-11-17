@@ -2284,8 +2284,8 @@ export type PluginStorage = {
   /** Storage 2.2: initial and changed private document query snapshots, including
    * errors/recovery. At most 64 active observers per activation. The query is
    * re-read when one of its documents is written (from any surface of this
-   * plugin, another device or another process), and one callback settles before
-   * the next. Not a replayable write stream. Dispose or plugin retirement stops
+   * plugin on this device, or another process such as the CLI), and one
+   * callback settles before the next. Not a replayable write stream. Dispose or plugin retirement stops
    * delivery; sequence is not CAS. */
   observeDocuments<T = unknown>(
     query: PluginDocumentObservationQuery,

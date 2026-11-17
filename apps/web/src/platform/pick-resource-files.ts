@@ -1,8 +1,8 @@
 import { AppError, type ResourcePickOptions } from "@read-aware/core";
 import { open } from "@tauri-apps/plugin-dialog";
+import { awaitParkedPick } from "./android-parked-pick";
 import { isAndroid } from "./environment";
 
-let generation = 0;
 let picking = false;
 
 /** Native resource descriptors stay inside the host. Android returns content
@@ -33,24 +33,20 @@ export async function pickResourceFiles(options: ResourcePickOptions, signal?: A
     const bridge = window.ReadAwareAndroid;
     if (!bridge?.startResourcePick || !bridge.takeResourcePickResult)
       throw new AppError("ui/unavailable", "The native resource picker is unavailable");
-    const request = ++generation;
-    bridge.startResourcePick(request, options.multiple ?? false);
-    const deadline = performance.now() + 10 * 60 * 1000;
-    while (performance.now() < deadline) {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      const result = bridge.takeResourcePickResult();
-      if (result === null) continue;
-      const [id, ...lines] = result.split("\n").filter(Boolean);
-      if (Number(id) !== request) continue;
-      signal?.throwIfAborted();
-      if (lines.some((line) => line.startsWith("__ERROR__:")))
-        throw new AppError("ui/unavailable", "The native resource picker failed");
-      return lines.map((line) => {
-        const [path, name] = line.split("\t");
-        return { path, name: name || "File" };
-      });
-    }
-    throw new AppError("ui/unavailable", "The native resource picker timed out");
+    // Injected Java bridge methods must be called on the bridge object.
+    const startResourcePick = bridge.startResourcePick.bind(bridge);
+    const takeResourcePickResult = bridge.takeResourcePickResult.bind(bridge);
+    const lines = await awaitParkedPick(
+      {
+        start: (generation) => startResourcePick(generation, options.multiple ?? false),
+        take: () => takeResourcePickResult(),
+      },
+      signal,
+    );
+    return lines.map((line) => {
+      const [path, name] = line.split("\t");
+      return { path, name: name || "File" };
+    });
   } finally {
     picking = false;
   }

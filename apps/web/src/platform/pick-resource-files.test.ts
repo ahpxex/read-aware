@@ -67,3 +67,20 @@ test("retired callers cannot import the result, and native failures are stable e
   bridge((generation) => `${generation}\n__ERROR__:native failure`);
   await expect(pickResourceFiles({})).rejects.toMatchObject({ code: "ui/unavailable" });
 });
+
+test("the injected bridge is called as itself, as Android's Java bridge requires", async () => {
+  bridge((generation) => `${generation}\ncontent://doc\tdoc.png`);
+  const android = (globalThis as unknown as { window: { ReadAwareAndroid: Record<string, unknown> } }).window
+    .ReadAwareAndroid;
+  const start = android.startResourcePick as (generation: number, multiple: boolean) => void;
+  const take = android.takeResourcePickResult as () => string | null;
+  android.startResourcePick = function (this: unknown, generation: number, multiple: boolean) {
+    if (this !== android) throw new Error("Java bridge method can't be invoked on a non-injected object");
+    start(generation, multiple);
+  };
+  android.takeResourcePickResult = function (this: unknown) {
+    if (this !== android) throw new Error("Java bridge method can't be invoked on a non-injected object");
+    return take();
+  };
+  expect(await pickResourceFiles({})).toEqual([{ path: "content://doc", name: "doc.png" }]);
+});

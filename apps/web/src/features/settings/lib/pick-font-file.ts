@@ -1,3 +1,4 @@
+import { awaitParkedPick } from "../../../platform/android-parked-pick";
 import { invoke } from "../../../platform/ipc";
 import { open } from "@tauri-apps/plugin-dialog";
 import type { TFunction } from "i18next";
@@ -23,12 +24,6 @@ export const FONT_FILE_EXTENSIONS = ["ttf", "otf", "ttc", "woff", "woff2"] as co
 export function canImportFonts(): boolean {
   return isTauri();
 }
-
-/** Poll cadence + ceiling for the Android pick flow (book picker's numbers). */
-const PICK_POLL_INTERVAL_MS = 300;
-const PICK_POLL_TIMEOUT_MS = 10 * 60 * 1000;
-
-let pickGenerationCounter = 0;
 
 function getAndroidFontPickBridge(): AndroidFontPickBridge | null {
   if (typeof window === "undefined") return null;
@@ -58,26 +53,13 @@ async function pollFontPickAndroid(): Promise<string | null> {
  * never lose the result. Resolves to `null` on cancel.
  */
 async function pickFontsAndroid(): Promise<UserFontPick[] | null> {
-  const generation = ++pickGenerationCounter;
-  await startFontPickAndroid(generation);
-  const deadline = performance.now() + PICK_POLL_TIMEOUT_MS;
-  while (performance.now() < deadline) {
-    await new Promise((resolve) => setTimeout(resolve, PICK_POLL_INTERVAL_MS));
-    const parked = await pollFontPickAndroid();
-    if (parked == null) continue;
-    const [parkedGeneration, ...lines] = parked.split("\n").filter(Boolean);
-    // A stale result from an earlier, written-off attempt: keep waiting.
-    if (Number(parkedGeneration) !== generation) continue;
-    const nativeError = lines.find((line) => line.startsWith("__ERROR__:"));
-    if (nativeError) throw new Error(nativeError.slice("__ERROR__:".length));
-    return lines.length > 0
-      ? lines.map((line) => {
-          const [uri, name] = line.split("\t");
-          return { path: uri || line, name: name || undefined };
-        })
-      : null;
-  }
-  return null;
+  const lines = await awaitParkedPick({ start: startFontPickAndroid, take: pollFontPickAndroid });
+  return lines.length > 0
+    ? lines.map((line) => {
+        const [uri, name] = line.split("\t");
+        return { path: uri || line, name: name || undefined };
+      })
+    : null;
 }
 
 /**

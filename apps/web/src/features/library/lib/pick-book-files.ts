@@ -1,3 +1,4 @@
+import { awaitParkedPick } from "../../../platform/android-parked-pick";
 import { invoke } from "../../../platform/ipc";
 import { open } from "@tauri-apps/plugin-dialog";
 import type { TFunction } from "i18next";
@@ -70,12 +71,6 @@ export function fileNameFromPath(path: string): string {
   return segments[segments.length - 1] || path;
 }
 
-/** Poll cadence + ceiling for the Android pick flow. */
-const PICK_POLL_INTERVAL_MS = 300;
-const PICK_POLL_TIMEOUT_MS = 10 * 60 * 1000;
-
-let pickGenerationCounter = 0;
-
 function getAndroidBookPickBridge(): AndroidBookPickBridge | null {
   if (typeof window === "undefined") return null;
   const bridge = window.ReadAwareAndroid;
@@ -124,21 +119,8 @@ function parseParkedPick(line: string): AndroidBookPick {
  * invoke fallback for older shells. Resolves to `null` on cancel.
  */
 async function pickBooksAndroid(): Promise<AndroidBookPick[] | null> {
-  const generation = ++pickGenerationCounter;
-  await startBookPickAndroid(generation);
-  const deadline = performance.now() + PICK_POLL_TIMEOUT_MS;
-  while (performance.now() < deadline) {
-    await new Promise((resolve) => setTimeout(resolve, PICK_POLL_INTERVAL_MS));
-    const parked = await pollBookPickAndroid();
-    if (parked == null) continue;
-    const [parkedGeneration, ...lines] = parked.split("\n").filter(Boolean);
-    // A stale result from an earlier, written-off attempt: keep waiting.
-    if (Number(parkedGeneration) !== generation) continue;
-    const nativeError = lines.find((line) => line.startsWith("__ERROR__:"));
-    if (nativeError) throw new Error(nativeError.slice("__ERROR__:".length));
-    return lines.length > 0 ? lines.map(parseParkedPick) : null;
-  }
-  return null;
+  const lines = await awaitParkedPick({ start: startBookPickAndroid, take: pollBookPickAndroid });
+  return lines.length > 0 ? lines.map(parseParkedPick) : null;
 }
 
 /**

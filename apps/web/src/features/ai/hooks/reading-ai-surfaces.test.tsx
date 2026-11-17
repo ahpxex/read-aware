@@ -91,6 +91,7 @@ if (process.env.READING_AI_SURFACES_CASE === "1") {
             onClose={() => {}}
             ctx={{
               activeTopNav: "shelf",
+              destinations: [],
               readingBookId: "book",
               shelfView: { layout: "grid", group: "none", sort: "recent" },
               books: [],

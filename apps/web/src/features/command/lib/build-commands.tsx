@@ -1,8 +1,6 @@
 import {
   ArrowsDownUp,
   Books,
-  ChartLineUp,
-  ChatCircleDots,
   FolderSimple,
   GearSix,
   ListChecks,
@@ -52,8 +50,22 @@ export type CommandActions = {
   importFolder: () => void;
 };
 
+/** A page the "Go to" section offers — every destination the app has, built
+ *  by the caller from the same list the navigation and shelf header use. */
+export type CommandDestination = {
+  /** The destination's menu id (`core:<name>` / `plugin:<key>`). */
+  id: string;
+  topNav: TopNav;
+  title: string;
+  subtitle?: string;
+  keywords?: string;
+  icon: ReactNode;
+  disabled?: boolean;
+} & ({ hostCommand: HostCommandRequest; open?: never } | { hostCommand?: never; open: () => void });
+
 export type CommandContext = {
   activeTopNav: TopNav;
+  destinations: CommandDestination[];
   readingBookId: string | null;
   shelfView: ShelfView;
   collections: Collection[];
@@ -77,38 +89,25 @@ export function buildCommands(ctx: CommandContext, t: TFunction<"command">): Com
   const items: CommandItem[] = [];
 
   // ── Go to ────────────────────────────────────────────────────────────────
-  if (ctx.activeTopNav !== "shelf" || ctx.readingBookId !== null) {
-    items.push({
-      id: "go-shelf",
-      kind: "action",
-      group: "goto",
-      title: t("actions.goShelf.title"),
-      keywords: t("actions.goShelf.keywords"),
-      icon: icon(Books),
-      hostCommand: { id: "go-shelf" },
-    });
-  }
-  if (ctx.activeTopNav !== "stats") {
-    items.push({
-      id: "go-stats",
-      kind: "action",
-      group: "goto",
-      title: t("actions.goStats.title"),
-      keywords: t("actions.goStats.keywords"),
-      icon: icon(ChartLineUp),
-      hostCommand: { id: "go-stats" },
-    });
-  }
-  if (ctx.activeTopNav !== "agent") {
-    items.push({
-      id: "go-context",
-      kind: "action",
-      group: "goto",
-      title: t("actions.goAgent.title"),
-      keywords: t("actions.goAgent.keywords"),
-      icon: icon(ChatCircleDots),
-      hostCommand: { id: "go-context" },
-    });
+  // Every page but the one already showing; with a book open, the reader
+  // covers them all, so all are offered.
+  for (const destination of ctx.destinations) {
+    if (destination.topNav === ctx.activeTopNav && ctx.readingBookId === null) continue;
+    const common = {
+      id: `go-${destination.id}`,
+      kind: "action" as const,
+      group: "goto" as const,
+      title: destination.title,
+      subtitle: destination.subtitle,
+      keywords: destination.keywords,
+      icon: destination.icon,
+      disabled: destination.disabled,
+    };
+    items.push(
+      destination.hostCommand
+        ? { ...common, hostCommand: destination.hostCommand }
+        : { ...common, perform: destination.open },
+    );
   }
   items.push({
     id: "open-settings",

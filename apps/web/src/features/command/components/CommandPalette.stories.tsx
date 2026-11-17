@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import type { Collection, LibraryBook } from "../../library/lib/library-types";
-import type { CommandContext } from "../lib/build-commands";
+import { Books, ChartLineUp, ChatCircleDots, Notebook } from "@phosphor-icons/react";
+import type { CommandContext, CommandDestination } from "../lib/build-commands";
 import { CommandPalette } from "./CommandPalette";
 
 const noop = () => {};
@@ -73,9 +74,30 @@ const collections: Collection[] = [
   { id: "c2", name: "To read next", createdAt: "2026-06-12T00:00:00.000Z" },
 ];
 
+/** The pages "Go to" offers — in the app, every destination the menus know. */
+const destinations: CommandDestination[] = [
+  { id: "core:library", topNav: "shelf", title: "Library", icon: <Books size={16} />, hostCommand: { id: "go-shelf" } },
+  {
+    id: "core:agent",
+    topNav: "agent",
+    title: "Agent",
+    icon: <ChatCircleDots size={16} />,
+    hostCommand: { id: "go-context" },
+  },
+  { id: "core:annotations", topNav: "annotations", title: "Notes", icon: <Notebook size={16} />, open: noop },
+  {
+    id: "core:stats",
+    topNav: "stats",
+    title: "Reading stats",
+    icon: <ChartLineUp size={16} />,
+    hostCommand: { id: "go-stats" },
+  },
+];
+
 /** Shelf-at-rest context: default view, two collections, a small library. */
 const ctx: CommandContext = {
   activeTopNav: "shelf",
+  destinations,
   readingBookId: null,
   shelfView: { layout: "grid", group: "none", sort: "recent" },
   collections,

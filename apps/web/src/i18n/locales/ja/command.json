@@ -21,12 +21,10 @@
     "openBook": { "title": "本を開く" },
     "openCollection": { "title": "コレクションを開く" },
     "goShelf": {
-      "title": "ライブラリ",
-      "keywords": "本棚 蔵書 ホーム ライブラリ"
+      "title": "ライブラリ"
     },
     "goStats": {
-      "title": "読書統計",
-      "keywords": "統計 グラフ 連続 時間"
+      "title": "読書統計"
     },
     "openSettings": {
       "title": "設定",
@@ -41,12 +39,25 @@
       "keywords": "一括 複数 管理 選択"
     },
     "goAgent": {
-      "title": "ReadAwareに聞く",
-      "keywords": "エージェント AI チャット 質問 コンテキスト メモ"
+      "title": "ReadAwareに聞く"
     },
     "importFolder": {
       "title": "フォルダを読み込む",
       "keywords": "追加 フォルダ ディレクトリ 一括 import folder"
+    }
+  },
+  "destinations": {
+    "library": {
+      "keywords": "本棚 蔵書 ホーム ライブラリ"
+    },
+    "agent": {
+      "keywords": "エージェント AI チャット 質問 コンテキスト ReadAwareに聞く"
+    },
+    "annotations": {
+      "keywords": "notes highlights ノート メモ ハイライト 傍線 抜き書き"
+    },
+    "stats": {
+      "keywords": "統計 グラフ 連続 時間 読書統計"
     }
   },
   "layout": {

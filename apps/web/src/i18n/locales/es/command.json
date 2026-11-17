@@ -23,12 +23,10 @@
     "openBook": { "title": "Abrir libro" },
     "openCollection": { "title": "Abrir colección" },
     "goShelf": {
-      "title": "Biblioteca",
-      "keywords": "estantería libros inicio"
+      "title": "Biblioteca"
     },
     "goStats": {
-      "title": "Estadísticas de lectura",
-      "keywords": "estadísticas gráficos racha tiempo"
+      "title": "Estadísticas de lectura"
     },
     "openSettings": {
       "title": "Ajustes",
@@ -43,12 +41,25 @@
       "keywords": "lote múltiples gestionar"
     },
     "goAgent": {
-      "title": "Preguntar a ReadAware",
-      "keywords": "agente ia chat preguntar contexto notas"
+      "title": "Preguntar a ReadAware"
     },
     "importFolder": {
       "title": "Importar carpeta",
       "keywords": "añadir carpeta directorio biblioteca lote import folder"
+    }
+  },
+  "destinations": {
+    "library": {
+      "keywords": "estantería libros inicio Biblioteca"
+    },
+    "agent": {
+      "keywords": "agente ia chat preguntar contexto a ReadAware"
+    },
+    "annotations": {
+      "keywords": "notas resaltados anotaciones subrayados extractos"
+    },
+    "stats": {
+      "keywords": "estadísticas gráficos racha tiempo de lectura"
     }
   },
   "layout": {

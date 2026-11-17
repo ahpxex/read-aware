@@ -3,8 +3,7 @@
  * centered switcher renders them. The header's back-button reachability
  * guard keys off this list too.
  */
-import { useMenuLayouts } from "../../menus";
-import { useDestination, type Destination } from "./useDestination";
+import { useDestination, useMenuLayouts, type Destination } from "../../menus";
 
 export type PrimaryDestination = Pick<Destination, "id" | "topNav" | "label">;
 

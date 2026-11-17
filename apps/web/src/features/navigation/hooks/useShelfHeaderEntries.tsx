@@ -15,7 +15,7 @@ import { cn } from "@read-aware/ui/cn";
 import { useAtomValue } from "jotai";
 import { useTranslation } from "../../../i18n";
 import type { TopNav } from "../../../state/ui";
-import { isPluginPage, pluginMenuId, useMenuLayouts } from "../../menus";
+import { isPluginPage, pluginMenuId, useDestination, useMenuLayouts, type Destination } from "../../menus";
 import {
   actionEnabled,
   actionVisible,
@@ -27,7 +27,6 @@ import {
   type RegisteredHeaderAction,
 } from "../../plugins";
 import type { HeaderActionEntry } from "../lib/header-actions";
-import { useDestination, type Destination } from "./useDestination";
 
 export const headerIconButtonClass =
   "relative text-fg-muted hover:text-fg before:absolute before:-inset-1 before:content-['']";

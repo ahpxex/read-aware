@@ -48,11 +48,25 @@ const setting = (id: HostCommandId) =>
       : id.startsWith("group-")
         ? { path: "shelf.group", value: id.slice(6) }
         : undefined;
+/** The pages a parameterless command opens. `go-shelf` lands on the shelf's
+ *  root with nothing selected (see `target`). */
+const PAGE_COMMANDS = {
+  "go-shelf": "shelf",
+  "go-context": "agent",
+  "go-stats": "stats",
+} as const satisfies Partial<Record<HostCommandId, WorkspaceTarget["surface"]>>;
+type PageCommand = keyof typeof PAGE_COMMANDS;
+
+/** The command that opens `surface`, when the catalog has one — the native
+ *  palette runs it so its "Go to" items share the Agent's semantics. */
+export function hostCommandForPage(surface: string): PageCommand | undefined {
+  return (Object.keys(PAGE_COMMANDS) as PageCommand[]).find((id) => PAGE_COMMANDS[id] === surface);
+}
+
 function target(request: HostCommandRequest, state: WorkspaceSnapshot): WorkspaceTarget {
   const { id } = request;
   if (request.id === "open-collection") return { surface: "shelf", collectionId: request.args.collectionId };
-  if (id === "go-context") return { surface: "agent" };
-  if (id === "go-stats") return { surface: "stats" };
+  if (id === "go-context" || id === "go-stats") return { surface: PAGE_COMMANDS[id] };
   if (id === "open-settings") return { surface: "settings", section: state.settings.section ?? "general" };
   if (setting(id))
     return {

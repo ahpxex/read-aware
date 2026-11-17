@@ -1,8 +1,9 @@
 /**
  * Plugin contributions as command-palette items, independent of user menu
- * placement but respecting the current action state: explicit
- * plugin commands plus shelf header actions (pages navigate, popups open in
- * the Dialog host). Reader-surface actions stay out — they need an open book.
+ * placement but respecting the current action state: explicit plugin
+ * commands plus shelf header popups (opened in the Dialog host). Plugin
+ * pages are destinations, listed in the palette's "Go to" section with the
+ * built-in pages. Reader-surface actions stay out — they need an open book.
  */
 import { useMemo } from "react";
 import { useAtomValue } from "jotai";
@@ -14,7 +15,7 @@ import { runPluginContribution } from "../lib/run-result";
 import { headerActionsAtom, pluginCommandsAtom } from "../state/plugin-store";
 import { actionEnabled, actionVisible } from "../lib/plugin-action-state";
 
-export function usePluginCommandItems(openPluginPage: (key: string) => void): CommandItem[] {
+export function usePluginCommandItems(): CommandItem[] {
   const commands = useAtomValue(pluginCommandsAtom);
   const headerActions = useAtomValue(headerActionsAtom);
 
@@ -38,7 +39,8 @@ export function usePluginCommandItems(openPluginPage: (key: string) => void): Co
       });
     }
     for (const action of headerActions) {
-      if (action.surface !== "shelf" || !actionVisible(action)) continue;
+      // Plugin pages are destinations: the palette's "Go to" section lists them.
+      if (action.surface !== "shelf" || action.presentation === "page" || !actionVisible(action)) continue;
       items.push({
         id: `plugin-action-${action.key}`,
         kind: "action",
@@ -49,11 +51,10 @@ export function usePluginCommandItems(openPluginPage: (key: string) => void): Co
         checked: action.state?.checked,
         icon: renderPluginIcon(action.icon, 16),
         perform: () => {
-          if (action.presentation === "page") openPluginPage(action.key);
-          else void openHeaderActionDialog(action, {});
+          void openHeaderActionDialog(action, {});
         },
       });
     }
     return items;
-  }, [commands, headerActions, openPluginPage]);
+  }, [commands, headerActions]);
 }

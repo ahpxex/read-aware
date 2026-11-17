@@ -51,6 +51,7 @@ export function CommandPalette({
     [
       isOpen,
       ctx.activeTopNav,
+      ctx.destinations,
       ctx.readingBookId,
       ctx.shelfView,
       ctx.collections,

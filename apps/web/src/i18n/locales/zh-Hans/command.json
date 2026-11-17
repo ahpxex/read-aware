@@ -21,12 +21,10 @@
     "openBook": { "title": "打开书籍" },
     "openCollection": { "title": "打开集合" },
     "goShelf": {
-      "title": "书库",
-      "keywords": "shelf books home 书架 书籍 主页"
+      "title": "书库"
     },
     "goStats": {
-      "title": "阅读统计",
-      "keywords": "statistics charts streak time 统计 图表 连续 时间"
+      "title": "阅读统计"
     },
     "openSettings": {
       "title": "设置",
@@ -41,12 +39,25 @@
       "keywords": "batch multiple manage 批量 多选 管理"
     },
     "goAgent": {
-      "title": "问问 ReadAware",
-      "keywords": "agent AI 对话 问问 上下文 笔记"
+      "title": "问问 ReadAware"
     },
     "importFolder": {
       "title": "导入文件夹",
       "keywords": "添加 文件夹 目录 批量 书库 import folder"
+    }
+  },
+  "destinations": {
+    "library": {
+      "keywords": "shelf books home 书架 书籍 主页 书库"
+    },
+    "agent": {
+      "keywords": "agent AI 对话 问问 上下文 ReadAware"
+    },
+    "annotations": {
+      "keywords": "notes highlights 笔记 高亮 批注 划线 摘录"
+    },
+    "stats": {
+      "keywords": "statistics charts streak time 统计 图表 连续 时间 阅读统计"
     }
   },
   "layout": {

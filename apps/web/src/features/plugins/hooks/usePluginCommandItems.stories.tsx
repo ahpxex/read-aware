@@ -7,6 +7,8 @@ import { usePluginCommandItems } from "./usePluginCommandItems";
 
 const headerActions: RegisteredHeaderAction[] = [
   {
+    // Pages are destinations: the palette's "Go to" section lists them, so
+    // they must NOT appear here either.
     id: "notebook",
     title: "Vocabulary notebook",
     icon: "notebook",
@@ -70,7 +72,8 @@ const commands: RegisteredCommand[] = [
  * menus.
  *
  * The rule worth seeing here is what is left *out*: reader-surface actions need
- * an open book, so they never reach the global palette. These stories render
+ * an open book, so they never reach the global palette, and plugin pages are
+ * offered under "Go to" with the built-in pages. These stories render
  * the hook's output as a table, since the palette itself has its own stories.
  */
 const meta = {
@@ -82,7 +85,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 function ItemTable() {
-  const items: CommandItem[] = usePluginCommandItems(() => {});
+  const items: CommandItem[] = usePluginCommandItems();
   return (
     <div className="mx-auto max-w-2xl">
       <p className="mb-3 text-xs text-fg-subtle">{items.length} contributed commands</p>

@@ -22,12 +22,10 @@
     "openBook": { "title": "Open book" },
     "openCollection": { "title": "Open collection" },
     "goShelf": {
-      "title": "Library",
-      "keywords": "shelf books home"
+      "title": "Library"
     },
     "goStats": {
-      "title": "Reading stats",
-      "keywords": "statistics charts streak time"
+      "title": "Reading stats"
     },
     "openSettings": {
       "title": "Settings",
@@ -42,12 +40,25 @@
       "keywords": "batch multiple manage"
     },
     "goAgent": {
-      "title": "Ask ReadAware",
-      "keywords": "agent ai chat ask context notes"
+      "title": "Ask ReadAware"
     },
     "importFolder": {
       "title": "Import folder",
       "keywords": "add folder directory library books bulk"
+    }
+  },
+  "destinations": {
+    "library": {
+      "keywords": "shelf books home Library"
+    },
+    "agent": {
+      "keywords": "agent ai chat ask context ReadAware"
+    },
+    "annotations": {
+      "keywords": "notes highlights annotations underlines excerpts"
+    },
+    "stats": {
+      "keywords": "statistics charts streak time Reading stats"
     }
   },
   "layout": {

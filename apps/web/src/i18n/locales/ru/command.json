@@ -24,12 +24,10 @@
     "openBook": { "title": "Открыть книгу" },
     "openCollection": { "title": "Открыть коллекцию" },
     "goShelf": {
-      "title": "Библиотека",
-      "keywords": "полка книги главная"
+      "title": "Библиотека"
     },
     "goStats": {
-      "title": "Статистика чтения",
-      "keywords": "статистика графики серия время"
+      "title": "Статистика чтения"
     },
     "openSettings": {
       "title": "Настройки",
@@ -44,12 +42,25 @@
       "keywords": "пакет несколько управление"
     },
     "goAgent": {
-      "title": "Спросить ReadAware",
-      "keywords": "агент ии чат спросить контекст заметки"
+      "title": "Спросить ReadAware"
     },
     "importFolder": {
       "title": "Импортировать папку",
       "keywords": "добавить папка каталог библиотека пакет import folder"
+    }
+  },
+  "destinations": {
+    "library": {
+      "keywords": "полка книги главная Библиотека"
+    },
+    "agent": {
+      "keywords": "агент ии чат спросить контекст ReadAware"
+    },
+    "annotations": {
+      "keywords": "заметки выделения аннотации подчёркивания выписки"
+    },
+    "stats": {
+      "keywords": "статистика графики серия время чтения"
     }
   },
   "layout": {

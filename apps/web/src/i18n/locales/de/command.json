@@ -22,12 +22,10 @@
     "openBook": { "title": "Buch öffnen" },
     "openCollection": { "title": "Sammlung öffnen" },
     "goShelf": {
-      "title": "Bibliothek",
-      "keywords": "regal bücher start"
+      "title": "Bibliothek"
     },
     "goStats": {
-      "title": "Lesestatistik",
-      "keywords": "statistik diagramme serie zeit"
+      "title": "Lesestatistik"
     },
     "openSettings": {
       "title": "Einstellungen",
@@ -42,12 +40,25 @@
       "keywords": "stapel mehrere verwalten"
     },
     "goAgent": {
-      "title": "ReadAware fragen",
-      "keywords": "agent ki chat fragen kontext notizen"
+      "title": "ReadAware fragen"
     },
     "importFolder": {
       "title": "Ordner importieren",
       "keywords": "hinzufügen ordner verzeichnis bibliothek stapel import folder"
+    }
+  },
+  "destinations": {
+    "library": {
+      "keywords": "regal bücher start Bibliothek"
+    },
+    "agent": {
+      "keywords": "agent ki chat fragen kontext ReadAware"
+    },
+    "annotations": {
+      "keywords": "notizen markierungen hervorhebungen anmerkungen unterstreichungen"
+    },
+    "stats": {
+      "keywords": "statistik diagramme serie zeit Lesestatistik"
     }
   },
   "layout": {

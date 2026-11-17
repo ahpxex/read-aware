@@ -21,12 +21,10 @@
     "openBook": { "title": "開啟書籍" },
     "openCollection": { "title": "開啟集合" },
     "goShelf": {
-      "title": "書庫",
-      "keywords": "書架 書籍 首頁 shelf books home"
+      "title": "書庫"
     },
     "goStats": {
-      "title": "閱讀統計",
-      "keywords": "統計 圖表 連續 時間 statistics charts streak time"
+      "title": "閱讀統計"
     },
     "openSettings": {
       "title": "設定",
@@ -41,12 +39,25 @@
       "keywords": "批次 多選 管理 batch multiple manage"
     },
     "goAgent": {
-      "title": "問問 ReadAware",
-      "keywords": "agent AI 對話 問問 上下文 筆記"
+      "title": "問問 ReadAware"
     },
     "importFolder": {
       "title": "匯入資料夾",
       "keywords": "新增 資料夾 目錄 批次 書庫 import folder"
+    }
+  },
+  "destinations": {
+    "library": {
+      "keywords": "書架 書籍 首頁 shelf books home 書庫"
+    },
+    "agent": {
+      "keywords": "agent AI 對話 問問 上下文 ReadAware"
+    },
+    "annotations": {
+      "keywords": "notes highlights 筆記 標註 批註 劃線 摘錄"
+    },
+    "stats": {
+      "keywords": "統計 圖表 連續 時間 statistics charts streak time 閱讀統計"
     }
   },
   "layout": {

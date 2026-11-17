@@ -15,6 +15,9 @@ export { readerToolbarPlacementAtom, type ReaderToolbarPlacement } from "./state
 // the resolved layouts, and shares the generic dots menu.
 export { MenuOverflow, type MenuOverflowEntry } from "./components/MenuOverflow";
 export { useMenuCatalog, useMenuLayouts } from "./hooks/useMenuLayouts";
+// Pages are described once for the navigation, the shelf header and the
+// command palette's "Go to" section.
+export { useDestination, useDestinations, type Destination } from "./hooks/useDestinations";
 export { isPluginPage } from "./lib/menu-catalog";
 export { CORE_DESTINATIONS, coreDestination, type CoreDestinationMeta } from "./lib/menu-registry";
 export { pluginMenuId } from "./state/menu-config";

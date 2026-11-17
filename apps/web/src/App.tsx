@@ -38,6 +38,7 @@ import { BACK_REQUEST_EVENT, sendAppToBackground } from "./platform/back-navigat
 import { CommandPalette } from "./features/command/components/CommandPalette";
 import { FeatureErrorBoundary } from "./components/FeatureErrorBoundary";
 import type { CommandContext } from "./features/command/lib/build-commands";
+import { useDestinationCommands } from "./features/command/hooks/useDestinationCommands";
 import { PluginDialogHost } from "./features/plugins/components/PluginDialogHost";
 import { PluginUriPrompt } from "./features/plugins/components/PluginUriPrompt";
 import { PluginInstallConsentDialog } from "./features/plugins/components/PluginInstallConsentDialog";
@@ -378,9 +379,8 @@ function App() {
     [closeBook, reader.selectedBook, setActiveTopNav],
   );
 
-  const pluginCommandItems = usePluginCommandItems(
-    useCallback((key: string) => openAppSurface(`plugin:${key}`), [openAppSurface]),
-  );
+  const pluginCommandItems = usePluginCommandItems();
+  const destinationCommands = useDestinationCommands(openAppSurface);
 
   const handleCommandOpenBook = useCallback(
     (book: LibraryBook) => {
@@ -406,6 +406,7 @@ function App() {
 
   const commandContext: CommandContext = {
     activeTopNav,
+    destinations: destinationCommands,
     readingBookId: reader.selectedBook?.id ?? null,
     shelfView,
     collections: library.collections,

@@ -1,4 +1,4 @@
-import { actorFromEvent, causalActor, type DomainActor } from "../platform/domain-actor";
+import { causalActor, type DomainActor } from "../platform/domain-actor";
 import {
   AppError,
   normalizeBookImageQuery,
@@ -9,6 +9,7 @@ import {
 } from "@read-aware/core";
 import type { ReadingSessionController } from "../domain/reading-session-controller";
 import { readingRuntime } from "../domain/reading-runtime";
+import { watchReaderSession } from "../domain/reader-session-watch";
 import type { BookImageData } from "../features/library/lib/book-images";
 import { readerImage, type ReaderImageService } from "./reader-image";
 
@@ -40,7 +41,7 @@ export class ReaderImageOpenService {
     this.binding?.dispose();
     const binding: Binding = { sessionId, bookId, adapter, dispose: () => {} };
     this.binding = binding;
-    let stop = () => {};
+    let stop: () => void = () => {};
     const interrupt = (origin: DomainActor = "user") => {
       if (this.binding === binding) this.cancel(origin);
     };
@@ -51,11 +52,7 @@ export class ReaderImageOpenService {
       stop();
     };
     binding.dispose = dispose;
-    stop = this.reading.observe((state) => {
-      if (state.status !== "ready" || state.sessionId !== sessionId || state.bookId !== bookId)
-        dispose(actorFromEvent(state));
-    });
-    if (this.binding !== binding) stop();
+    stop = watchReaderSession(this.reading, { sessionId, bookId }, dispose);
     return { dispose, interrupt };
   }
 

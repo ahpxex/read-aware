@@ -2,10 +2,11 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { AppError } from "@read-aware/core";
 import { readingRuntime } from "../../../domain/reading-runtime";
 import { readerReferencePreview } from "../../../services/reader-reference-preview";
+import { PendingIntentSlot } from "../../../platform/pending-intent";
 import type { SelectionOverlayRect } from "../lib/selection-overlay";
 
 type Footnote = { anchorRect: SelectionOverlayRect | null; label: string; text: string; previewId?: string };
-type Commit = { id: string; opening: boolean; resolve(): void; reject(error: unknown): void; cleanup(): void };
+type Commit = { id: string; opening: boolean };
 
 /** Bridges native clicks and API requests into the same committed React surface. */
 export function useReferencePreview(bookId: string | undefined, fallbackLabel: string) {
@@ -13,25 +14,21 @@ export function useReferencePreview(bookId: string | undefined, fallbackLabel: s
   const [, requestCommit] = useState(0);
   const nativeInterrupt = useRef(() => {});
   const revision = useRef(0);
-  const pending = useRef<Commit | null>(null);
+  const [pending] = useState(
+    () =>
+      new PendingIntentSlot<Commit, void>({
+        deadlineMs: 10_000,
+        timeout: () => new AppError("reader/timeout", "Preview did not commit"),
+        superseded: () => new AppError("reader/superseded", "Preview commit replaced"),
+      }),
+  );
   const label = useRef(fallbackLabel);
   label.current = fallbackLabel;
-  const clearCommit = useCallback((error: unknown) => {
-    const item = pending.current;
-    pending.current = null;
-    if (item) {
-      item.cleanup();
-      item.reject(error);
-    }
-  }, []);
+  const clearCommit = useCallback((error: unknown) => pending.cancel(error), [pending]);
   useLayoutEffect(() => {
-    const item = pending.current;
-    if (!item) return;
-    if ((footnote?.previewId === item.id) === item.opening) {
-      pending.current = null;
-      item.cleanup();
-      item.resolve();
-    }
+    const intent = pending.current;
+    if (intent && (footnote?.previewId === intent.payload.id) === intent.payload.opening)
+      pending.confirm(intent, undefined);
   });
   useEffect(() => {
     let unbind = () => {},
@@ -43,24 +40,10 @@ export function useReferencePreview(bookId: string | undefined, fallbackLabel: s
           ? Promise.reject(new AppError("reader/unavailable", "Preview renderer detached"))
           : Promise.resolve();
       signal?.throwIfAborted();
-      clearCommit(new AppError("reader/superseded", "Preview commit replaced"));
-      return new Promise((resolve, reject) => {
-        const abort = () => clearCommit(signal?.reason ?? new AppError("reader/timeout", "Preview did not commit"));
-        const timer = setTimeout(abort, 10_000);
-        pending.current = {
-          id,
-          opening,
-          resolve,
-          reject,
-          cleanup: () => {
-            clearTimeout(timer);
-            signal?.removeEventListener("abort", abort);
-          },
-        };
-        signal?.addEventListener("abort", abort, { once: true });
-        setValue((previous) => (opening ? value : previous?.previewId === id ? null : previous));
-        requestCommit((value) => value + 1);
-      });
+      const { settled } = pending.begin({ id, opening }, signal);
+      setValue((previous) => (opening ? value : previous?.previewId === id ? null : previous));
+      requestCommit((value) => value + 1);
+      return settled;
     }
     const stop = readingRuntime.observe((state) => {
       const id = state.status === "ready" && state.bookId === bookId ? state.sessionId : null;
@@ -103,7 +86,7 @@ export function useReferencePreview(bookId: string | undefined, fallbackLabel: s
       nativeInterrupt.current = () => {};
       clearCommit(new AppError("reader/superseded", "Preview renderer unmounted"));
     };
-  }, [bookId, clearCommit]);
+  }, [bookId, clearCommit, pending]);
   const beginNativeFootnote = useCallback(() => {
     nativeInterrupt.current();
     clearCommit(new AppError("reader/superseded", "A native preview intent replaced the request"));

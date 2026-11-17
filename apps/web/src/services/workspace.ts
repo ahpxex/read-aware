@@ -10,6 +10,7 @@ import {
   type WorkspaceTarget,
 } from "@read-aware/core";
 import { createLogger } from "../platform/logger";
+import { PendingIntentSlot } from "../platform/pending-intent";
 
 export type WorkspaceView = Omit<WorkspaceSnapshot, "revision" | "selection"> & {
   selection: { active: boolean; bookIds: string[] };
@@ -20,16 +21,12 @@ type Adapter = {
   requestCommit(token: number): void;
 };
 type Binding = { adapter: Adapter; view: WorkspaceView; token: number; acknowledgements: Map<string, number> };
-type Pending = {
+type Request = {
   binding: Binding;
-  token: number;
   target: WorkspaceTarget;
+  /** The adapter applied it and asked for the matching commit. */
   ready: boolean;
-  controller: AbortController;
   project?: (view: WorkspaceView) => WorkspaceView;
-  resolve(receipt: WorkspaceReceipt): void;
-  reject(error: unknown): void;
-  cleanup(): void;
 };
 
 function matches(view: WorkspaceView, target: WorkspaceTarget): boolean {
@@ -50,15 +47,20 @@ function matches(view: WorkspaceView, target: WorkspaceTarget): boolean {
 /** One presentation owner for native UI, model tools and permission-gated Workers. */
 export class WorkspaceService {
   private binding?: Binding;
-  private pending?: Pending;
+  private readonly pending: PendingIntentSlot<Request, WorkspaceReceipt>;
   private revision = 0;
-  private token = 0;
   private observers = new Set<(source: object) => void>();
 
   constructor(
     private readonly report: (error: unknown) => void,
-    private readonly deadlineMs = 10_000,
-  ) {}
+    deadlineMs = 10_000,
+  ) {
+    this.pending = new PendingIntentSlot({
+      deadlineMs,
+      timeout: () => new AppError("ui/timeout", "Workspace did not commit"),
+      superseded: () => new AppError("ui/superseded", "A newer workspace intent replaced this request"),
+    });
+  }
 
   snapshot(query?: WorkspaceQuery, project?: (view: WorkspaceView) => WorkspaceView): WorkspaceSnapshot {
     const accepted = normalizeWorkspaceQuery(query);
@@ -166,72 +168,42 @@ export class WorkspaceService {
     }
     const binding = this.binding;
     if (!binding) return Promise.reject(new AppError("ui/unavailable", "Workspace is not attached"));
-    this.cancel(new AppError("ui/superseded", "A newer workspace intent replaced this request"));
     const revision = this.revision;
-    return new Promise((resolve, reject) => {
-      const controller = new AbortController();
-      const abort = () => {
-        if (this.pending?.controller === controller)
-          this.cancel(signal?.reason ?? new AppError("ui/timeout", "Workspace did not commit"));
-      };
-      const timer = setTimeout(abort, this.deadlineMs);
-      const pending: Pending = {
-        binding,
-        token: ++this.token,
-        target,
-        controller,
-        ready: false,
-        project,
-        resolve,
-        reject,
-        cleanup: () => {
-          clearTimeout(timer);
-          signal?.removeEventListener("abort", abort);
-        },
-      };
-      this.pending = pending;
-      signal?.addEventListener("abort", abort, { once: true });
-      void (async () => {
-        await binding.adapter.prepare(target, controller.signal);
-        controller.signal.throwIfAborted();
-        // Async lookups must not overwrite a newer native UI choice.
-        if (revision !== this.revision)
-          throw new AppError("ui/superseded", "Workspace changed during target validation");
-        await binding.adapter.apply(target, controller.signal, allowReaderClose, source);
-        controller.signal.throwIfAborted();
-        if (this.pending !== pending || this.binding !== binding) return;
-        pending.ready = true;
-        binding.adapter.requestCommit(pending.token);
-      })().catch((error) => {
-        if (this.pending === pending) this.cancel(error);
-      });
+    const request: Request = { binding, target, ready: false, project };
+    const { intent, settled } = this.pending.begin(request, signal);
+    void (async () => {
+      await binding.adapter.prepare(target, intent.signal);
+      intent.signal.throwIfAborted();
+      // Async lookups must not overwrite a newer native UI choice.
+      if (revision !== this.revision) throw new AppError("ui/superseded", "Workspace changed during target validation");
+      await binding.adapter.apply(target, intent.signal, allowReaderClose, source);
+      intent.signal.throwIfAborted();
+      if (!this.pending.holds(intent) || this.binding !== binding) return;
+      request.ready = true;
+      binding.adapter.requestCommit(intent.token);
+    })().catch((error) => {
+      if (this.pending.holds(intent)) this.cancel(error);
     });
+    return settled;
   }
 
   private complete(): void {
-    const pending = this.pending,
+    const intent = this.pending.current,
+      request = intent?.payload,
       binding = this.binding;
     if (
-      !pending?.ready ||
-      binding !== pending.binding ||
-      binding.token !== pending.token ||
-      binding.acknowledgements.get(pending.target.surface) !== pending.token ||
-      !matches(binding.view, pending.target)
+      !intent ||
+      !request?.ready ||
+      binding !== request.binding ||
+      binding.token !== intent.token ||
+      binding.acknowledgements.get(request.target.surface) !== intent.token ||
+      !matches(binding.view, request.target)
     )
       return;
-    const receipt: WorkspaceReceipt = { status: "completed", snapshot: this.snapshot(undefined, pending.project) };
-    this.pending = undefined;
-    pending.cleanup();
-    pending.resolve(receipt);
+    this.pending.confirm(intent, { status: "completed", snapshot: this.snapshot(undefined, request.project) });
   }
   private cancel(error: unknown): void {
-    const pending = this.pending;
-    this.pending = undefined;
-    if (pending) {
-      pending.cleanup();
-      pending.controller.abort(error);
-      pending.reject(error);
-    }
+    this.pending.cancel(error);
   }
   private notify(source: object): void {
     for (const notify of [...this.observers]) notify(source);

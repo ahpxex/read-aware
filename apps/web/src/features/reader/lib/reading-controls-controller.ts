@@ -1,26 +1,29 @@
 import { AppError, type ReadingControlsSnapshot } from "@read-aware/core";
 import { causalActor, copyEventCause, stampEventCause, type DomainActor } from "../../../platform/domain-actor";
+import { PendingIntentSlot } from "../../../platform/pending-intent";
 
 type RenderState = { visible: boolean; revision: number; origin: DomainActor };
-type Pending = {
-  state: RenderState;
-  resolve(value: ReadingControlsSnapshot): void;
-  reject(error: unknown): void;
-  cleanup(): void;
-};
 
 /** Requested state drives React; only a committed render acknowledges a command. */
 export class ReadingControlsController {
   private rendered: ReadingControlsSnapshot = stampEventCause({ visible: false });
   private desired: RenderState = { visible: false, revision: 0, origin: causalActor("system") };
-  private pending: Pending | undefined;
+  private readonly pending: PendingIntentSlot<RenderState, ReadingControlsSnapshot>;
   private readonly renderListeners = new Set<() => void>();
   private readonly observers = new Set<(origin?: DomainActor) => void>();
 
   constructor(
     private readonly report: (error: unknown) => void,
-    private readonly deadlineMs = 10_000,
-  ) {}
+    deadlineMs = 10_000,
+  ) {
+    this.pending = new PendingIntentSlot({
+      deadlineMs,
+      timeout: () => new AppError("reader/timeout", "Reader controls did not render"),
+      superseded: () => new AppError("reader/superseded", "A newer reader controls intent replaced this command"),
+      // The desired visibility returns to what is on screen.
+      onExpire: (intent) => this.render(this.rendered.visible, intent.payload.origin),
+    });
+  }
 
   getRenderState = (): RenderState => this.desired;
   subscribeRender = (listener: () => void): (() => void) => {
@@ -46,28 +49,11 @@ export class ReadingControlsController {
       return Promise.reject(new AppError("reader/invalid-target", "Controls visibility must be boolean"));
     if (signal?.aborted) return Promise.reject(signal.reason);
     origin = causalActor(origin);
-    this.cancel(new AppError("reader/superseded", "A newer reader controls intent replaced this command"));
-    return new Promise((resolve, reject) => {
-      const state = { visible, revision: this.desired.revision + 1, origin };
-      const abort = () => {
-        if (this.pending?.state !== state) return;
-        this.cancel(signal?.reason ?? new AppError("reader/timeout", "Reader controls did not render"));
-        this.render(this.rendered.visible, origin);
-      };
-      const timer = setTimeout(abort, this.deadlineMs);
-      this.pending = {
-        state,
-        resolve,
-        reject,
-        cleanup: () => {
-          clearTimeout(timer);
-          signal?.removeEventListener("abort", abort);
-        },
-      };
-      signal?.addEventListener("abort", abort, { once: true });
-      this.desired = state;
-      this.notify(this.renderListeners);
-    });
+    const state = { visible, revision: this.desired.revision + 1, origin };
+    const { settled } = this.pending.begin(state, signal);
+    this.desired = state;
+    this.notify(this.renderListeners);
+    return settled;
   }
 
   acknowledge(state: RenderState): void {
@@ -75,12 +61,9 @@ export class ReadingControlsController {
     const changed = state.visible !== this.rendered.visible;
     const rendered = stampEventCause({ visible: state.visible }, state.origin);
     this.rendered = rendered;
-    const pending = this.pending;
-    this.pending = undefined;
-    pending?.cleanup();
-    const committed = this.snapshot();
+    const intent = this.pending.current;
+    if (intent) this.pending.confirm(intent, this.snapshot());
     if (changed) this.notify(this.observers, state.origin, () => this.rendered === rendered);
-    pending?.resolve(committed);
   }
 
   retire(): void {
@@ -91,10 +74,7 @@ export class ReadingControlsController {
   }
 
   private cancel(error: unknown): void {
-    const pending = this.pending;
-    this.pending = undefined;
-    pending?.cleanup();
-    pending?.reject(error);
+    this.pending.cancel(error);
   }
   private render(visible: boolean, origin: DomainActor): void {
     this.desired = { visible, revision: this.desired.revision + 1, origin };

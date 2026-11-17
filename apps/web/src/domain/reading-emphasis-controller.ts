@@ -20,6 +20,7 @@ import {
   type DomainActor,
 } from "../platform/domain-actor";
 import type { ReadingSessionController } from "./reading-session-controller";
+import { watchReaderSession } from "./reader-session-watch";
 
 export type EmphasisPresentation = Pick<ReadingEmphasisSnapshot, "attached" | "status" | "errorCode">;
 export type ReadingEmphasisAdapter = {
@@ -58,7 +59,7 @@ export class ReadingEmphasisController {
     this.checkGuard({ sessionId, bookId });
     const binding: Binding = { sessionId, bookId, contentVersion, adapter, dispose: () => {} };
     this.binding = binding;
-    let unobserve = () => {},
+    let unobserve: () => void = () => {},
       unpaint = () => {};
     const dispose = () => {
       if (this.binding !== binding) return;
@@ -73,18 +74,9 @@ export class ReadingEmphasisController {
       for (const owner of owners) this.changed(owner, actorFromEvent(this.reading.snapshot()));
     };
     binding.dispose = dispose;
-    unobserve = this.reading.observe((state) => {
-      if (
-        state.sessionId !== sessionId ||
-        state.status !== "ready" ||
-        state.location?.contentVersion !== contentVersion
-      )
-        dispose();
-    });
-    if (this.binding !== binding) {
-      unobserve();
-      return dispose;
-    }
+    // Painted emphasis belongs to this content: new content ends it too.
+    unobserve = watchReaderSession(this.reading, { sessionId, contentVersion }, () => dispose());
+    if (this.binding !== binding) return dispose;
     unpaint = adapter.observe((id, presentation, origin) => {
       const entry = this.entries.get(id);
       if (this.binding !== binding || !entry) return;

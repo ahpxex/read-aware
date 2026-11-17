@@ -1,4 +1,4 @@
-import { actorCause, actorFromEvent, causalActor, stampEventCause, type DomainActor } from "../platform/domain-actor";
+import { actorCause, causalActor, stampEventCause, type DomainActor } from "../platform/domain-actor";
 import { observeSnapshot } from "../domain/snapshot-observation";
 import {
   AppError,
@@ -11,7 +11,9 @@ import {
 } from "@read-aware/core";
 import type { ReadingSessionController } from "../domain/reading-session-controller";
 import { readingRuntime } from "../domain/reading-runtime";
+import { watchReaderSession } from "../domain/reader-session-watch";
 import { createLogger } from "../platform/logger";
+import { PendingIntentSlot } from "../platform/pending-intent";
 
 type Identity = { id: string; bookId: string; sessionId: string };
 type Adapter = {
@@ -24,30 +26,31 @@ type Binding = {
   adapter: Adapter;
   dispose(origin?: DomainActor): void;
 };
-type Pending = {
+type Request = {
   origin: DomainActor;
   binding: Binding;
-  token: number;
   close: boolean;
-  resolve(value: ReaderImageReceipt): void;
-  reject(error: unknown): void;
-  cleanup(): void;
 };
 const superseded = () => new AppError("reader/superseded", "The image viewer or its intent changed");
 
 /** Controls only the user's already-open native lightbox; never resolves image URLs. */
 export class ReaderImageService {
   private binding?: Binding;
-  private pending?: Pending;
+  private readonly pending: PendingIntentSlot<Request, ReaderImageReceipt>;
   private revision = 0;
-  private token = 0;
   private origin: DomainActor = causalActor("system");
   private listeners = new Set<(source: object) => void>();
   constructor(
     private reading: Pick<ReadingSessionController, "snapshot" | "observe">,
     private report: (error: unknown) => void,
-    private deadlineMs = 10_000,
-  ) {}
+    deadlineMs = 10_000,
+  ) {
+    this.pending = new PendingIntentSlot({
+      deadlineMs,
+      timeout: () => new AppError("reader/timeout", "Image viewer did not commit"),
+      superseded,
+    });
+  }
 
   snapshot(): ReaderImageSnapshot | null {
     const b = this.binding,
@@ -87,12 +90,7 @@ export class ReaderImageService {
     }
   }
   private cancel(error: unknown) {
-    const pending = this.pending;
-    this.pending = undefined;
-    if (pending) {
-      pending.cleanup();
-      pending.reject(error);
-    }
+    this.pending.cancel(error);
   }
   bind(identity: Identity, adapter: Adapter, initial: ReaderImageTransform, origin: DomainActor = "user") {
     const session = this.reading.snapshot();
@@ -107,51 +105,46 @@ export class ReaderImageService {
       if (this.binding !== binding) return;
       this.binding = undefined;
       unobserve();
-      const pending = this.pending;
-      origin = causalActor(origin ?? pending?.origin ?? this.origin);
-      if (pending?.binding === binding && pending.close && actorCause(origin) === actorCause(pending.origin)) {
-        this.pending = undefined;
-        pending.cleanup();
-        pending.resolve({ status: "closed", id: identity.id });
-      } else this.cancel(superseded());
+      const intent = this.pending.current;
+      const request = intent?.payload;
+      origin = causalActor(origin ?? request?.origin ?? this.origin);
+      if (intent && request?.binding === binding && request.close && actorCause(origin) === actorCause(request.origin))
+        this.pending.confirm(intent, { status: "closed", id: identity.id });
+      else this.cancel(superseded());
       this.changed(origin);
     };
     binding.dispose = dispose;
-    unobserve = this.reading.observe((state) => {
-      if (state.status !== "ready" || state.sessionId !== identity.sessionId || state.bookId !== identity.bookId) {
-        const origin = actorFromEvent(state);
+    unobserve = watchReaderSession(
+      this.reading,
+      { sessionId: identity.sessionId, bookId: identity.bookId },
+      (origin) => {
         this.cancel(superseded());
         dispose(origin);
         adapter.close(origin);
-      }
-    });
-    if (this.binding !== binding) unobserve();
+      },
+    );
     if (this.binding === binding) this.changed(origin);
     return {
       dispose,
       publish: (view: ReaderImageTransform, token: number, origin?: DomainActor) => {
         if (this.binding !== binding) return;
-        const pending = this.pending;
-        origin = causalActor(origin ?? (pending?.token === token ? pending.origin : "user"));
+        const intent = this.pending.current;
+        const request = intent?.payload;
+        origin = causalActor(origin ?? (intent?.token === token ? request?.origin : undefined) ?? "user");
         const changed = JSON.stringify(view) !== JSON.stringify(binding.view);
         binding.view = { ...view };
-        let receipt: ReaderImageReceipt | undefined;
-        if (pending?.binding === binding && !pending.close && pending.token === token) {
-          if (actorCause(origin) !== actorCause(pending.origin)) this.cancel(superseded());
-          else {
-            this.pending = undefined;
-            pending.cleanup();
-            receipt = {
+        if (intent && request?.binding === binding && !request.close && intent.token === token) {
+          if (actorCause(origin) !== actorCause(request.origin)) this.cancel(superseded());
+          else
+            this.pending.confirm(intent, {
               status: "updated",
               snapshot: stampEventCause(
                 { ...identity, ...view, revision: this.revision + (changed ? 1 : 0) },
-                pending.origin,
+                request.origin,
               ),
-            };
-          }
+            });
         }
         if (changed) this.changed(origin);
-        if (receipt) pending!.resolve(receipt);
       },
     };
   }
@@ -163,34 +156,14 @@ export class ReaderImageService {
     if (!binding || !state) return Promise.reject(new AppError("reader/unavailable", "No active image viewer"));
     if (state.id !== request.id) return Promise.reject(superseded());
     origin = causalActor(origin);
-    this.cancel(superseded());
-    return new Promise((resolve, reject) => {
-      const abort = () => {
-        if (this.pending === pending)
-          this.cancel(signal?.reason ?? new AppError("reader/timeout", "Image viewer did not commit"));
-      };
-      const timer = setTimeout(abort, this.deadlineMs);
-      const pending: Pending = {
-        binding,
-        origin,
-        token: ++this.token,
-        close: request.action === "close",
-        resolve,
-        reject,
-        cleanup: () => {
-          clearTimeout(timer);
-          signal?.removeEventListener("abort", abort);
-        },
-      };
-      this.pending = pending;
-      signal?.addEventListener("abort", abort, { once: true });
-      try {
-        if (request.action === "close") binding.adapter.close(origin);
-        else binding.adapter.apply(request, pending.token, origin);
-      } catch (error) {
-        if (this.pending === pending) this.cancel(error);
-      }
-    });
+    const { intent, settled } = this.pending.begin({ binding, origin, close: request.action === "close" }, signal);
+    try {
+      if (request.action === "close") binding.adapter.close(origin);
+      else binding.adapter.apply(request, intent.token, origin);
+    } catch (error) {
+      if (this.pending.holds(intent)) this.cancel(error);
+    }
+    return settled;
   }
 }
 const log = createLogger("reader-image");

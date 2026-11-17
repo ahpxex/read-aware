@@ -1,4 +1,4 @@
-import { causalActor, stampEventCause, actorFromEvent, type DomainActor } from "../platform/domain-actor";
+import { causalActor, stampEventCause, type DomainActor } from "../platform/domain-actor";
 import { observeSnapshot } from "../domain/snapshot-observation";
 import {
   AppError,
@@ -10,7 +10,9 @@ import {
 } from "@read-aware/core";
 import type { ReadingSessionController } from "../domain/reading-session-controller";
 import { readingRuntime } from "../domain/reading-runtime";
+import { watchReaderSession } from "../domain/reader-session-watch";
 import { createLogger } from "../platform/logger";
+import { PendingIntentSlot } from "../platform/pending-intent";
 import { assertReaderPanelWidth, type ResizableReaderPanel } from "@read-aware/core";
 
 type Adapter = {
@@ -28,32 +30,33 @@ type Binding = {
 type Operation =
   | { panel: ReaderPanel; open: boolean; width?: never }
   | { panel: ResizableReaderPanel; width: number; open?: never };
-type Pending = Operation & {
+type Request = Operation & {
   binding: Binding;
-  token: number;
+  /** The adapter applied it and asked for the matching commit. */
   ready: boolean;
   origin: DomainActor;
-  controller: AbortController;
-  resolve(receipt: ReaderPanelReceipt): void;
-  reject(error: unknown): void;
-  cleanup(): void;
 };
 const panels: readonly ReaderPanel[] = ["toc", "annotations", "appearance", "chat"];
 
 /** S3 presentation service. The reading domain retains session and chrome ownership. */
 export class ReaderPanelsService {
   private binding?: Binding;
-  private pending?: Pending;
+  private readonly pending: PendingIntentSlot<Request, ReaderPanelReceipt>;
   private revision = 0;
   private origin: DomainActor = causalActor("system");
-  private token = 0;
   private observers = new Set<(source: object) => void>();
 
   constructor(
     private readonly reading: Pick<ReadingSessionController, "snapshot" | "observe" | "setControls">,
     private readonly report: (error: unknown) => void,
-    private readonly deadlineMs = 10_000,
-  ) {}
+    deadlineMs = 10_000,
+  ) {
+    this.pending = new PendingIntentSlot({
+      deadlineMs,
+      timeout: () => new AppError("reader/timeout", "Reader panel did not commit"),
+      superseded: () => new AppError("reader/superseded", "A newer panel intent replaced this request"),
+    });
+  }
 
   snapshot(): ReaderPanelsSnapshot | null {
     const binding = this.binding;
@@ -109,10 +112,8 @@ export class ReaderPanelsService {
       unobserve();
       this.changed(origin);
     };
-    // Observe can deliver synchronously; the initial guard already proved identity.
-    const unobserve = this.reading.observe((state) => {
-      if (state.sessionId !== sessionId || state.status !== "ready") dispose(actorFromEvent(state));
-    });
+    // The initial guard already proved identity.
+    const unobserve = watchReaderSession(this.reading, { sessionId, bookId }, dispose);
     binding.release = dispose;
     this.changed(origin);
     return {
@@ -123,21 +124,19 @@ export class ReaderPanelsService {
         const changed = JSON.stringify(binding.view) !== JSON.stringify(view);
         binding.view = structuredClone(view);
         if (hidden) this.cancel(new AppError("reader/superseded", "Reader controls were hidden"));
-        const pending = this.pending;
-        let receipt: ReaderPanelReceipt | undefined;
-        if (pending?.binding === binding && pending.ready && pending.token === token) {
-          const state = view.panels[pending.panel];
+        const intent = this.pending.current;
+        const request = intent?.payload;
+        if (intent && request?.binding === binding && request.ready && intent.token === token) {
+          const state = view.panels[request.panel];
           if (
-            pending.width !== undefined
-              ? view.sizes[pending.panel as ResizableReaderPanel] === pending.width
-              : state.open === pending.open && (!pending.open || state.visible)
-          ) {
-            this.pending = undefined;
-            pending.cleanup();
-            // Capture this commit before an observer can start another operation.
-            receipt = {
+            request.width !== undefined
+              ? view.sizes[request.panel as ResizableReaderPanel] === request.width
+              : state.open === request.open && (!request.open || state.visible)
+          )
+            // Settle with this commit before an observer can start another operation.
+            this.pending.confirm(intent, {
               status: "completed",
-              panel: pending.panel,
+              panel: request.panel,
               snapshot: stampEventCause(
                 {
                   ...structuredClone(view),
@@ -145,13 +144,12 @@ export class ReaderPanelsService {
                   bookId,
                   revision: this.revision + (changed ? 1 : 0),
                 },
-                pending.origin,
+                request.origin,
               ),
-            };
-          } else this.cancel(new AppError("reader/superseded", "Reader panel state changed before completion"));
+            });
+          else this.cancel(new AppError("reader/superseded", "Reader panel state changed before completion"));
         }
         if (changed) this.changed(origin);
-        if (receipt) pending!.resolve(receipt);
       },
     };
   }
@@ -199,50 +197,24 @@ export class ReaderPanelsService {
     if (!binding || !this.snapshot())
       return Promise.reject(new AppError("reader/unavailable", "Reader panels are not attached"));
     origin = causalActor(origin);
-    this.cancel(new AppError("reader/superseded", "A newer panel intent replaced this request"));
-    return new Promise((resolve, reject) => {
-      const controller = new AbortController();
-      const abort = () => {
-        if (this.pending?.controller === controller)
-          this.cancel(signal?.reason ?? new AppError("reader/timeout", "Reader panel did not commit"));
-      };
-      const timer = setTimeout(abort, this.deadlineMs);
-      const pending: Pending = {
-        ...operation,
-        binding,
-        controller,
-        origin,
-        token: ++this.token,
-        ready: false,
-        resolve,
-        reject,
-        cleanup: () => {
-          clearTimeout(timer);
-          signal?.removeEventListener("abort", abort);
-        },
-      };
-      this.pending = pending;
-      signal?.addEventListener("abort", abort, { once: true });
-      void (async () => {
-        if (operation.open)
-          await this.reading.setControls(
-            true,
-            controller.signal,
-            { sessionId: binding.sessionId, bookId: binding.bookId },
-            origin,
-          );
-        controller.signal.throwIfAborted();
-        if (operation.width !== undefined)
-          await binding.adapter.applyWidth(operation.panel, operation.width, controller.signal, origin);
-        else await binding.adapter.apply(operation.panel, operation.open, controller.signal, origin);
-        controller.signal.throwIfAborted();
-        if (this.pending !== pending || this.binding !== binding) return;
-        pending.ready = true;
-        binding.adapter.requestCommit(pending.token, origin);
-      })().catch((error) => {
-        if (this.pending === pending) this.cancel(error);
-      });
+    const request: Request = { ...operation, binding, origin, ready: false };
+    const { intent, settled } = this.pending.begin(request, signal);
+    void (async () => {
+      const { signal: live } = intent;
+      if (operation.open)
+        await this.reading.setControls(true, live, { sessionId: binding.sessionId, bookId: binding.bookId }, origin);
+      live.throwIfAborted();
+      if (operation.width !== undefined)
+        await binding.adapter.applyWidth(operation.panel, operation.width, live, origin);
+      else await binding.adapter.apply(operation.panel, operation.open, live, origin);
+      live.throwIfAborted();
+      if (!this.pending.holds(intent) || this.binding !== binding) return;
+      request.ready = true;
+      binding.adapter.requestCommit(intent.token, origin);
+    })().catch((error) => {
+      if (this.pending.holds(intent)) this.cancel(error);
     });
+    return settled;
   }
 
   private checkGuard(guard?: ReadingSessionGuard): void {
@@ -264,13 +236,7 @@ export class ReaderPanelsService {
       throw new AppError("reader/unavailable", "Reader panels require a ready reader");
   }
   private cancel(error: unknown): void {
-    const pending = this.pending;
-    this.pending = undefined;
-    if (pending) {
-      pending.cleanup();
-      pending.controller.abort(error);
-      pending.reject(error);
-    }
+    this.pending.cancel(error);
   }
   private changed(origin: DomainActor): void {
     this.origin = causalActor(origin);

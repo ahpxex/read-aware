@@ -9,6 +9,7 @@ import {
 } from "@read-aware/core";
 import type { ReadingSessionController } from "../domain/reading-session-controller";
 import { readingRuntime } from "../domain/reading-runtime";
+import { watchReaderSession } from "../domain/reader-session-watch";
 
 export type ReferencePreviewView = { id: string; preview: BookReferencePreview };
 type Adapter = {
@@ -42,10 +43,7 @@ export class ReaderReferencePreviewService {
       unobserve();
     };
     binding.dispose = dispose;
-    unobserve = this.reading.observe((state) => {
-      if (state.status !== "ready" || state.sessionId !== sessionId || state.bookId !== bookId) dispose();
-    });
-    if (this.binding !== binding) unobserve();
+    unobserve = watchReaderSession(this.reading, { sessionId, bookId }, () => dispose());
     return {
       dispose,
       interrupt: () => {

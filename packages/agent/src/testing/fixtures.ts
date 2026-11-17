@@ -585,7 +585,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
         if (!books.some((book) => book.id === bookId)) throw new AppError("library/book-not-found", "Book not found");
         return { bookId, source: "file", availability: "local", sourceRevision: "fixture", contentVersion: "fixture" };
       },
-      // The fixture has no sync backend: a book marked fileOnDevice=false is a shelf entry and nothing more.
+      // The fixture has no sync backend, so nobody can say whether a missing file still exists.
       checkBookFiles: async (bookIds) => {
         const unknown = (bookIds ?? []).filter((id) => !books.some((book) => book.id === id));
         if (unknown.length) throw new AppError("library/book-not-found", `Unknown book IDs: ${unknown.join(", ")}`);
@@ -600,7 +600,7 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
               book.format === "virtual"
                 ? { state: "virtual" as const }
                 : book.fileOnDevice === false
-                  ? { state: "unretrievable" as const, reason: "no-sync" as const }
+                  ? { state: "unknown" as const, reason: "no-sync" as const }
                   : { state: "on-device" as const },
           })),
           remaining: 0,

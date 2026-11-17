@@ -63,7 +63,7 @@ test("file checks cover the shelf's missing files globally and exactly one book 
   const global = find(buildBookContentTools({ kind: "global", threadId: "thread" }, deps));
   // No ids: only the books whose file is not on this device, never the whole shelf.
   expect((await read(global, {})).checks).toEqual([
-    { bookId: "entry-only", title: "Entry only", file: { state: "unretrievable", reason: "no-sync" } },
+    { bookId: "entry-only", title: "Entry only", file: { state: "unknown", reason: "no-sync" } },
   ]);
   expect((await read(global, { bookIds: ["here", "feed"] })).checks.map((check) => check.file.state)).toEqual([
     "on-device",

@@ -12,7 +12,7 @@ const shelf = [
   book("karamazov-old", {
     title: "卡拉马佐夫兄弟",
     author: "陀思妥耶夫斯基",
-    fileName: "karamazov (z-library).epub",
+    fileName: "karamazov (first import).epub",
     fileSize: 4_710_381,
     fileOnDevice: false,
     annotationCount: 13,
@@ -96,6 +96,6 @@ test("list_books carries file facts and applies the filters it is given", async 
   expect(all.total).toBe(5);
   expect(all.books[0]).toMatchObject({ fileSize: 4_710_381, fileOnDevice: false, annotationCount: 13 });
   expect(all.books[0]).not.toHaveProperty("fileName");
-  expect(ids((await run({ search: "z-library" })).books)).toEqual(["karamazov-old"]);
+  expect(ids((await run({ search: "first import" })).books)).toEqual(["karamazov-old"]);
   expect(ids((await run({ fileOnDevice: false, hasAnnotations: true })).books)).toEqual(["karamazov-old"]);
 });

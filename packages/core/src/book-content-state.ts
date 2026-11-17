@@ -12,15 +12,22 @@ export type BookContentState = {
 
 /**
  * Whether a book can be opened on this device right now, as far as its file
- * goes. `on-device` and `retrievable` open (the second after a download);
- * `unretrievable` does not, and `reason` says why with the reader's own
- * missing-file vocabulary; `unknown` could not be established this time.
+ * goes. `on-device` and `retrievable` open (the second after a download).
+ * `unretrievable` is the one answer that means the file is gone: the sync
+ * backend was asked and holds no copy. `unknown` means nobody could be asked,
+ * so the file may still exist: sync is off on this device (`no-sync`), the
+ * account is signed out or its backend is unavailable (`not-connected`), the
+ * session was refused (`unauthenticated`), the backend did not answer
+ * (`unreachable`), or it can only answer by downloading (`unverifiable`).
  */
 export type BookFileAvailability =
   | { state: "on-device" }
   | { state: "retrievable" }
-  | { state: "unretrievable"; reason: "no-sync" | "not-on-relay" }
-  | { state: "unknown"; reason: "unauthenticated" | "unreachable" | "unverifiable" }
+  | { state: "unretrievable"; reason: "not-on-relay" }
+  | {
+      state: "unknown";
+      reason: "no-sync" | "not-connected" | "unauthenticated" | "unreachable" | "unverifiable";
+    }
   /** A plugin-provided book has no file; its provider decides whether it opens. */
   | { state: "virtual" };
 

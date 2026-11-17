@@ -67,12 +67,17 @@ test("a file on this device and a virtual book are answered without asking the b
   expect(asked).toEqual([]);
 });
 
-test("no sync means nothing can fetch the file; a failed ask is unknown, never lost", async () => {
-  for (const reason of ["not-tauri", "sync-off", "not-connected"] as const)
+test("only an answer from the backend makes a file gone; when nobody could be asked it is unknown", async () => {
+  for (const reason of ["not-tauri", "sync-off"] as const)
     expect((await states({ outcome: "unavailable", reason }))["nowhere"]).toEqual({
-      state: "unretrievable",
+      state: "unknown",
       reason: "no-sync",
     });
+  // Signed out, or the backend's plugin is disabled: signing in again may bring the file back.
+  expect((await states({ outcome: "unavailable", reason: "not-connected" }))["nowhere"]).toEqual({
+    state: "unknown",
+    reason: "not-connected",
+  });
   expect((await states({ outcome: "unknown", reason: "unauthenticated" }))["on-relay"]).toEqual({
     state: "unknown",
     reason: "unauthenticated",

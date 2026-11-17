@@ -17,7 +17,9 @@ type Dependencies = {
 
 /** What the sync backend's answer means for one book whose file is not on this device. */
 function remoteAvailability(presence: RemoteBlobPresence, key: string): BookFileAvailability {
-  if (presence.outcome === "unavailable") return { state: "unretrievable", reason: "no-sync" };
+  // Nobody was asked: turning sync on, or signing in again, may still bring the file back.
+  if (presence.outcome === "unavailable")
+    return { state: "unknown", reason: presence.reason === "not-connected" ? "not-connected" : "no-sync" };
   if (presence.outcome === "unknown")
     return {
       state: "unknown",

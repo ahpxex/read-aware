@@ -143,7 +143,7 @@ deltas print next to per-scenario regressions.
 - `shelf` (S19): shelf management by what the files allow. Removing entries
   whose file can no longer be fetched while keeping books that are on the
   device, still held by sync, or virtual; refusing to remove anything when the
-  sync backend cannot be asked; pointing out an unopenable entry that shares a
+  sync backend cannot be asked (unreachable, or signed out); pointing out an unopenable entry that shares a
   file with one that opens; starring several books in one call; and finding
   books by condition. File states come from the scenario's `setup`, standing in
   for the sync backend behind `check_book_files`.

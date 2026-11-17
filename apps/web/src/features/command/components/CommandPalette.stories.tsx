@@ -17,6 +17,8 @@ const base: LibraryBook = {
   coverStatus: "none",
   coverBlobKey: null,
   coverLocal: false,
+  fileLocal: true,
+  annotationCount: 0,
   coverVersion: null,
   coverUrl: null,
   createdAt: "2026-03-13T00:00:00.000Z",

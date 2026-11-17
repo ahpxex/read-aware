@@ -37,6 +37,15 @@ pub struct LibraryBook {
     /// Content hash of the stored cover — the shelf's cache-busting token.
     #[serde(default)]
     pub cover_version: Option<String>,
+    /// Whether the book's own file is on this device. A book synced in from
+    /// another device has a shelf row and a cover before, or without, its
+    /// bytes; such a book opens only if the bytes can still be fetched.
+    /// Always false for a virtual book, which has no file. Read-only.
+    #[serde(default)]
+    pub file_local: bool,
+    /// How many highlights, notes and questions the book carries. Read-only.
+    #[serde(default)]
+    pub annotation_count: i64,
     /// Pre-v24 wire shape (backup files, the IndexedDB sweep): an inline
     /// data-URL cover. Accepted on write and lifted into the blob store.
     #[serde(default, skip_serializing)]
@@ -103,6 +112,8 @@ pub fn row_to_library_book(row: &rusqlite::Row) -> rusqlite::Result<LibraryBook>
         cover_blob_key: row.get("cover_blob_key")?,
         cover_local: row.get::<_, Option<i64>>("cover_local")?.unwrap_or(0) != 0,
         cover_version: row.get("cover_version")?,
+        file_local: row.get::<_, Option<i64>>("file_local")?.unwrap_or(0) != 0,
+        annotation_count: row.get("annotation_count")?,
         cover_url: None,
         created_at: row.get("created_at")?,
         updated_at: row.get("updated_at")?,
@@ -119,17 +130,21 @@ pub fn row_to_library_book(row: &rusqlite::Row) -> rusqlite::Result<LibraryBook>
     })
 }
 
-/// The shelf's read model, joined with the cover blob's local presence and
-/// hash. Explicit columns: the payload is exactly what the shelf lists, and
-/// never carries image bytes.
+/// The shelf's read model, joined with the local presence of the cover and of
+/// the book's own file, the cover hash, and the annotation count. Explicit
+/// columns: the payload is exactly what the shelf lists, and never carries
+/// image bytes.
 pub const BOOK_SELECT: &str = "SELECT b.id, b.title, b.author, b.format, b.file_name, b.mime_type,
         b.file_size, b.cover_status, b.cover_blob_key,
         (bo.storage_uri IS NOT NULL) AS cover_local, bo.sha256 AS cover_version,
+        (bf.storage_uri IS NOT NULL) AS file_local,
+        (SELECT COUNT(*) FROM annotations a WHERE a.book_id = b.id) AS annotation_count,
         b.created_at, b.updated_at, b.last_opened_at, b.progress_percent,
         b.reading_status, b.progress_json, b.starred, b.collection_id, b.narrativity, b.spoiler_sensitive,
         b.source_path, b.metadata_status
    FROM books b
-   LEFT JOIN blob_objects bo ON bo.key = b.cover_blob_key AND bo.deleted_at IS NULL";
+   LEFT JOIN blob_objects bo ON bo.key = b.cover_blob_key AND bo.deleted_at IS NULL
+   LEFT JOIN blob_objects bf ON bf.key = 'bookfile:' || b.id AND bf.deleted_at IS NULL";
 
 /// Every shelf book, in no particular order.
 pub fn list_books_inner(conn: &Connection) -> Result<Vec<LibraryBook>, CommandError> {

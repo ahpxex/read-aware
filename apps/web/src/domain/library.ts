@@ -79,6 +79,8 @@ export function toBookSummary(book: LibraryBook): BookSummary {
     lastOpenedAt: book.lastOpenedAt ?? undefined,
     fileName: book.fileName || undefined,
     fileSize: book.fileSize || undefined,
+    ...(book.format === "virtual" ? {} : { fileOnDevice: book.fileLocal }),
+    annotationCount: book.annotationCount,
     sourcePath: book.sourcePath ?? undefined,
     narrativity: book.narrativity ?? undefined,
     spoilerSensitive: book.spoilerSensitive ?? undefined,

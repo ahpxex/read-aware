@@ -19,6 +19,8 @@ function book(id: string, fields: Partial<LibraryBook> = {}): LibraryBook {
     coverStatus: "none",
     coverBlobKey: null,
     coverLocal: false,
+    fileLocal: true,
+    annotationCount: 0,
     coverVersion: null,
     createdAt: day(1),
     updatedAt: day(1),

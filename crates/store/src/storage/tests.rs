@@ -2033,6 +2033,64 @@ fn replaying_an_import_materializes_the_blob_manifest() {
 }
 
 #[test]
+fn the_shelf_row_says_whether_the_books_file_is_here_and_counts_its_annotations() {
+    let mut conn = migrated_conn();
+    apply_remote_events_inner(
+        &mut conn,
+        &[ev_on(
+            "device-b",
+            "r1",
+            1_000,
+            "book.imported",
+            serde_json::json!({
+                "bookId": "b1", "title": "沙丘", "author": "赫伯特",
+                "format": "epub", "fileName": "dune.epub", "fileSize": 42,
+                "mimeType": "application/epub+zip",
+                "sourceBlobKey": "bookfile:b1", "sourceSha256": "abc123",
+            }),
+        )],
+    )
+    .unwrap();
+
+    // Synced in from another device: on the shelf, but only as a manifest row.
+    let book = get_book_inner(&conn, "b1").unwrap().unwrap();
+    assert!(
+        !book.file_local,
+        "a manifest row is a shelf entry, not a file"
+    );
+    assert_eq!(book.annotation_count, 0);
+
+    conn.execute(
+        "UPDATE blob_objects SET storage_uri = 'blobs/bookfile%3Ab1' WHERE key = 'bookfile:b1'",
+        [],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO annotations (id, book_id, type, text, created_at, updated_at) VALUES
+           ('a1', 'b1', 'highlight', 'x', 't', 't'),
+           ('a2', 'b1', 'note', 'y', 't', 't'),
+           ('a3', 'another-book', 'note', 'z', 't', 't')",
+        [],
+    )
+    .unwrap();
+    let book = list_books_inner(&conn)
+        .unwrap()
+        .into_iter()
+        .find(|book| book.id == "b1")
+        .unwrap();
+    assert!(book.file_local, "the bytes arrived");
+    assert_eq!(book.annotation_count, 2, "only this book's annotations");
+
+    // A released file leaves its registry row behind, marked deleted.
+    conn.execute(
+        "UPDATE blob_objects SET deleted_at = 't' WHERE key = 'bookfile:b1'",
+        [],
+    )
+    .unwrap();
+    assert!(!get_book_inner(&conn, "b1").unwrap().unwrap().file_local);
+}
+
+#[test]
 fn the_blob_manifest_never_clobbers_a_registry_row_that_has_the_bytes() {
     let dir = tempfile::tempdir().expect("tempdir");
     let mut conn = migrated_conn();

@@ -34,6 +34,14 @@ export interface BookSummary {
   /** Original import file name/size; absent on virtual books. */
   fileName?: string;
   fileSize?: number;
+  /**
+   * Whether the book's file is on this device; absent on virtual books. False
+   * means the shelf entry came from another device and the bytes were never
+   * fetched here: the book opens only if sync can still retrieve them.
+   */
+  fileOnDevice?: boolean;
+  /** How many highlights, notes and questions the book carries. */
+  annotationCount?: number;
   /** Folder-relative origin of a folder import (`Books/Sci-fi/Dune.epub`); absent otherwise. */
   sourcePath?: string;
   /**

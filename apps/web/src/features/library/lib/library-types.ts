@@ -74,6 +74,14 @@ export interface LibraryBookRow {
   coverLocal: boolean;
   /** Content hash of the local cover bytes; busts the image cache on re-extraction. */
   coverVersion: string | null;
+  /**
+   * Whether the book's own file is on this device. A book synced in from another
+   * device is on the shelf, cover included, before (or without) its bytes; it opens
+   * only if they can still be fetched. Always false for a virtual book.
+   */
+  fileLocal: boolean;
+  /** How many highlights, notes and questions the book carries. */
+  annotationCount: number;
   createdAt: string;
   updatedAt: string;
   lastOpenedAt: string | null;

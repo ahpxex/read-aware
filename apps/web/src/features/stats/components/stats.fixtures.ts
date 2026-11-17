@@ -139,6 +139,8 @@ export const sampleBooks: LibraryBook[] = BOOK_META.map((meta, index) => ({
   coverStatus: "none",
   coverBlobKey: null,
   coverLocal: false,
+  fileLocal: true,
+  annotationCount: 0,
   coverVersion: null,
   createdAt: new Date(NOW - 540 * 86_400_000).toISOString(),
   updatedAt: new Date(NOW).toISOString(),

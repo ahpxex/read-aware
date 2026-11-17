@@ -59,6 +59,8 @@ export function pendingImportPlaceholder(bookId: string, source: BookImportSourc
     coverStatus: "unchecked",
     coverBlobKey: null,
     coverLocal: false,
+    fileLocal: false,
+    annotationCount: 0,
     coverVersion: null,
     coverUrl: null,
     createdAt: now,

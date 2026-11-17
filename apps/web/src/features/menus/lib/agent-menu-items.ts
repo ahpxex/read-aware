@@ -58,6 +58,7 @@ function pluginItemsForSurface(surface: MenuSurface, plugins: MenuPluginState): 
 const CORE_ITEM_LABELS: Record<string, string> = {
   library: "Library",
   agent: "Agent",
+  annotations: "Notes",
   stats: "Reading stats",
   search: "Search",
   import: "Import book",

@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
 import { useAtom } from "jotai";
-import { CaretLeft, ChartLineUp, FolderPlus, GearSix, MagnifyingGlass, Plus } from "@phosphor-icons/react";
+import { CaretLeft, ChartLineUp, FolderPlus, GearSix, MagnifyingGlass, Notebook, Plus } from "@phosphor-icons/react";
 import { IconButton, Tooltip } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { usePhoneViewport } from "@read-aware/ui/media";
@@ -86,6 +86,7 @@ export function AppHeader({
   // macOS keeps it on the right, mirroring the traffic lights.
   const customChrome = chrome === "custom";
   const statsActive = activeTopNav === "stats";
+  const notesActive = activeTopNav === "annotations";
   const primaryDestinations = usePrimaryDestinations();
   const primaryTopNavs = primaryDestinations.map((destination) => destination.topNav);
   const [activeCollectionId, setActiveCollectionId] = useAtom(activeCollectionAtom);
@@ -180,6 +181,21 @@ export function AppHeader({
         />
       </Tooltip>
     ),
+    "core:annotations": (
+      <Tooltip content={t("header.annotations")} side="bottom">
+        <IconButton
+          label={t("header.annotations")}
+          size="sm"
+          aria-pressed={notesActive}
+          onClick={() => onTopNavChange(notesActive ? "shelf" : "annotations")}
+          className={cn(
+            "relative before:absolute before:-inset-1 before:content-['']",
+            notesActive ? "text-fg" : "text-fg-muted hover:text-fg",
+          )}
+          icon={<Notebook size={16} weight={notesActive ? "fill" : "regular"} aria-hidden="true" />}
+        />
+      </Tooltip>
+    ),
     "core:settings": (
       <Tooltip content={t("header.settings")} side="bottom" align="end">
         <IconButton
@@ -198,6 +214,7 @@ export function AppHeader({
     "core:import": onImport,
     "core:importFolder": onImportFolder,
     "core:stats": () => onTopNavChange(statsActive ? "shelf" : "stats"),
+    "core:annotations": () => onTopNavChange(notesActive ? "shelf" : "annotations"),
     "core:settings": onOpenSettings,
   };
   /** One shelf item as a dots-menu entry — used for the configured overflow
@@ -351,6 +368,12 @@ export function AppHeader({
                   label: t("header.stats"),
                   icon: <ChartLineUp size={16} weight={statsActive ? "fill" : "regular"} aria-hidden="true" />,
                   run: () => onTopNavChange("stats"),
+                },
+                {
+                  id: "core:annotations",
+                  label: t("header.annotations"),
+                  icon: <Notebook size={16} weight={notesActive ? "fill" : "regular"} aria-hidden="true" />,
+                  run: () => onTopNavChange("annotations"),
                 },
                 {
                   id: "core:settings",

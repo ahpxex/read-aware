@@ -55,6 +55,7 @@ export const CORE_MENU_ITEMS: Record<MenuSurface, CoreMenuItemMeta[]> = {
       Icon: SlidersHorizontal,
     },
     { id: "core:stats", labelKey: "stats", Icon: ChartLineUp },
+    { id: "core:annotations", labelKey: "annotations", Icon: Notebook },
     { id: "core:settings", labelKey: "settings", Icon: GearSix },
   ],
   readerHeader: [

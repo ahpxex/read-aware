@@ -26,7 +26,7 @@ describe("shelf menu placement", () => {
     const known = [...CORE_MENU_DEFAULTS.shelfHeader, ...CORE_OVERFLOW_DEFAULTS.shelfHeader];
     const layout = resolveSurfaceLayout(saved, known, { defaultOverflowIds: CORE_OVERFLOW_DEFAULTS.shelfHeader });
     expect(layout.visible).toEqual(["core:search", "core:import", "core:settings", "core:viewControl"]);
-    expect(layout.overflow).toEqual(["core:stats", "core:importFolder"]);
+    expect(layout.overflow).toEqual(["core:stats", "core:importFolder", "core:annotations"]);
     // Once the user places it, their choice stands.
     const promoted = resolveSurfaceLayout(
       { visible: [...saved.visible, "core:importFolder"], overflow: ["core:stats"] },

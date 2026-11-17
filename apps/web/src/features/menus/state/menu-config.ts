@@ -48,7 +48,10 @@ export const CORE_MENU_DEFAULTS: Record<MenuSurface, string[]> = {
 export const CORE_OVERFLOW_DEFAULTS: Record<MenuSurface, string[]> = {
   primaryNav: ["core:stats"],
   // Folder imports are occasional: a menu entry, not another header icon.
-  shelfHeader: ["core:importFolder"],
+  // Notes is a destination like Stats: its entry here keeps the page one
+  // press away from the shelf even when the user takes it out of the primary
+  // navigation, whose hidden zone renders nowhere.
+  shelfHeader: ["core:importFolder", "core:annotations"],
   readerHeader: [],
   // A phone's bottom bar is full; bookmarking a page waits in "More".
   readerToolbar: ["core:bookmark"],

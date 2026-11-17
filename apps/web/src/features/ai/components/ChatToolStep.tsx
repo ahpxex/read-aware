@@ -18,8 +18,8 @@ export function ChatToolStep({ part, defaultExpanded = true }: { part: ChatToolP
   const label = useChatToolLabel(part.tool);
   const running = part.state === "running";
   const hasTrace = Boolean(part.input || part.output);
-  // Standalone live calls show arguments immediately; grouped calls opt out
-  // so expanding the activity reveals steps without a wall of raw traces.
+  // A live call shows its arguments and partial output while it runs; a step
+  // revealed by reopening a settled activity group starts folded.
   // Collapse when execution settles; persisted traces remain available.
   const [expanded, setExpanded] = useState(defaultExpanded && running && hasTrace);
   useEffect(() => {

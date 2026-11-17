@@ -154,7 +154,7 @@ export const GroupedWebActivity: Story = {
   },
 };
 
-/** Current action is visible without expanding tool arguments or results. */
+/** While a tool runs the activity stays open, showing the live call's arguments; it folds once the answer begins. */
 export const RunningWebActivity: Story = {
   args: {
     streaming: true,

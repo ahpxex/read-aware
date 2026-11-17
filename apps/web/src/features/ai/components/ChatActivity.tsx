@@ -18,7 +18,7 @@ export function ChatActivity({
   thinking: boolean;
   pendingStatus?: string;
 }) {
-  const { contentId, expanded, busy, failed, summary, toggle } = useChatActivity(
+  const { contentId, expanded, live, busy, failed, summary, toggle } = useChatActivity(
     part,
     streaming,
     thinking,
@@ -50,7 +50,7 @@ export function ChatActivity({
         <div id={contentId} className="ml-1.5 mt-2 space-y-2 border-l border-border pl-3">
           {part.parts.map((step, index) =>
             step.type === "tool" ? (
-              <ChatToolStep key={step.id} part={step} defaultExpanded={false} />
+              <ChatToolStep key={step.id} part={step} defaultExpanded={live} />
             ) : (
               <ChatThinking
                 key={`thinking-${index}`}

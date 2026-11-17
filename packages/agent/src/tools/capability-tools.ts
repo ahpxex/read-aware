@@ -179,11 +179,18 @@ export function buildCapabilityTool(
       const namedWithheld = withheldCandidates.find((candidate) => candidate.name.toLowerCase() === query.query);
       // An exact name is a question about that tool, not a keyword search over its words.
       const searching = describesNeed && !namedWithheld;
-      const hits = searching ? searchTools(toolCandidates, document, query.query) : [];
-      const bestScore = hits[0]?.score ?? 0;
-      const relevant = new Set(
-        hits.filter((hit) => hit.score >= bestScore * LOAD_SCORE_SHARE).map((hit) => hit.item.name),
-      );
+      // One ranking over what can be called and what cannot: when the real match is
+      // withheld, weaker callable matches are listed but not loaded in its place.
+      const withheldNames = new Set(withheldCandidates.map((candidate) => candidate.name));
+      const ranked = searching
+        ? searchTools<ToolEntry | WithheldTool>([...toolCandidates, ...withheldCandidates], document, query.query)
+        : [];
+      const relevantScore = (ranked[0]?.score ?? 0) * LOAD_SCORE_SHARE;
+      const relevant = new Set(ranked.filter((hit) => hit.score >= relevantScore).map((hit) => hit.item.name));
+      const hits = ranked.filter((hit) => !withheldNames.has(hit.item.name)) as Array<{
+        item: ToolEntry;
+        score: number;
+      }>;
       const entries =
         query.catalog === "host"
           ? host.filter(
@@ -245,17 +252,12 @@ export function buildCapabilityTool(
       // Companions first: the tools the model asked for stay the most recently needed.
       const loadout = query.catalog === "tools" && discover ? discover([...new Set(companions), ...chosen]) : undefined;
       const nowLoaded = new Set(loadout?.loaded);
-      const withheld: WithheldTool[] = namedWithheld ? [namedWithheld] : [];
-      if (searching && withheldCandidates.length) {
-        // Ranked together with the callable catalog, so a withheld entry is one that would have been a real match.
-        const withheldNames = new Set(withheldCandidates.map((candidate) => candidate.name));
-        const ranked = searchTools([...toolCandidates, ...withheldCandidates], document, query.query);
-        const best = ranked[0]?.score ?? 0;
-        for (const hit of ranked) {
-          if (withheld.length >= MAX_WITHHELD_LISTED || hit.score < best * LOAD_SCORE_SHARE) break;
-          if (withheldNames.has(hit.item.name)) withheld.push(hit.item as WithheldTool);
-        }
-      }
+      const withheld: WithheldTool[] = namedWithheld
+        ? [namedWithheld]
+        : ranked
+            .filter((hit) => hit.score >= relevantScore && withheldNames.has(hit.item.name))
+            .slice(0, MAX_WITHHELD_LISTED)
+            .map((hit) => hit.item as WithheldTool);
       return textResult({
         catalog: query.catalog,
         scope: scope.kind,

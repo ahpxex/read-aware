@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  arrangeSurface,
   canMoveMenuItem,
   clampPrimaryNavVisible,
   CORE_DESTINATION_IDS,
@@ -197,10 +198,60 @@ describe("destinations live in one place", () => {
     expectEachDestinationOnce(layouts);
   });
 
+  test("a layout saved before Notes existed gains it in the navigation (stored prod config)", () => {
+    // Saved 2026-08-11 — before Notes was a page, and without readerToolbar.
+    const saved: MenuConfig = {
+      ...defaults(),
+      primaryNav: { visible: ["core:library", "core:agent"], overflow: ["core:stats", ...PAGES] },
+      shelfHeader: {
+        visible: ["core:search", "core:import", "core:viewControl", "core:stats", "core:settings"],
+        overflow: [],
+      },
+    };
+    const layouts = resolveMenuLayouts(saved, catalog);
+    expect(layouts.primaryNav.visible).toEqual(["core:library", "core:agent", "core:annotations"]);
+    expect(layouts.shelfHeader.visible).toContain("core:stats");
+    expect(layouts.shelfHeader.overflow).toEqual(["core:importFolder", ...PAGES]);
+    expectEachDestinationOnce(layouts);
+  });
+
+  test("taking Notes out through the navigation's own list keeps it out", () => {
+    const out = arrangeSurface(defaults(), catalog, "primaryNav", {
+      visible: ["core:library", "core:agent"],
+      overflow: [],
+    });
+    if (!out.ok) throw new Error("expected the arrangement to apply");
+    const layouts = resolveMenuLayouts(out.config, catalog);
+    expect(layouts.primaryNav.visible).toEqual(["core:library", "core:agent"]);
+    expect(layouts.shelfHeader.overflow).toContain("core:annotations");
+    expectEachDestinationOnce(layouts);
+  });
+
+  test("rearranging the shelf header leaves the navigation's stored slots alone", () => {
+    // A plugin page sits in the navigation while its plugin is disabled.
+    const saved: MenuConfig = {
+      ...defaults(),
+      primaryNav: { visible: ["core:library", "plugin:off:page", "core:agent"], overflow: [] },
+    };
+    const reordered = arrangeSurface(saved, catalog, "shelfHeader", {
+      visible: ["core:import", "core:search", "core:viewControl", "core:stats", "core:settings"],
+      overflow: ["core:importFolder"],
+    });
+    if (!reordered.ok) throw new Error("expected the arrangement to apply");
+    expect(reordered.config.primaryNav.visible).toEqual(["core:library", "plugin:off:page", "core:agent"]);
+
+    const adopted = arrangeSurface(saved, catalog, "shelfHeader", {
+      visible: ["core:search", "core:agent"],
+      overflow: [],
+    });
+    if (!adopted.ok) throw new Error("expected the arrangement to apply");
+    expect(adopted.config.primaryNav.visible).toEqual(["core:library", "plugin:off:page"]);
+  });
+
   test("a stored layout listing a destination on both surfaces resolves with the navigation winning", () => {
     const saved: MenuConfig = {
       ...defaults(),
-      primaryNav: { visible: ["core:library", "core:stats"], overflow: [] },
+      primaryNav: { visible: ["core:library", "core:stats"], overflow: ["core:agent", "core:annotations"] },
       shelfHeader: { visible: ["core:search", "core:stats", "core:library"], overflow: [] },
     };
     const layouts = resolveMenuLayouts(saved, catalog);
@@ -265,7 +316,10 @@ describe("destinations live in one place", () => {
     );
     expect(fifth).toEqual({ ok: false, error: { surface: "primaryNav", rule: "maxVisible", limit: 4 } });
 
-    const lone: MenuConfig = { ...defaults(), primaryNav: { visible: ["core:library"], overflow: [] } };
+    const lone: MenuConfig = {
+      ...defaults(),
+      primaryNav: { visible: ["core:library"], overflow: ["core:agent", "core:annotations"] },
+    };
     const empty = moveMenuItem(
       lone,
       catalog,

@@ -517,7 +517,7 @@ describe("agent menu settings", () => {
     const store = getDefaultStore();
     store.set(menuConfigAtom, {
       ...store.get(menuConfigAtom),
-      primaryNav: { visible: ["core:library"], overflow: [] },
+      primaryNav: { visible: ["core:library"], overflow: ["core:agent", "core:annotations", "core:stats"] },
     });
     const port = createSettingsPort();
     await expect(

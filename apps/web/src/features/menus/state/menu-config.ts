@@ -14,8 +14,11 @@
  * Reading stats and plugin pages — are offered by both the primary
  * navigation and the shelf header, and live in exactly ONE place: in the
  * primary navigation, or else in the shelf header (inline or in its "More"
- * menu). The primary navigation therefore has no hidden zone of its own; its
- * `overflow` is derived as "the destinations the shelf header holds".
+ * menu). The primary navigation therefore has no hidden zone of its own:
+ * resolved, its `overflow` is "the destinations the shelf header holds";
+ * stored, it records the pages taken out of the navigation, so a page the
+ * user never placed (a built-in added by an update) can still be told apart
+ * and join the navigation the way its default says.
  *
  * Every surface reads through `resolveMenuLayouts` and every write goes
  * through `arrangeSurface` (or `moveMenuItem`, built on it), so the editor,
@@ -236,12 +239,23 @@ export type MenuCatalog = {
  * exists (see `resolveSurfaceLayout`), plus the destination rule. A
  * destination in the primary navigation is absent from the shelf header;
  * every other destination is in the shelf header, joining its "More" menu
- * when the user never placed it there. Stored data that breaks the rule
- * (layouts saved before it existed) resolves with the navigation winning.
+ * when the user never placed it there. A built-in destination placed
+ * nowhere joins the navigation when it is one of its defaults (and fits).
+ * Stored data that breaks the rule (layouts saved before it existed)
+ * resolves with the navigation winning.
  */
 export function resolveMenuLayouts(config: MenuConfig, catalog: MenuCatalog): MenuConfig {
   const destinations = new Set(catalog.destinations);
-  const navVisible = clampPrimaryNavVisible(config.primaryNav.visible.filter((id) => destinations.has(id)));
+  const placedOutside = new Set([
+    ...config.primaryNav.overflow,
+    ...config.shelfHeader.visible,
+    ...config.shelfHeader.overflow,
+  ]);
+  const storedNav = config.primaryNav.visible.filter((id) => destinations.has(id));
+  const unplacedDefaults = CORE_MENU_DEFAULTS.primaryNav.filter(
+    (id) => destinations.has(id) && !storedNav.includes(id) && !placedOutside.has(id),
+  );
+  const navVisible = clampPrimaryNavVisible([...storedNav, ...unplacedDefaults]);
   const inNav = new Set(navVisible);
   const resolveRest = (surface: Exclude<MenuSurface, "primaryNav" | "shelfHeader">): SurfaceLayout =>
     resolveSurfaceLayout(config[surface], [...catalog.known[surface]], {
@@ -298,11 +312,14 @@ export function arrangeSurface(
     if (error) return { ok: false, error };
     const inNav = new Set(visible);
     const keep = (id: string) => !inNav.has(id);
+    // Every other page is now deliberately out of the navigation; recorded
+    // (alongside ids of plugins absent right now) so none drifts back in.
+    const outside = [...new Set([...config.primaryNav.overflow, ...catalog.destinations])].filter(keep);
     return {
       ok: true,
       config: {
         ...config,
-        primaryNav: { visible, overflow: [] },
+        primaryNav: { visible, overflow: outside },
         shelfHeader: {
           visible: config.shelfHeader.visible.filter(keep),
           overflow: config.shelfHeader.overflow.filter(keep),
@@ -315,13 +332,24 @@ export function arrangeSurface(
   if (error) return { ok: false, error };
   if (surface !== "shelfHeader") return { ok: true, config: { ...config, [surface]: layout } };
 
-  const adopted = new Set([...layout.visible, ...layout.overflow].filter((id) => destinations.has(id)));
-  const navVisible = resolveMenuLayouts(config, catalog).primaryNav.visible.filter((id) => !adopted.has(id));
-  const navError = checkVisibleCount("primaryNav", navVisible);
+  const adopted = [...layout.visible, ...layout.overflow].filter((id) => destinations.has(id));
+  const navError = checkVisibleCount(
+    "primaryNav",
+    resolveMenuLayouts(config, catalog).primaryNav.visible.filter((id) => !adopted.includes(id)),
+  );
   if (navError) return { ok: false, error: navError };
+  // Only the adopted pages leave the stored navigation: the rest of it —
+  // including a page whose plugin is disabled right now — keeps its slot.
   return {
     ok: true,
-    config: { ...config, shelfHeader: layout, primaryNav: { visible: navVisible, overflow: [] } },
+    config: {
+      ...config,
+      shelfHeader: layout,
+      primaryNav: {
+        visible: config.primaryNav.visible.filter((id) => !adopted.includes(id)),
+        overflow: [...new Set([...config.primaryNav.overflow, ...adopted])],
+      },
+    },
   };
 }
 

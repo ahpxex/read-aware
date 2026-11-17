@@ -39,7 +39,7 @@ if (process.env.READAWARE_SERVICE_WORKER_PROOF !== "1") {
   const { hostEnvironment } = await import("../../../platform/host-environment");
   const { spyOn } = await import("bun:test");
   const { AppError } = await import("@read-aware/core");
-  const moduleUrl = new URL("../../../../tests/desktop/plugin-service-probe.ts", import.meta.url).href;
+  const moduleUrl = new URL("../../../../tests/fixtures/plugin-workers/plugin-service-probe.ts", import.meta.url).href;
   const declaration = {
     id: "inspect",
     version: "1.0.0",

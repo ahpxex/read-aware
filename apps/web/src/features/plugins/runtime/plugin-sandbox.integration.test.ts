@@ -52,7 +52,7 @@ function sandbox(scenario: string, fixture = "wire-probe.ts", bootPatch: Record<
   worker.postMessage({
     t: "boot",
     protocolVersion: 1,
-    url: new URL(`../../../../tests/desktop/${fixture}`, import.meta.url).href,
+    url: new URL(`../../../../tests/fixtures/plugin-workers/${fixture}`, import.meta.url).href,
     manifest: {
       id: "wire-test",
       name: "Wire test",

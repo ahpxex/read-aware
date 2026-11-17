@@ -31,6 +31,10 @@
 - [2026-09-13 固定 16 项目标](./validation/host-capability-validation-bounded-goal.md)
 
 专项验收报告和原始运行工件已删除，只保留在 Git 历史中。
+2026-11-17 起，桌面验收脚手架（`apps/web/tests/desktop/` 的驱动与探针，以及
+`scripts/*-probe-server.ts`、`*-acceptance-server.ts`）也已删除：其“第三阶段”从未执行，
+最后一版见提交 `26016903`。插件 Worker 协议测试仍用的探针移到了
+`apps/web/tests/fixtures/plugin-workers/`。
 较早源码路径、章节编号、环境路径和部署状态可能已经失效；追查时结合对应 Git 版本。
 
 ## 本次合并与删除

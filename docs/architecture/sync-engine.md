@@ -63,7 +63,8 @@ v53 及更早的检查点不能作为重放基础。尚未补齐日志的设备�
 [开发配置](../../apps/desktop/src-tauri/tauri.dev.conf.json)：应用名为 `ReadAware Dev`，
 包标识为 `com.readaware.app.dev`。SQLite、blob、插件与 `secret.key` 使用该标识对应的
 应用数据目录；正式版使用 `com.readaware.app`。原生启动在插件和数据库初始化之前检查
-身份，漏用开发配置的 `tauri dev` 会拒绝启动；已有独立 capability-e2e 验收身份仍可使用。
+身份，漏用开发配置的 `tauri dev` 会拒绝启动。验收工具若要用独立身份（如
+`tauri.capability-e2e.conf.json`），须在构建时用 `READAWARE_ACCEPTANCE_IDENTITY` 显式指定该标识。
 
 开发版默认连接 `http://localhost:8787`，设备调试可使用开发机的 LAN 地址。
 缺少环境变量、清空本地设置或误留生产 Relay 地址都不会让开发版回落到生产 Relay；
@@ -90,8 +91,8 @@ v53 及更早的检查点不能作为重放基础。尚未补齐日志的设备�
 
 历次原生、桌面和同步观察保留在 Git 历史中；
 单进程 loopback、测试端口和实际跨设备同步分别证明不同边界。
-阅读进度的 [桌面验收入口](../../apps/web/tests/desktop/desktop-progress-acceptance.ts) 使用
-隔离 Tauri、真实 SQLite 和 Foliate 阅读器，传输使用加密回环中继；覆盖往回翻后重开、
+阅读进度曾有一套桌面验收驱动（见提交 `26016903` 的 `apps/web/tests/desktop/desktop-progress-acceptance.ts`），
+使用隔离 Tauri、真实 SQLite 和 Foliate 阅读器，传输使用加密回环中继；覆盖往回翻后重开、
 较新的落后记录合并、较旧的更远记录被拒、重放和重启恢复，不代表实体平板或生产中继验收。
 部署操作以 relay 配置、项目脚本和当次环境为准，不沿用旧文档中的 OAuth、邮件或线上状态。
 

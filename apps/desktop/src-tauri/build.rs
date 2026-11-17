@@ -1,6 +1,8 @@
 use std::path::Path;
 
 fn main() {
+    // app_environment.rs reads this at compile time; a change must rebuild.
+    println!("cargo:rerun-if-env-changed=READAWARE_ACCEPTANCE_IDENTITY");
     require_embedded_directories();
     tauri_build::build()
 }

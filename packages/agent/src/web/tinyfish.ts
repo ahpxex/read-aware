@@ -4,32 +4,37 @@ import type { AgentFetch } from "../models/transport";
 import type { WebClient, WebClientOptions, WebFetchInput, WebProvider, WebSearchInput } from "./types";
 import { firstUsablePage, optionalImages } from "./optional-images";
 
-import { bounded, invalid, malformed, publicWebUrl, record, sourceUrl, string, jsonRequest } from "./shared";
+import {
+  bounded,
+  invalid,
+  jsonRequest,
+  malformed,
+  publicWebUrl,
+  record,
+  searchInput,
+  searchResult,
+  sourceUrl,
+  string,
+} from "./shared";
 export { publicWebUrl } from "./shared";
 
 export function createTinyFishClient(apiKey: string, transport: AgentFetch, options?: WebClientOptions): WebClient {
   const request = jsonRequest("TinyFish", apiKey, transport, { "X-API-Key": apiKey.trim() });
   const client: WebClient = {
-    async search(input: WebSearchInput, signal) {
-      const query = input.query.trim();
-      if (!query || query.length > 2000) throw invalid();
-      const limit = bounded(input.limit, 5, 1, 10);
-      const params = new URLSearchParams({ query });
+    async search(raw: WebSearchInput, signal) {
+      // The same input rules and result filtering as every other provider.
+      const input = searchInput(raw);
+      const params = new URLSearchParams({ query: input.query });
       if (input.recencyDays !== undefined)
         params.set("recency_minutes", String(bounded(input.recencyDays, 1, 1, 3650) * 1440));
-      if (input.language !== undefined) {
-        if (!/^[a-z]{2}(?:-[A-Za-z]{2})?$/.test(input.language)) throw invalid();
-        params.set("language", input.language);
-      }
-      if (input.domains?.length) {
-        if (input.domains.length > 5 || input.domains.some((d) => !/^(?:[a-z0-9-]+\.)+[a-z]{2,}$/i.test(d)))
-          throw invalid();
-        params.set("include_domains", input.domains.join(","));
-      }
+      if (input.language !== undefined) params.set("language", input.language);
+      if (input.domains?.length) params.set("include_domains", input.domains.join(","));
       const data = await request(`https://api.search.tinyfish.ai?${params}`, undefined, signal);
       if (!Array.isArray(data.results)) throw malformed();
-      const sources = data.results
-        .map((item) => {
+      const result = searchResult(
+        "tinyfish",
+        input,
+        data.results.map((item) => {
           const row = record(item);
           return {
             title: string(row.title, 300),
@@ -37,17 +42,9 @@ export function createTinyFishClient(apiKey: string, transport: AgentFetch, opti
             snippet: string(row.snippet, 800),
             ...(typeof row.date === "string" ? { publishedAt: row.date.slice(0, 80) } : {}),
           };
-        })
-        .filter(
-          (source) =>
-            !input.domains?.length ||
-            input.domains.some((domain) => {
-              const host = new URL(source.url).hostname.toLowerCase();
-              return host === domain.toLowerCase() || host.endsWith(`.${domain.toLowerCase()}`);
-            }),
-        )
-        .slice(0, limit);
-      const result = { provider: "tinyfish", query, sources, retrievedAt: new Date().toISOString() };
+        }),
+      );
+      const sources = result.sources;
       if (!input.includeImages || !sources.length) return { ...result, ...(input.includeImages ? { images: [] } : {}) };
       // TinyFish has no image index. Read at most two ranked sources in parallel,
       // return the first usable one, and cancel the other. The model still chooses

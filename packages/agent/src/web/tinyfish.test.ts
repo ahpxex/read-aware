@@ -36,6 +36,22 @@ describe("TinyFish provider boundary", () => {
     expect(JSON.stringify(result)).not.toContain(key);
   });
 
+  test("search shares the other providers' rules: script-tagged languages and duplicate sources", async () => {
+    let seen: URL | undefined;
+    const client = createTinyFishClient(key, async (url) => {
+      seen = new URL(fetchInputUrl(url));
+      return json({
+        results: [
+          { title: "One", url: "https://example.com/a", snippet: "first" },
+          { title: "Again", url: "https://example.com/a", snippet: "duplicate" },
+        ],
+      });
+    });
+    const result = await client.search({ query: "test", language: "zh-Hant" });
+    expect(seen!.searchParams.get("language")).toBe("zh-Hant");
+    expect(result.sources.map((source) => source.title)).toEqual(["One"]);
+  });
+
   test("fetch bounds output, supports continuation, and declares cache freshness", async () => {
     const bodies: Record<string, unknown>[] = [];
     const client = createTinyFishClient(key, async (_url, init) => {

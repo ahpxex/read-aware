@@ -61,15 +61,17 @@ export const hostWindow = new HostWindowService(
       native(async (window) => {
         const stops: Array<() => void> = [];
         try {
+          // Resizing covers maximize and fullscreen; focus covers minimize and restore.
           stops.push(await window.onResized(changed));
           stops.push(await window.onFocusChanged(changed));
         } catch (error) {
-          // Polling remains authoritative when a window manager omits an event.
+          for (const stop of stops.splice(0)) stop();
+          // Only a window that cannot report its own changes is sampled instead.
           log.warn("Native window events unavailable; polling state", error);
+          const timer = setInterval(changed, 1000);
+          stops.push(() => clearInterval(timer));
         }
-        const timer = setInterval(changed, 1000);
         return () => {
-          clearInterval(timer);
           for (const stop of stops) stop();
         };
       }),

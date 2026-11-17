@@ -1958,7 +1958,7 @@ export type PluginAnnotationsDomain = {
   };
   events: {
     subscribe: DomainSubscribe<AnnotationDomainEventType>;
-    /** Since 1.4. Initial authorized snapshot, then changed results/errors/recovery. Disposal ends polling. */
+    /** Since 1.4. Initial authorized snapshot, then changed results/errors/recovery. Disposal ends delivery. */
     observe(
       query: import("@read-aware/core").AnnotationObservationQuery,
       handler: PluginObservationHandler<import("@read-aware/core").AnnotationObservation>,
@@ -2202,7 +2202,7 @@ export type PluginDomains = {
       ): Promise<import("@read-aware/core").BookGraphTaskSnapshot>;
     };
     events: {
-      /** Initial snapshot, then changed results/errors; bounded polling, not an event log.
+      /** Initial snapshot, then changed results/errors; re-read when the store announces a change, not an event log.
        * Plugins 1.5 supplies a separate reaction delivery, including graph task updates. */
       observe(
         query: import("@read-aware/core").MemoryObservationQuery,
@@ -2282,9 +2282,11 @@ export type PluginStorage = {
    * core domain events, files, or another plugin's documents. */
   applyDocuments(changes: PluginDocumentChange[]): Promise<PluginDocumentCommit>;
   /** Storage 2.2: initial and changed private document query snapshots, including
-   * errors/recovery. At most 64 active observers per activation; reads and
-   * callbacks settle before the next one-second poll. Not a replayable write
-   * stream. Dispose or plugin retirement stops delivery; sequence is not CAS. */
+   * errors/recovery. At most 64 active observers per activation. The query is
+   * re-read when one of its documents is written (from any surface of this
+   * plugin, another device or another process), and one callback settles before
+   * the next. Not a replayable write stream. Dispose or plugin retirement stops
+   * delivery; sequence is not CAS. */
   observeDocuments<T = unknown>(
     query: PluginDocumentObservationQuery,
     handler: PluginObservationHandler<PluginDocumentObservation<T>>,

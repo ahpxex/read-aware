@@ -210,7 +210,7 @@ export function createPluginActivationKit(
     },
   };
   const owners: DomainActorOwners = {};
-  const documentObserver = new PluginDocumentObserver(lifecycle);
+  const documentObserver = new PluginDocumentObserver(manifest.id, lifecycle);
   const transactionBudget = { pending: 0 };
   const logging = createPluginLogging(manifest.id, manifest.version, lifecycle);
   const scopedWorkspaceState = { revision: 0 };

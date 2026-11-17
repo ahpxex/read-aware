@@ -147,7 +147,7 @@ export function createPluginDocuments(
   lifecycle: PluginLifecycleController,
   backend: PluginDocumentsBackend = nativeDocuments,
   actor: DomainActor = `plugin:${pluginId}`,
-  observer = new PluginDocumentObserver(lifecycle),
+  observer = new PluginDocumentObserver(pluginId, lifecycle),
 ): Pick<PluginStorage, "collection" | "applyDocuments" | "observeDocuments"> {
   actorCause(actor);
   const storage: Pick<PluginStorage, "collection" | "applyDocuments" | "observeDocuments"> = {

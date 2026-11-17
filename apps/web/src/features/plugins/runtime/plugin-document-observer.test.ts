@@ -4,14 +4,18 @@ import type { PluginDocumentObservation, PluginDocumentObservationResult } from 
 import { PluginLifecycleController } from "./plugin-lifecycle";
 import { PluginDocumentObserver } from "./plugin-document-observer";
 import { eventCause, reactionActor, stampEventCause } from "../../../platform/domain-actor";
+import { emitAppEvent } from "../../../platform/app-events";
 
 const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+/** Another process, a sync pull or a restore changed the store. */
+const invalidate = () => emitAppEvent("projections-invalidated", { source: "host" });
+let fixtures = 0;
 const reaction = (step: string) => reactionActor("plugin:docs", step, eventCause(stampEventCause({}))!);
 function fixture() {
   const lifecycle = new PluginLifecycleController([]),
     timers = new Set<() => void>(),
     errors: unknown[] = [];
-  const observer = new PluginDocumentObserver(lifecycle, {
+  const observer = new PluginDocumentObserver(`docs-${++fixtures}`, lifecycle, {
     schedule(work) {
       timers.add(work);
       return () => {
@@ -31,7 +35,7 @@ function fixture() {
   return { lifecycle, observer, timers, errors, next };
 }
 
-test("document observations stage, deduplicate, report stable failures and recover", async () => {
+test("document observations stage, re-read only on announced changes, report stable failures and recover", async () => {
   const f = fixture(),
     events: PluginDocumentObservation[] = [];
   let reads = 0,
@@ -51,13 +55,19 @@ test("document observations stage, deduplicate, report stable failures and recov
   f.lifecycle.promote();
   await tick();
   expect(events).toEqual([{ sequence: 1, status: "ready", result }]);
-  await f.next();
-  expect(events).toHaveLength(1);
+  // Nothing polls: with no announced change there is no timer and no read.
+  expect(f.timers.size).toBe(0);
   result = { kind: "get", document: { id: "one", data: { value: 1 }, revision: "a".repeat(32), updatedAt: "now" } };
-  await f.next();
+  expect(reads).toBe(1);
+  invalidate();
+  await tick();
+  expect(events).toHaveLength(2);
+  invalidate();
+  await tick();
   expect(events).toHaveLength(2);
   fail = true;
-  await f.next();
+  invalidate();
+  await tick();
   await f.next();
   expect(events.at(-1)).toEqual({ sequence: 3, status: "error", errorCode: "db/locked" });
   fail = false;
@@ -106,6 +116,8 @@ test("callbacks are serial, mutation is isolated, failed delivery retries and re
       calls++;
     },
   );
+  // The read is in flight when the plugin retires.
+  await tick();
   f.lifecycle.stop();
   finish(original);
   await tick();
@@ -200,8 +212,13 @@ test("a document read spanning commits is retried with both causes, while confli
     (result) => result,
   );
   await f.observer.write([{ ...target, id: "unrelated" }], reaction("other"), async () => {});
+  await tick();
+  expect(seen).toHaveLength(2);
+  // A change from outside this window arrives as an invalidation, a new root.
   value = 3;
-  await f.next();
+  invalidate();
+  await tick();
+  expect(seen).toHaveLength(3);
   expect(eventCause(seen[2]!)!.steps).toEqual([]);
   f.lifecycle.stop();
 });
@@ -260,12 +277,13 @@ test("stable read errors and recovery do not erase the pending document mutation
     },
   );
   await tick();
-  await f.observer.write([{ collection: "notes", id: "one" }], reaction("source"), async () => {});
   fail = true;
-  await f.next();
+  await f.observer.write([{ collection: "notes", id: "one" }], reaction("source"), async () => {});
+  await tick();
   await f.next();
   await f.next();
   expect(seen).toHaveLength(2);
+  expect(seen[1]).toMatchObject({ status: "error" });
   fail = false;
   await f.next();
   expect(seen).toHaveLength(3);
@@ -273,5 +291,32 @@ test("stable read errors and recovery do not erase the pending document mutation
   expect(() => reactionActor("plugin:docs", "source", eventCause(seen[2]!)!)).toThrow(
     expect.objectContaining({ code: "plugin/event-cycle" }),
   );
+  f.lifecycle.stop();
+});
+
+test("a write through another activation of the same plugin reaches this observer", async () => {
+  const f = fixture();
+  f.lifecycle.promote();
+  const pluginId = `shared-${++fixtures}`;
+  const lifecycle = new PluginLifecycleController([]);
+  lifecycle.promote();
+  const watcher = new PluginDocumentObserver(pluginId, lifecycle);
+  const writer = new PluginDocumentObserver(pluginId, f.lifecycle);
+  let value = 0;
+  const seen: PluginDocumentObservation[] = [];
+  watcher.observe(
+    async () => ({ kind: "get", document: { id: "one", data: value, revision: String(value), updatedAt: "now" } }),
+    (event) => {
+      seen.push(event);
+    },
+  );
+  await tick();
+  await writer.write([{ collection: "notes", id: "one" }], reaction("elsewhere"), async () => {
+    value = 1;
+  });
+  await tick();
+  expect(seen).toHaveLength(2);
+  expect(eventCause(seen[1]!)!.steps).toEqual(["elsewhere"]);
+  lifecycle.stop();
   f.lifecycle.stop();
 });

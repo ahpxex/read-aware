@@ -1,22 +1,18 @@
-import { AppError, errorCode } from "@read-aware/core";
+import { AppError } from "@read-aware/core";
 import type {
   PluginDocumentObservation,
   PluginDocumentObservationResult,
   PluginDisposable,
 } from "@read-aware/plugin-types";
+import { observeQuery } from "../../../domain/query-observation";
+import { onAppEvent } from "../../../platform/app-events";
 import { createLogger } from "../../../platform/logger";
-import {
-  actorCause,
-  copyEventCause,
-  mergeEventCauses,
-  ObservationCauses,
-  stampEventCause,
-  type DomainActor,
-} from "../../../platform/domain-actor";
+import { actorCause, copyEventCause, stampEventCause, type DomainActor } from "../../../platform/domain-actor";
 import type { PluginLifecycleController } from "./plugin-lifecycle";
 
 const log = createLogger("plugin-documents");
 const defaults = {
+  /** Paces a retry after a failed read or callback, or a read that spanned a write. */
   schedule(work: () => void) {
     const timer = setTimeout(work, 1000);
     return () => clearTimeout(timer);
@@ -29,15 +25,33 @@ type DocumentTarget = { collection: string; id: string };
 type DocumentChange = { targets: readonly DocumentTarget[] };
 type PendingWrite = { targets: readonly DocumentTarget[]; settled: Promise<void> };
 
-/** Private query snapshots, not write events. Each owner shares one limit. */
+/** One plugin's document writes in this window, whichever activation or
+ * surface made them, so every observer of that plugin hears each of them. */
+class DocumentWriteChannel {
+  readonly changes = new Set<(change: DocumentChange) => void>();
+  readonly writes = new Set<PendingWrite>();
+}
+const channels = new Map<string, DocumentWriteChannel>();
+function channelFor(pluginId: string): DocumentWriteChannel {
+  let channel = channels.get(pluginId);
+  if (!channel) channels.set(pluginId, (channel = new DocumentWriteChannel()));
+  return channel;
+}
+
+/** Private query snapshots, not write events. Each owner shares one limit.
+ * A snapshot is re-read only when something announces a change: a committed
+ * write through any observer of the plugin, or a projection invalidation
+ * (sync pulls, restores and other processes' commits). Nothing polls. */
 export class PluginDocumentObserver {
   private count = 0;
-  private changes = new Set<(change: DocumentChange) => void>();
-  private writes = new Set<PendingWrite>();
+  private readonly channel: DocumentWriteChannel;
   constructor(
+    pluginId: string,
     private readonly lifecycle: PluginLifecycleController,
     private readonly deps = defaults,
-  ) {}
+  ) {
+    this.channel = channelFor(pluginId);
+  }
 
   /** Keep native reads behind dispatched local writes until their actual receipt
    * is known. A failed/conflicting commit must never publish a causal change. */
@@ -50,16 +64,16 @@ export class PluginDocumentObserver {
     actorCause(actor);
     const settled = Promise.withResolvers<void>();
     const pending: PendingWrite = { targets, settled: settled.promise };
-    this.writes.add(pending);
+    this.channel.writes.add(pending);
     try {
       const result = await perform();
       if (targets.length && committed(result)) {
         const event = stampEventCause({ targets }, actor);
-        for (const change of this.changes) change(event);
+        for (const change of this.channel.changes) change(event);
       }
       return result;
     } finally {
-      this.writes.delete(pending);
+      this.channel.writes.delete(pending);
       settled.resolve();
     }
   }
@@ -76,87 +90,48 @@ export class PluginDocumentObserver {
       if (this.lifecycle.signal.aborted) throw new AppError("plugin/cancelled", "Document observer owner retired");
       if (this.count >= 64) throw new AppError("plugin/quota-exceeded", "Too many document observers");
       ++this.count;
-      const causes = new ObservationCauses(actor);
-      const changed = (change: DocumentChange) => {
-        if (change.targets.some(matches)) causes.add(change);
-      };
-      const pendingWrites = () => [...this.writes].filter((write) => write.targets.some(matches));
-      this.changes.add(changed);
-      let disposed = false,
-        sequence = 0,
-        delivered: string | undefined,
-        cancelTimer: (() => void) | undefined;
-      let retry: { identity: string; source: object } | undefined;
-      let unread: object | undefined;
-      const dispose = () => {
-        if (disposed) return;
-        disposed = true;
-        --this.count;
-        cancelTimer?.();
-        cancelTimer = undefined;
-        this.changes.delete(changed);
-        this.lifecycle.signal.removeEventListener("abort", dispose);
-      };
-      const poll = async () => {
-        const schedule = () => {
-          if (!disposed)
-            cancelTimer = this.deps.schedule(() => {
-              cancelTimer = undefined;
-              void poll();
-            });
-        };
-        // A write may have started before this observer was installed. It is
-        // still owned here, so do not mistake its pending receipt for a new root.
-        while (!disposed) {
-          const writes = pendingWrites();
-          if (!writes.length) break;
-          await Promise.all(writes.map((write) => write.settled));
-        }
-        if (disposed) return;
-        const revision = causes.revision;
-        let sample:
-          | { status: "ready"; result: PluginDocumentObservationResult<T> }
-          | { status: "error"; errorCode: string };
-        try {
-          sample = { status: "ready", result: await read() };
-        } catch (error) {
-          if (disposed) return;
-          this.deps.report(error);
-          sample = { status: "error", errorCode: errorCode(error) ?? "ipc/unknown" };
-        }
-        if (disposed) return;
-        if (revision !== causes.revision || pendingWrites().length) {
-          schedule();
-          return;
-        }
-        const identity = JSON.stringify(sample);
-        const retained = [unread, retry?.identity === identity ? retry.source : undefined].filter(
-          (source): source is object => !!source,
-        );
-        const observation = causes.take(
-          { ...structuredClone(sample), sequence: sequence + 1 },
-          retained.length ? mergeEventCauses(retained, {}) : undefined,
-        );
-        // Read failures have not observed the committed row yet. Stable error
-        // polls and later recovery must not silently turn that write into a root.
-        unread = sample.status === "error" ? copyEventCause(observation, {}) : undefined;
-        if (identity !== delivered) {
-          sequence++;
-          // Retry retains provenance even if the previous callback mutated its
-          // own payload or completed some writes before reporting an error.
-          retry = { identity, source: copyEventCause(observation, {}) };
-          try {
-            await handler(observation);
-            delivered = identity;
-            retry = undefined;
-          } catch (error) {
-            this.deps.report(error);
-          }
-        } else retry = undefined;
-        schedule();
-      };
-      this.lifecycle.signal.addEventListener("abort", dispose, { once: true });
-      void poll();
+      const channel = this.channel;
+      // A write may have started before this observer was installed. It is
+      // still owned here, so do not mistake its pending receipt for a new root.
+      const pendingWrites = () => [...channel.writes].filter((write) => write.targets.some(matches));
+      const dispose = observeQuery(
+        read,
+        // The public observation numbers deliveries as `sequence`.
+        (event) => {
+          const { revision, ...sample } = event;
+          return handler(copyEventCause(event, { ...sample, sequence: revision }) as PluginDocumentObservation<T>);
+        },
+        {
+          schedule: this.deps.schedule,
+          report: this.deps.report,
+          failureCode: "ipc/unknown",
+          release: () => {
+            --this.count;
+          },
+        },
+        this.lifecycle.signal,
+        {
+          origin: actor,
+          subscribe: (notify) => {
+            const changed = (change: DocumentChange) => {
+              if (change.targets.some(matches)) notify(change);
+            };
+            channel.changes.add(changed);
+            const offProjection = onAppEvent("projections-invalidated", notify);
+            return () => {
+              channel.changes.delete(changed);
+              offProjection();
+            };
+          },
+          settle: async (signal) => {
+            for (let writes = pendingWrites(); writes.length; writes = pendingWrites()) {
+              signal.throwIfAborted();
+              await Promise.all(writes.map((write) => write.settled));
+            }
+          },
+          hasPending: () => pendingWrites().length > 0,
+        },
+      );
       return { dispose };
     });
   }

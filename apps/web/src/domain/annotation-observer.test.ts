@@ -155,18 +155,20 @@ test("an announced change is read at once; changes during a read wait for the sc
   await tick();
   expect(reads).toBe(1);
   expect(seen).toHaveLength(1);
-  expect(f.timers.size).toBe(1);
-  // Idle observer: the broadcast of a new mark polls without waiting for the tick.
+  // With sources nothing is re-read on a timer.
+  expect(f.timers.size).toBe(0);
+  // Idle observer: the broadcast of a new mark polls without waiting for a tick.
   result = 1;
   notify(stampEventCause({}));
   await tick();
   expect(reads).toBe(2);
   expect(seen).toHaveLength(2);
-  expect(f.timers.size).toBe(1);
+  expect(f.timers.size).toBe(0);
   // A change during an in-flight read invalidates that sample; the next tick re-reads once.
   gate = () => {};
   result = 2;
-  await f.next();
+  notify(stampEventCause({}));
+  await tick();
   expect(reads).toBe(3);
   notify(stampEventCause({}));
   notify(stampEventCause({}));
@@ -182,6 +184,7 @@ test("an announced change is read at once; changes during a read wait for the sc
   expect(reads).toBe(4);
   expect(seen).toHaveLength(3);
   expect(seen.at(-1)).toMatchObject({ status: "ready", result: 3 });
+  expect(f.timers.size).toBe(0);
   stop();
   expect(f.timers.size).toBe(0);
 });

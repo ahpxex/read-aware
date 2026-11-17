@@ -23,8 +23,10 @@ export type QueryObservationSources = {
  * sees it as soon as the store answers rather than at the next scheduled tick.
  * Changes announced during a poll invalidate its sample and wait for the
  * scheduler: a burst of announcements costs one read per tick, never a read
- * per announcement. The scheduler also paces the periodic re-read that catches
- * changes no source announces. */
+ * per announcement. The scheduler also paces retries of a failed read or
+ * callback. With sources, nothing is re-read on a timer: every writer announces
+ * (domain broadcasts; sync pulls, restores and other processes' commits as
+ * projection invalidations). Only an observation without sources polls. */
 export function observeQuery<T>(
   read: () => Promise<T>,
   handler: (event: QueryObservation<T>) => unknown,
@@ -104,6 +106,7 @@ export function observeQuery<T>(
       sample = { status: "error", errorCode: errorCode(error) ?? deps.failureCode };
     }
     if (disposed) return;
+    let retryLater = !sources || sample.status === "error";
     // Retain pending causes until a sample spans no tracked changes. A write
     // during the read can invalidate even a successful or failed query result.
     if (sourceRevision !== causes.revision || sources?.hasPending()) {
@@ -128,9 +131,12 @@ export function observeQuery<T>(
         retry = undefined;
       } catch (error) {
         deps.report(error);
+        retryLater = true;
       }
     } else retry = undefined;
-    schedule();
+    // A change announced while the callback ran found a poll in progress and
+    // was not read; it is read at the next tick.
+    if (retryLater || sourceRevision !== causes.revision || sources?.hasPending()) schedule();
   };
   try {
     unsubscribe = sources?.subscribe((source) => {

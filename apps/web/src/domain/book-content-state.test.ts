@@ -1,3 +1,4 @@
+import { emitAppEvent } from "../platform/app-events";
 import { expect, test } from "bun:test";
 import { AppError, type BookContentObservation, type BookContentState } from "@read-aware/core";
 import { createContentStateObserver, getBookContentState } from "./book-content-state";
@@ -221,11 +222,14 @@ test("content observation serializes delivery, deduplicates snapshots and report
     work();
     await tick();
   };
-  await poll();
+  // Nothing is re-read on a timer; an announced change of this book is.
+  expect(scheduled.size).toBe(0);
   expect(seen).toHaveLength(1);
   failure = true;
-  await poll();
+  emitAppEvent("book-changed", { bookId: "book" });
+  await tick();
   expect(seen[1]).toEqual({ status: "error", errorCode: "db/locked" });
+  // A failed read is retried, and an unchanged failure is not delivered twice.
   await poll();
   expect(seen).toHaveLength(2);
   failure = false;

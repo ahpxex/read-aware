@@ -174,6 +174,8 @@ async function fetchBookFile(
   const fetched = await fetchBlob(bookFileKey(bookId));
   switch (fetched.outcome) {
     case "fetched":
+      // The book's content is now local; observers of its content state learn it here.
+      emitAppEvent("book-changed", { bookId }, "system");
       return { ok: true };
     case "unavailable":
       return { ok: false, reason: "no-sync" };

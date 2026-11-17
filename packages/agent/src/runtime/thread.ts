@@ -34,6 +34,7 @@ import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { visibleScopes } from "../tools/memory-tools";
 import { referenceFromToolDetails } from "../tools/present-tools";
 import { buildModelTools, createAgentTurnState } from "../tools/registry";
+import { beginLoadoutTurn, noteToolUse, resetToolLoadout } from "../tools/tool-loadout";
 import { interactionFromToolDetails } from "../tools/user-interaction";
 import { AsyncQueue } from "./async-queue";
 import { elideStaleToolResults, releaseToolImages } from "./context-slim";
@@ -234,9 +235,9 @@ export class AgentThread {
    */
   private discardAgent(): void {
     this.retryCheckpoint = undefined;
-    // Tools discovered in this thread stay loaded (bounded by the registry's LRU)
-    // until its agent is discarded, so a follow-up does not rediscover them.
-    this.turnState.loadedTools?.clear();
+    // Discovered tools stay loaded across this agent's replies, so a follow-up does
+    // not rediscover them; a new agent starts again from the core set.
+    resetToolLoadout(this.turnState.loadout);
     this.agent = undefined;
     this.sessionStarted = false;
     this.sessionChapter = undefined;
@@ -276,6 +277,12 @@ export class AgentThread {
               context,
               "[Image pixels withheld: the current model does not support image input. Do not claim visual inspection.]",
             );
+      },
+      // Recorded here, in the loop, so the next request's tool list already knows
+      // the call happened; the event consumer can lag behind a fast model.
+      beforeToolCall: async ({ toolCall }) => {
+        noteToolUse(this.turnState.loadout, toolCall.name);
+        return undefined;
       },
       // Refresh both discovery and execution context between provider requests,
       // without discarding the conversation or its turn-scoped permissions.
@@ -388,6 +395,7 @@ export class AgentThread {
     // the request boundary before the failed response. Other interruptions rebuild.
     let turnCompleted = false;
     if (!resume) {
+      beginLoadoutTurn(this.turnState.loadout);
       this.turnState.presentedBookIds.clear();
       this.turnState.webImages?.clear();
       this.turnState.presentedWebImages?.clear();

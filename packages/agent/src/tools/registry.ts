@@ -46,6 +46,7 @@ import { buildOnboardingTool } from "./onboarding-tool";
 import type { AgentTurnState } from "./turn-state";
 import { prepareHostTools } from "./tool-availability";
 import { consolidateHostTools } from "./consolidate-tools";
+import { createToolLoadout, loadTools } from "./tool-loadout";
 
 export type { AgentTurnState, SpoilerFence } from "./turn-state";
 export { createAgentTurnState } from "./turn-state";
@@ -90,7 +91,6 @@ const BOOK_CORE_TOOLS = new Set([
   "get_reading_session",
   "classify_book",
 ]);
-const MAX_LOADED_TOOLS = 12;
 
 /** One authoritative scope/availability policy; full catalog for host callers,
  * compact projection for the model. Both execute the same guarded tools. */
@@ -145,17 +145,14 @@ export function buildAgentTools(
   ];
   const extensions = deps.extraTools?.(scope) ?? [];
   const prepared = consolidateHostTools(prepareHostTools(hostTools, scope, deps, turnState).all);
-  const loaded = turnState ? (turnState.loadedTools ??= new Set<string>()) : new Set<string>();
+  const loadout = turnState?.loadout ?? createToolLoadout();
+  const core = (name: string) => CORE_TOOLS.has(name) || (scope.kind === "book" && BOOK_CORE_TOOLS.has(name));
   const discover = modelFacing
-    ? (names: string[]) => {
-        for (const name of names) {
-          if (CORE_TOOLS.has(name) || (scope.kind === "book" && BOOK_CORE_TOOLS.has(name))) continue;
-          loaded.delete(name);
-          loaded.add(name);
-          while (loaded.size > MAX_LOADED_TOOLS) loaded.delete(loaded.values().next().value!);
-        }
-        return [...loaded];
-      }
+    ? (names: string[]) =>
+        loadTools(
+          loadout,
+          names.filter((name) => !core(name)),
+        )
     : undefined;
   // Built after the others because it lists them; it takes the same host path.
   const [catalog] = prepareHostTools(
@@ -165,11 +162,7 @@ export function buildAgentTools(
     turnState,
   ).all;
   return [...prepared.enabled, catalog, ...extensions].filter(
-    (tool) =>
-      !modelFacing ||
-      CORE_TOOLS.has(tool.name) ||
-      (scope.kind === "book" && BOOK_CORE_TOOLS.has(tool.name)) ||
-      loaded.has(tool.name),
+    (tool) => !modelFacing || core(tool.name) || loadout.loaded.has(tool.name),
   );
 }
 

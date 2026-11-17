@@ -238,6 +238,50 @@ describe("live model tool snapshots", () => {
     });
   }
 
+  test("a discovered tool the reply is using stays callable through later discoveries", async () => {
+    faux = registerFauxProvider({ tokensPerSecond: 100_000 });
+    const { deps } = createInMemoryDeps({ books: [{ id: "book" as Id, title: "Book", progressPercent: 0 }] });
+    const seen: string[][] = [];
+    const thread = new AgentThread({
+      scope: { kind: "global", threadId: "in-use" },
+      deps,
+      resolveModel: () => faux.getModel() as Model<Api>,
+      getApiKey: () => "test",
+      completeFn: async () => fauxAssistantMessage('{"new": [], "reinforced": []}'),
+      streamFn: (model, context, options) => {
+        seen.push(modelRequestView(context).tools.map((tool) => tool.name));
+        return streamSimple(model, context, options);
+      },
+    });
+    const check = () =>
+      fauxAssistantMessage([fauxToolCall("get_book_content_state", { bookId: "book" })], { stopReason: "toolUse" });
+    faux.setResponses([
+      discover("get_book_content_state"),
+      check(),
+      // Two broad discoveries load more schemas than the budget holds.
+      discover("resource"),
+      discover("plugin"),
+      check(),
+      fauxAssistantMessage("Checked."),
+    ]);
+    try {
+      const chunks = await collect(thread.sendTurn({ text: "Check the book's file twice" }));
+      const ends = chunks.filter((chunk) => chunk.type === "tool-step").filter((chunk) => chunk.phase === "end");
+      const checks = ends.filter((chunk) => chunk.tool === "get_book_content_state");
+      expect(checks).toHaveLength(2);
+      expect(checks.every((chunk) => !chunk.isError)).toBe(true);
+      expect(seen[4]).toContain("get_book_content_state");
+      const unloaded = ends
+        .filter((chunk) => chunk.tool === "get_host_capabilities")
+        .flatMap((chunk) => (JSON.parse(String(chunk.output)) as { unloadedTools?: string[] }).unloadedTools ?? []);
+      expect(unloaded.length).toBeGreaterThan(0);
+      expect(unloaded).not.toContain("get_book_content_state");
+    } finally {
+      await thread.flushBackgroundWork();
+      thread.dispose();
+    }
+  });
+
   test("an outstanding response keeps its original callback; replacement is discovered only on the next request", async () => {
     faux = registerFauxProvider({ tokensPerSecond: 100_000 });
     const { deps } = createInMemoryDeps();

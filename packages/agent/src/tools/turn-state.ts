@@ -4,6 +4,8 @@
  * - spoilerFence：剧透围栏 —— 叙事书且读者未读完时，正文工具只返回读者位置之前的内容；
  *   只有读者在授权卡片上同意（request_spoiler_access）才在本轮放开（见 spoiler-access）。
  */
+import { createToolLoadout } from "./tool-loadout";
+
 export interface SpoilerFence {
   /** 可安全返回全文的最后章节；viewport 位于章内时会是当前章 - 1。 */
   throughChapterIndex: number;
@@ -24,8 +26,8 @@ export interface TurnReadingRanges {
 }
 
 export interface AgentTurnState {
-  /** On-demand schemas, bounded, kept until the thread's agent is discarded. */
-  loadedTools?: Set<string>;
+  /** Discovered tools the model holds schemas for; see tool-loadout. Kept until the thread's agent is discarded. */
+  loadout: import("./tool-loadout").ToolLoadout;
   /** Automatic reading context grants captured when this turn began. */
   readingContextPermissions?: import("../runtime/reading-context-policy").ReadingContextPermissions;
   presentedBookIds: Set<string>;
@@ -52,6 +54,7 @@ export interface AgentTurnState {
 
 export function createAgentTurnState(): AgentTurnState {
   return {
+    loadout: createToolLoadout(),
     presentedBookIds: new Set(),
     spoilerProtected: false,
     spoilersAllowed: false,

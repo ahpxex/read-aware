@@ -78,6 +78,18 @@ const CORE_TOOLS = new Set([
   "present_books",
   "open_book",
 ]);
+/**
+ * What a reader does in a book, offered without discovery: mark a passage,
+ * correct or annotate a mark, keep a place, check what the reader sees, and
+ * set the book's spoiler protection when asked.
+ */
+const BOOK_CORE_TOOLS = new Set([
+  "create_annotation",
+  "apply_annotation_changes",
+  "save_bookmark",
+  "get_reading_session",
+  "classify_book",
+]);
 const MAX_LOADED_TOOLS = 12;
 
 /** One authoritative scope/availability policy; full catalog for host callers,
@@ -137,7 +149,7 @@ export function buildAgentTools(
   const discover = modelFacing
     ? (names: string[]) => {
         for (const name of names) {
-          if (CORE_TOOLS.has(name)) continue;
+          if (CORE_TOOLS.has(name) || (scope.kind === "book" && BOOK_CORE_TOOLS.has(name))) continue;
           loaded.delete(name);
           loaded.add(name);
           while (loaded.size > MAX_LOADED_TOOLS) loaded.delete(loaded.values().next().value!);
@@ -147,7 +159,11 @@ export function buildAgentTools(
     : undefined;
   const catalog = buildCapabilityTool(scope, prepared.enabled, extensions, prepared.all, discover);
   return [...prepared.enabled, catalog, ...extensions].filter(
-    (tool) => !modelFacing || CORE_TOOLS.has(tool.name) || loaded.has(tool.name),
+    (tool) =>
+      !modelFacing ||
+      CORE_TOOLS.has(tool.name) ||
+      (scope.kind === "book" && BOOK_CORE_TOOLS.has(tool.name)) ||
+      loaded.has(tool.name),
   );
 }
 

@@ -94,7 +94,8 @@ describe("live model tool snapshots", () => {
         ready = true;
         faux.setResponses([discover("focus_reader"), fauxAssistantMessage("Reader is ready again.")]);
         await collect(thread.sendTurn({ text: "Continue after recovery" }));
-        expect(seen[3]).not.toContain("focus_reader");
+        // A tool discovered earlier in the thread returns with readiness, without rediscovery.
+        expect(seen[3]).toContain("focus_reader");
         expect(seen[4]).toContain("focus_reader");
         expect(history[4]).toContain("Focus the reader");
       } finally {

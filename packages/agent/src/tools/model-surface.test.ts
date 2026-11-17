@@ -54,3 +54,20 @@ test("multi-keyword discovery loads the relevant family even when no description
     if (expected === "query_reading_stats") expect(page.items[0].name).toBe(expected);
   }
 });
+
+test("a book thread offers the reader's in-book actions without discovery", () => {
+  const { deps } = createInMemoryDeps();
+  const names = (scope: Parameters<typeof buildModelTools>[0]) =>
+    buildModelTools(scope, deps, createAgentTurnState()).map((tool) => tool.name);
+  const inBook = [
+    "create_annotation",
+    "apply_annotation_changes",
+    "save_bookmark",
+    "get_reading_session",
+    "classify_book",
+  ];
+  const book = names({ kind: "book", bookId: "b" as Id });
+  for (const name of inBook) expect(book).toContain(name);
+  const global = names({ kind: "global", threadId: "g" });
+  for (const name of inBook) expect(global).not.toContain(name);
+});

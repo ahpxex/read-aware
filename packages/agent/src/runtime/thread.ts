@@ -234,6 +234,9 @@ export class AgentThread {
    */
   private discardAgent(): void {
     this.retryCheckpoint = undefined;
+    // Tools discovered in this thread stay loaded (bounded by the registry's LRU)
+    // until its agent is discarded, so a follow-up does not rediscover them.
+    this.turnState.loadedTools?.clear();
     this.agent = undefined;
     this.sessionStarted = false;
     this.sessionChapter = undefined;
@@ -385,7 +388,6 @@ export class AgentThread {
     // the request boundary before the failed response. Other interruptions rebuild.
     let turnCompleted = false;
     if (!resume) {
-      this.turnState.loadedTools?.clear();
       this.turnState.presentedBookIds.clear();
       this.turnState.webImages?.clear();
       this.turnState.presentedWebImages?.clear();

@@ -24,7 +24,7 @@ export interface TurnReadingRanges {
 }
 
 export interface AgentTurnState {
-  /** On-demand schemas, bounded and reset with each user turn. */
+  /** On-demand schemas, bounded, kept until the thread's agent is discarded. */
   loadedTools?: Set<string>;
   /** Automatic reading context grants captured when this turn began. */
   readingContextPermissions?: import("../runtime/reading-context-policy").ReadingContextPermissions;

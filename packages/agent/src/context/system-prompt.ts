@@ -38,7 +38,7 @@ export interface SystemPromptInput {
 
 /**
  * 阅读位置行：无条件存在。位置是防剧透边界的承重信息，缺失时必须是
- * 显式的未知态 + 行为协议，而不是整行消失留下信息真空 —— 真空会把模型
+ * 显式的未知态，而不是整行消失留下信息真空 —— 真空会把模型
  * 逼去"状态盘点"（查 overview/stats 钓位置），那正是被这行剪除的根因。
  */
 function readingPositionLine(input: SystemPromptInput): string {
@@ -53,14 +53,13 @@ function readingPositionLine(input: SystemPromptInput): string {
       } — read_chapter ${input.currentChapter.index} returns its text; treat "this chapter" as that one`,
     );
   }
+  // Facts only: what to do without a position is stated once, with the other
+  // spoiler rules, not repeated here.
   if (parts.length === 0) {
-    return `Reading position: not recorded. A live <reading_cursor> block on the reader's newest message is the authoritative position when present. ${needsSpoilerProtection(input.book) ? `If it is absent: ${SPOILER_POLICY.unknownPositionSpecificPassage} ${SPOILER_POLICY.unknownPositionAmbiguous} ` : "No reading-position prerequisite applies to answering factual or whole-book questions. "}get_book_overview and query_reading_stats cannot add position information beyond this line.`;
+    return "Reading position: not recorded. A live <reading_cursor> block on the reader's newest message is the authoritative position when present; get_book_overview and query_reading_stats cannot add position information beyond this line.";
   }
-  const protocol =
-    input.currentChapter || !needsSpoilerProtection(input.book)
-      ? ""
-      : " The current chapter is not identified: a live <reading_cursor> on the newest message is authoritative, and if spoiler safety needs the exact position and none is present, ask the reader.";
-  return `Reading position: ${parts.join("; ")}.${protocol}`;
+  const chapter = input.currentChapter ? "" : " The current chapter is not identified.";
+  return `Reading position: ${parts.join("; ")}.${chapter} A live <reading_cursor> on the newest message is authoritative.`;
 }
 
 /** "故事至此"一节里保留完整摘要的章数；更早章节只进名录。 */

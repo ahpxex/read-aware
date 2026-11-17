@@ -25,6 +25,10 @@ fn conflict() -> CommandError {
         "Virtual book registry changed; reload before retrying",
     )
 }
+/// Whether `raw` is a registry the app can read (shape and bounds).
+pub fn valid_registry(raw: &str) -> bool {
+    registry(Some(raw)).is_ok()
+}
 fn registry(raw: Option<&str>) -> Result<Registry, CommandError> {
     let value: Registry = match raw {
         None => BTreeMap::new(),
@@ -158,3 +162,21 @@ pub fn prune_inner(
 #[cfg(test)]
 #[path = "virtual_books_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+mod registry_tests {
+    use super::valid_registry;
+
+    #[test]
+    fn only_readable_registries_are_valid() {
+        assert!(valid_registry(
+            r#"{"b":{"pluginId":"rss-reader","providerId":"feed","key":"k"}}"#
+        ));
+        assert!(valid_registry("{}"));
+        assert!(!valid_registry(r#"{"b":{"pluginId":""}}"#));
+        assert!(!valid_registry(
+            r#"{"b":{"pluginId":"rss-reader","providerId":" ","key":"k"}}"#
+        ));
+        assert!(!valid_registry("[]"));
+    }
+}

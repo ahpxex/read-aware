@@ -98,6 +98,10 @@ pub(super) fn keyed(table: &str, key: &str) -> RowPolicy {
             RoamingPreferences
         };
     }
+    // `device:` keys (window placement and the like) describe this machine.
+    if key.starts_with("device:") {
+        return PreserveDevice;
+    }
     if key.starts_with("read-aware-secret:sync.")
         || key.starts_with("read-aware-backup-restore-accepted:")
         || key.starts_with("read-aware-sync-")

@@ -12,7 +12,7 @@
 use super::{scan, RowPlan, RowPolicy};
 use crate::{
     error::CommandError,
-    storage::{apply::DIFF_SPECS, events},
+    storage::{self, apply::DIFF_SPECS, events},
 };
 use rusqlite::{params_from_iter, Connection, Transaction};
 
@@ -292,11 +292,18 @@ fn fill_missing_local_state(
             check()?;
             if keyed {
                 let key: String = row.get("key")?;
-                if !matches!(
-                    super::policy::keyed(&name, &key),
-                    RowPolicy::ReviewSettings | RowPolicy::VirtualBindings
-                ) {
-                    continue;
+                match super::policy::keyed(&name, &key) {
+                    RowPolicy::ReviewSettings => {}
+                    // A registry the app could not read would break every
+                    // virtual book; such a value is not carried over.
+                    RowPolicy::VirtualBindings => {
+                        let raw: String = row.get("value_json")?;
+                        if !storage::virtual_books::valid_registry(&raw) {
+                            log::warn!("Backup restore skipped an invalid virtual book registry");
+                            continue;
+                        }
+                    }
+                    _ => continue,
                 }
             }
             let values = (0..columns.len())

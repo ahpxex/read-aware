@@ -111,6 +111,7 @@ fn restore_merges_both_histories_keeps_this_devices_state_and_fills_what_it_lack
         kv(conn, "read-aware-theme", "\"dark\"");
         kv(conn, "read-aware-reader-font", "\"serif\"");
         kv(conn, "read-aware-sync-token", "\"source-session\"");
+        kv(conn, "device:main-window-placement", "{\"x\":1}");
     });
     let plan = plan_against(&mut target, stage.path(), source);
     let tx = target
@@ -193,6 +194,11 @@ fn restore_merges_both_histories_keeps_this_devices_state_and_fills_what_it_lack
     assert!(value(
         &target,
         "SELECT value_json FROM app_kv WHERE key='read-aware-sync-token'"
+    )
+    .is_none());
+    assert!(value(
+        &target,
+        "SELECT value_json FROM app_kv WHERE key='device:main-window-placement'"
     )
     .is_none());
     assert_eq!(

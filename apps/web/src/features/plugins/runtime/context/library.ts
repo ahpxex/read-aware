@@ -13,7 +13,7 @@ import {
   unbindVirtualBookDurably,
 } from "../../lib/virtual-books";
 import type { PluginContext } from "../../lib/plugin-types";
-import { pluginObjectAccessDenied } from "../../../../domain/plugin-object-access";
+import { pluginObjectAccessDenied, runFenced } from "../../../../domain/plugin-object-access";
 import { guardMutationTree } from "./helpers";
 import { createLogger } from "../../../../platform/logger";
 import type { PluginActorKit } from "./kit";
@@ -244,30 +244,12 @@ export function installLibraryDomain(
         books: {
           prepareText: restricted.command(async (bookId, options) => {
             const operation = "library.commands.books.prepareText";
-            const fence = await objectAccess.beginBook(bookId, operation);
-            const cancel = new AbortController();
-            const signal = AbortSignal.any([lifecycle.signal, cancel.signal, ...(fence.signal ? [fence.signal] : [])]);
-            let disposed = false;
-            const access = {
-              signal,
-              isAllowed: () => !disposed && !signal.aborted,
-              dispose: () => {
-                if (!disposed) {
-                  disposed = true;
-                  fence.dispose();
-                }
-              },
-            };
-            try {
-              const task = await commandBooks.prepareText(bookId, options, access);
-              verifyTask(operation)(task);
-              await fence.assertUnchanged({ retain: true });
-              return task;
-            } catch (error) {
-              cancel.abort(error);
-              access.dispose();
-              throw error;
-            }
+            // The text task keeps the access (and its fence) past this call.
+            return runFenced(
+              objectAccess.beginBook(bookId, operation),
+              (access) => commandBooks.prepareText(bookId, options, access),
+              { signals: [lifecycle.signal], verify: verifyTask(operation), retain: true },
+            );
           }),
           retryEnrichment: restricted.command((bookId) =>
             scopedCommand(
@@ -366,19 +348,16 @@ export function installLibraryDomain(
           list: restricted.read(async () => {
             const operation = "library.books.list";
             lifecycle.assertActive(operation);
-            const fence =
+            return runFenced(
               grantedBookAccess.mode === "book"
-                ? await objectAccess.beginBook(grantedBookAccess.bookId, operation)
-                : await objectAccess.beginCurrent(operation);
-            try {
-              const books = await lifecycle.read(operation, () => queryBooks.list(), fence.signal);
-              const result = objectAccess.filterBooks(books, currentBook());
-              await fence.assertUnchanged();
-              return result;
-            } catch (error) {
-              fence.dispose();
-              throw error;
-            }
+                ? objectAccess.beginBook(grantedBookAccess.bookId, operation)
+                : objectAccess.beginCurrent(operation),
+              async (access) =>
+                objectAccess.filterBooks(
+                  await lifecycle.read(operation, () => queryBooks.list(), access.signal),
+                  currentBook(),
+                ),
+            );
           }),
           // Supported import formats describe the host, not a library object.
           listFormats: restricted.read(() =>

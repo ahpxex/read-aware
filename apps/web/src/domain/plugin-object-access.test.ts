@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { createPluginBookAccessPolicy } from "./plugin-object-access";
+import { createPluginBookAccessPolicy, runFenced } from "./plugin-object-access";
 import { ReadingSessionController } from "./reading-session-controller";
 import { ResourceOwner, type ResourceAdapter } from "../services/resource-owner";
 
@@ -286,4 +286,70 @@ test("a reader switch during the current snapshot await blocks dispatch before a
   current = { bookId: "book-b", sessionId: "session-b" };
   snapshot.resolve({ bookId: "book-a", sessionId: "session-a" });
   await expect(opening).rejects.toThrow(expect.objectContaining({ code: "plugin/object-access-denied" }));
+});
+
+test("a fenced call rejects a result that settled after the reader changed, and releases its observer either way", async () => {
+  let current = { bookId: "book-a", sessionId: "session-a" };
+  const handlers = new Set<(snapshot: typeof current) => unknown>();
+  const policy = createPluginBookAccessPolicy(
+    { mode: "current" },
+    async () => current,
+    (handler) => {
+      handlers.add(handler);
+      return () => handlers.delete(handler);
+    },
+    () => current,
+  );
+  expect(await runFenced(policy.beginBook("book-a", "read"), async () => "ok", { verify: () => {} })).toBe("ok");
+  expect(handlers.size).toBe(0);
+  let aborted = false;
+  await expect(
+    runFenced(policy.beginBook("book-a", "read"), async (access) => {
+      current = { bookId: "book-b", sessionId: "session-b" };
+      for (const handler of handlers) handler(current);
+      aborted = access.signal.aborted;
+      return "late";
+    }),
+  ).rejects.toMatchObject({ code: "plugin/object-access-denied" });
+  expect(aborted).toBe(true);
+  expect(handlers.size).toBe(0);
+});
+
+test("a retained fence stays with the handed-off work until its access is released", async () => {
+  const current = { bookId: "book-a", sessionId: "session-a" };
+  const handlers = new Set<unknown>();
+  const policy = createPluginBookAccessPolicy(
+    { mode: "current" },
+    async () => current,
+    (handler) => {
+      handlers.add(handler);
+      return () => handlers.delete(handler);
+    },
+    () => current,
+  );
+  let release!: () => void;
+  let allowed!: () => boolean;
+  await runFenced(
+    policy.beginBook("book-a", "task"),
+    async (access) => {
+      release = access.dispose;
+      allowed = () => access.isAllowed();
+    },
+    { retain: true },
+  );
+  expect(handlers.size).toBe(1);
+  expect(allowed()).toBe(true);
+  release();
+  expect(handlers.size).toBe(0);
+  expect(allowed()).toBe(false);
+  // A failed verification releases even a retained fence.
+  await expect(
+    runFenced(policy.beginBook("book-a", "task"), async () => 1, {
+      retain: true,
+      verify: () => {
+        throw new Error("wrong book");
+      },
+    }),
+  ).rejects.toThrow("wrong book");
+  expect(handlers.size).toBe(0);
 });

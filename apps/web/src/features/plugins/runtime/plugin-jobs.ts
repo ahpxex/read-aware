@@ -1,6 +1,6 @@
 import { canUseHostService, AppError, type DurableJobPlan } from "@read-aware/core";
 import type { PluginManifest } from "@read-aware/plugin-types";
-import type { PluginBookAccessPolicy } from "../../../domain/plugin-object-access";
+import { openFencedAccess, type PluginBookAccessPolicy } from "../../../domain/plugin-object-access";
 import type { TransactionSession } from "../../../domain/transactions";
 import { DurableJobRunner } from "../../../domain/durable-jobs";
 import { createDurableJobExecutor } from "../../../domain/durable-job-executor";
@@ -29,24 +29,21 @@ export function createPluginJobs(
       await fence.assertUnchanged({ retain: true });
       signal.throwIfAborted();
       live();
-      const combined = AbortSignal.any([signal, lifecycle.signal, ...(fence.signal ? [fence.signal] : [])]);
-      return {
-        signal: combined,
-        isAllowed: () => {
-          if (combined.aborted || lifecycle.phase !== "active") return false;
-          try {
-            access.assertBook(bookId, "durable job");
-            return true;
-          } catch {
-            return false;
-          }
-        },
-        dispose: () => fence.dispose(),
-      };
     } catch (error) {
       fence.dispose();
       throw error;
     }
+    // A durable job outlives the call that admitted it, so each step also
+    // re-asserts that the plugin is active and still holds the book.
+    return openFencedAccess(fence, [signal, lifecycle.signal], () => {
+      if (lifecycle.phase !== "active") return false;
+      try {
+        access.assertBook(bookId, "durable job");
+        return true;
+      } catch {
+        return false;
+      }
+    });
   };
   const authorize = async (plan: DurableJobPlan, signal: AbortSignal) => {
     live();

@@ -29,13 +29,14 @@ import { PluginLifecycleController } from "../plugin-lifecycle";
 import {
   createPluginBookAccessPolicy,
   pluginObjectAccessDenied,
+  runFenced,
   type CurrentBookSnapshot,
   type PluginBookAccessFenceOptions,
   type PluginBookAccessPolicy,
 } from "../../../../domain/plugin-object-access";
 import { readingRuntime } from "../../../../domain/reading-runtime";
 import { settled } from "../../../../platform/write-settlement";
-import { combinePluginSignals, pluginStoragePrefix } from "./helpers";
+import { pluginStoragePrefix } from "./helpers";
 import { createLogger } from "../../../../platform/logger";
 
 const log = createLogger("plugins");
@@ -90,8 +91,13 @@ export function createPluginActivationKit(
     }
     objectAccess.assertBook(bookId, "book resource");
   };
-  const scopedRead = async <T>(
-    bookId: string,
+  // Book calls admitted under the object grant: a named book or the live reader.
+  const fenceFor = (bookId: string | null, operation: string, fenceOptions?: PluginBookAccessFenceOptions) =>
+    bookId === null
+      ? objectAccess.beginCurrent(operation, fenceOptions)
+      : objectAccess.beginBook(bookId, operation, fenceOptions);
+  const fencedRead = <T>(
+    bookId: string | null,
     operation: string,
     run: (signal?: AbortSignal) => Promise<T>,
     options?: PluginCallOptions,
@@ -99,45 +105,14 @@ export function createPluginActivationKit(
     fenceOptions?: PluginBookAccessFenceOptions,
   ): Promise<T> => {
     lifecycle.assertActive(operation);
-    const fence = await objectAccess.beginBook(bookId, operation, fenceOptions);
-    try {
-      const result = await lifecycle.read(
-        operation,
-        (signal) => run(signal),
-        combinePluginSignals(callSignal(options), fence.signal),
-      );
-      verify?.(result);
-      await fence.assertUnchanged();
-      return result;
-    } catch (error) {
-      fence.dispose();
-      throw error;
-    }
+    return runFenced(
+      fenceFor(bookId, operation, fenceOptions),
+      (access) => lifecycle.read(operation, (signal) => run(signal), access.signal),
+      { signals: [callSignal(options)], verify },
+    );
   };
-  const scopedCurrentRead = async <T>(
-    operation: string,
-    run: (signal?: AbortSignal) => Promise<T>,
-    options?: PluginCallOptions,
-    verify?: (value: T) => void,
-  ): Promise<T> => {
-    lifecycle.assertActive(operation);
-    const fence = await objectAccess.beginCurrent(operation);
-    try {
-      const result = await lifecycle.read(
-        operation,
-        (signal) => run(signal),
-        combinePluginSignals(callSignal(options), fence.signal),
-      );
-      verify?.(result);
-      await fence.assertUnchanged();
-      return result;
-    } catch (error) {
-      fence.dispose();
-      throw error;
-    }
-  };
-  const scopedCommand = async <T>(
-    bookId: string,
+  const fencedCommand = <T>(
+    bookId: string | null,
     operation: string,
     run: (signal?: AbortSignal) => Promise<T>,
     options?: PluginCallOptions,
@@ -146,43 +121,49 @@ export function createPluginActivationKit(
     fenceOptions?: PluginBookAccessFenceOptions,
   ): Promise<T> => {
     lifecycle.assertActive(operation);
-    const fence = await objectAccess.beginBook(bookId, operation, fenceOptions);
-    try {
-      if (grantedBookAccess.mode === "current" && !signalAware) {
-        throw pluginObjectAccessDenied(`${operation} requires a cancellable host write`);
-      }
-      const result = await run(combinePluginSignals(callSignal(options), fence.signal));
-      verify?.(result);
-      await fence.assertUnchanged();
-      return result;
-    } catch (error) {
-      fence.dispose();
-      throw error;
-    }
+    return runFenced(
+      fenceFor(bookId, operation, fenceOptions),
+      async (access) => {
+        // A live-reader grant can be withdrawn mid-write; only a write that
+        // honours cancellation can be fenced.
+        if (grantedBookAccess.mode === "current" && !signalAware)
+          throw pluginObjectAccessDenied(`${operation} requires a cancellable host write`);
+        return run(access.signal);
+      },
+      { signals: [callSignal(options)], verify },
+    );
   };
-  const scopedCurrentCommand = async <T>(
+  const scopedRead = <T>(
+    bookId: string,
+    operation: string,
+    run: (signal?: AbortSignal) => Promise<T>,
+    options?: PluginCallOptions,
+    verify?: (value: T) => void,
+    fenceOptions?: PluginBookAccessFenceOptions,
+  ) => fencedRead(bookId, operation, run, options, verify, fenceOptions);
+  const scopedCurrentRead = <T>(
+    operation: string,
+    run: (signal?: AbortSignal) => Promise<T>,
+    options?: PluginCallOptions,
+    verify?: (value: T) => void,
+  ) => fencedRead(null, operation, run, options, verify);
+  const scopedCommand = <T>(
+    bookId: string,
     operation: string,
     run: (signal?: AbortSignal) => Promise<T>,
     options?: PluginCallOptions,
     signalAware = true,
     verify?: (value: T) => void,
     fenceOptions?: PluginBookAccessFenceOptions,
-  ): Promise<T> => {
-    lifecycle.assertActive(operation);
-    const fence = await objectAccess.beginCurrent(operation, fenceOptions);
-    try {
-      if (grantedBookAccess.mode === "current" && !signalAware) {
-        throw pluginObjectAccessDenied(`${operation} requires a cancellable host write`);
-      }
-      const result = await run(combinePluginSignals(callSignal(options), fence.signal));
-      verify?.(result);
-      await fence.assertUnchanged();
-      return result;
-    } catch (error) {
-      fence.dispose();
-      throw error;
-    }
-  };
+  ) => fencedCommand(bookId, operation, run, options, signalAware, verify, fenceOptions);
+  const scopedCurrentCommand = <T>(
+    operation: string,
+    run: (signal?: AbortSignal) => Promise<T>,
+    options?: PluginCallOptions,
+    signalAware = true,
+    verify?: (value: T) => void,
+    fenceOptions?: PluginBookAccessFenceOptions,
+  ) => fencedCommand(null, operation, run, options, signalAware, verify, fenceOptions);
   const referencePreviewOwner = {};
   lifecycle.signal.addEventListener(
     "abort",

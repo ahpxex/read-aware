@@ -21,6 +21,7 @@ import type { ActorDomainView } from "../../../domain/registry";
 import { normalizeMemoryObservation } from "../../../domain/memory-observer";
 import {
   pluginObjectAccessDenied,
+  runFenced,
   type PluginBookAccessPolicy,
   type PluginBookAccessFence,
 } from "../../../domain/plugin-object-access";
@@ -85,37 +86,16 @@ export function scopePluginMemory(
   ): Promise<T> {
     lifecycle.assertActive(`memory.${operation}`);
     const caller = pluginOperationSignal(lifecycle.signal, options);
-    const fence = await begin(operation, bookId);
-    const cancel = new AbortController();
-    const signal = AbortSignal.any([caller, cancel.signal, ...(fence.signal ? [fence.signal] : [])]);
-    let disposed = false;
-    const access: ResourceAccess = {
-      signal,
-      isAllowed: () => !disposed && !signal.aborted,
-      dispose: () => {
-        if (!disposed) {
-          disposed = true;
-          fence.dispose();
-        }
-      },
-    };
-    const retained = mode === "task" || mode === "resource";
-    try {
-      signal.throwIfAborted();
-      const result =
+    // Tasks and resources keep the access past the call; an admitted long task
+    // must not survive a rejected handoff, which runFenced cancels.
+    return runFenced(
+      begin(operation, bookId),
+      (access) =>
         mode === "read" || mode === "resource"
-          ? await lifecycle.read(`memory.${operation}`, () => work(access), signal)
-          : await work(access);
-      await fence.assertUnchanged({ retain: retained });
-      return result;
-    } catch (error) {
-      // An admitted long task must not survive a rejected handoff to its caller.
-      cancel.abort(error);
-      access.dispose();
-      throw error;
-    } finally {
-      if (!retained) access.dispose();
-    }
+          ? lifecycle.read(`memory.${operation}`, () => work(access), access.signal)
+          : work(access),
+      { signals: [caller], retain: mode === "task" || mode === "resource" },
+    );
   }
 
   const queryPolicy: RestrictedPolicy<PluginMemory["queries"]> = {

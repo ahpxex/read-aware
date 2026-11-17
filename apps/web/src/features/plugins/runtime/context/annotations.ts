@@ -2,8 +2,8 @@ import type { PluginAnnotationsDomain } from "@read-aware/plugin-types";
 import { restricted, restrictSurface, type RestrictedPolicy } from "../plugin-restricted-surface";
 import { AppError } from "@read-aware/core";
 import type { PluginContext } from "../../lib/plugin-types";
-import { pluginObjectAccessDenied } from "../../../../domain/plugin-object-access";
-import { combinePluginSignals, guardMutationTree } from "./helpers";
+import { pluginObjectAccessDenied, runFenced } from "../../../../domain/plugin-object-access";
+import { guardMutationTree } from "./helpers";
 import { createLogger } from "../../../../platform/logger";
 import type { PluginActorKit } from "./kit";
 
@@ -69,15 +69,11 @@ export function installAnnotationsDomain(
         }
         if (bookIds.size !== 1) throw pluginObjectAccessDenied("annotations.commands.applyChanges");
         const bookId = [...bookIds][0];
-        const fence = await objectAccess.beginBook(bookId, "annotations.commands.applyChanges");
-        try {
-          const result = await rawCommands.applyChanges(changes, combinePluginSignals(lifecycle.signal, fence.signal));
-          await fence.assertUnchanged();
-          return result;
-        } catch (error) {
-          fence.dispose();
-          throw error;
-        }
+        return runFenced(
+          objectAccess.beginBook(bookId, "annotations.commands.applyChanges"),
+          (access) => rawCommands.applyChanges(changes, access.signal),
+          { signals: [lifecycle.signal] },
+        );
       }),
       createHighlight: restricted.command(async (input) => {
         // Same permission rule as the unrestricted command: range validation reads the book source.

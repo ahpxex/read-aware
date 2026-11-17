@@ -24,6 +24,7 @@ import type {
 import type { ActorDomainView } from "../../../domain/registry";
 import {
   pluginObjectAccessDenied,
+  runFenced,
   type CurrentBookSnapshot,
   type PluginBookAccessPolicy,
 } from "../../../domain/plugin-object-access";
@@ -67,26 +68,19 @@ export function scopePluginConversations(
     mode: "read" | "write" | "proposal" = "read",
   ) {
     lifecycle.assertActive(`conversations.${operation}`);
-    const fence = await policy.beginBook(bookId, `conversations.${operation}`),
-      cancel = new AbortController();
-    const signal = AbortSignal.any([lifecycle.signal, cancel.signal, ...(fence.signal ? [fence.signal] : [])]);
-    try {
-      signal.throwIfAborted();
-      const pending =
-        mode === "read"
-          ? lifecycle.read(`conversations.${operation}`, () => work(signal, fence.dispose), signal)
-          : work(signal, fence.dispose);
-      if (mode !== "read") lifecycle.trackCleanup(settled(pending));
-      const result = await pending;
-      await fence.assertUnchanged({ retain: mode === "proposal" });
-      return result;
-    } catch (error) {
-      cancel.abort(error);
-      fence.dispose();
-      throw error;
-    } finally {
-      if (mode !== "proposal") fence.dispose();
-    }
+    // A proposal keeps its fence until the reader answers; `release` ends it.
+    return runFenced(
+      policy.beginBook(bookId, `conversations.${operation}`),
+      (access) => {
+        const pending =
+          mode === "read"
+            ? lifecycle.read(`conversations.${operation}`, () => work(access.signal, access.dispose), access.signal)
+            : work(access.signal, access.dispose);
+        if (mode !== "read") lifecycle.trackCleanup(settled(pending));
+        return pending;
+      },
+      { signals: [lifecycle.signal], retain: mode === "proposal" },
+    );
   }
 
   const project = (snapshot: Pick<ConversationRuntimeSnapshot, "sessions">): PluginConversationRuntimeSnapshot => {

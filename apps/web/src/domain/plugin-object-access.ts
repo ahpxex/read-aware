@@ -181,3 +181,72 @@ export function createPluginBookAccessPolicy(
 
   return { grant, restricted, assertBook, beginBook, beginCurrent, assertReturnedBook, filterBooks };
 }
+
+/** Access to one fenced book operation, handed to work that may outlive the
+ * call that admitted it (a text task, a memory resource, a durable job). */
+export type FencedAccess = {
+  /** Aborted by the caller, the plugin's retirement, the fence or a failed handoff. */
+  readonly signal: AbortSignal;
+  /** False once released or aborted, or when `stillGranted` says so. */
+  isAllowed(): boolean;
+  /** Release the fence; idempotent. */
+  dispose(): void;
+};
+
+/** Open access under `fence`. `signals` are the caller's and the plugin's
+ * lifetimes; `stillGranted` adds a check of the caller's own (a durable job
+ * re-asserts its book grant at every step). */
+export function openFencedAccess(
+  fence: PluginBookAccessFence,
+  signals: readonly (AbortSignal | undefined)[],
+  stillGranted: () => boolean = () => true,
+): FencedAccess & { cancel(reason: unknown): void } {
+  const cancel = new AbortController();
+  const signal = AbortSignal.any(
+    [...signals, cancel.signal, fence.signal].filter((item): item is AbortSignal => item !== undefined),
+  );
+  let disposed = false;
+  return {
+    signal,
+    isAllowed: () => !disposed && !signal.aborted && stillGranted(),
+    dispose: () => {
+      if (disposed) return;
+      disposed = true;
+      fence.dispose();
+    },
+    cancel: (reason) => cancel.abort(reason),
+  };
+}
+
+/**
+ * One fenced book operation, the shape every plugin book call shares: `work`
+ * runs with the access signal, `verify` checks what it returned, and a result
+ * that settled after the current reader changed is rejected. `retain` keeps the
+ * fence for work handed off past the call (the work's access then owns it). A
+ * failure cancels and releases the access before it propagates.
+ */
+export async function runFenced<T>(
+  fence: PluginBookAccessFence | Promise<PluginBookAccessFence>,
+  work: (access: FencedAccess) => Promise<T>,
+  options?: {
+    signals?: readonly (AbortSignal | undefined)[];
+    verify?: (value: T) => void;
+    retain?: boolean;
+  },
+): Promise<T> {
+  const opened = await fence;
+  const access = openFencedAccess(opened, options?.signals ?? []);
+  try {
+    access.signal.throwIfAborted();
+    const result = await work(access);
+    options?.verify?.(result);
+    await opened.assertUnchanged({ retain: options?.retain });
+    return result;
+  } catch (error) {
+    access.cancel(error);
+    access.dispose();
+    throw error;
+  } finally {
+    if (!options?.retain) access.dispose();
+  }
+}

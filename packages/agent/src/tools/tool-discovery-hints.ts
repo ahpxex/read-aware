@@ -15,7 +15,9 @@ export interface ToolDiscoveryHint {
 
 export const TOOL_DISCOVERY_HINTS: Readonly<Record<string, ToolDiscoveryHint>> = {
   // Shelf
-  update_book: { keywords: ["favorite", "favourite", "unstar", "rename", "retitle", "mark finished", "unread"] },
+  update_book: {
+    keywords: ["favorite", "favourite", "unstar", "rename", "retitle", "mark finished", "unread", "several books"],
+  },
   delete_book: { keywords: ["remove", "shelf", "trash"] },
   delete_books: { keywords: ["remove", "shelf", "trash", "bulk", "several", "many"] },
   list_book_removal_cleanup: { keywords: ["leftover", "orphan", "disk space"] },

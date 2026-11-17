@@ -46,6 +46,7 @@ const WRITTEN_CASES: Case[] = [
   // One plain request per tool group.
   { scope: "global", query: "favorite star book", expect: ["update_book"] },
   { scope: "global", query: "mark book finished", expect: ["update_book"] },
+  { scope: "global", query: "star several books", expect: ["update_book"] },
   { scope: "global", query: "rename book title author", expect: ["update_book"] },
   { scope: "global", query: "delete several books", expect: ["delete_books"] },
   { scope: "global", query: "collection folder organize", expect: ["manage_collection", "list_collections"] },

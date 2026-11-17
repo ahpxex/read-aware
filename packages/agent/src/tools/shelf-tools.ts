@@ -1,5 +1,5 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
-import { AppError, type Id } from "@read-aware/core";
+import { AppError, errorCode, type Id } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 import { threadScopeKey } from "../thread-scope";
@@ -11,6 +11,9 @@ import { buildDeleteBooksTool, buildListBookRemovalCleanupTool } from "./delete-
 import { buildReadingTimeTool } from "./reading-time";
 import { buildReadingInsightsTool } from "./reading-insights";
 import { arr, bool, nul, obj, oneOf, opt, str, union } from "@earendil-works/pi-schema";
+
+/** Books one update may name; each is its own committed change. */
+const MAX_BOOKS_PER_UPDATE = 100;
 
 export function buildShelfTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
   const listCollections: AgentTool = {
@@ -70,18 +73,32 @@ export function buildShelfTools(scope: ThreadScope, deps: RuntimeDeps): AgentToo
     name: "update_book",
     label: "Update book",
     description:
-      "Update a shelf book when the user explicitly asks: change title/author, star or unstar it, mark it finished or back to reading. Pass only the fields the user asked to change. bookId defaults to the current book.",
+      scope.kind === "global"
+        ? "Update shelf books when the user explicitly asks: change one book's title or author, star or unstar, mark finished or back to reading. Pass only the fields the user asked to change. For several books at once pass bookIds (up to 100) with starred and/or finished; the receipt lists what each book now has and which failed. Titles and authors change one book at a time."
+        : "Update this book when the user explicitly asks: change title/author, star or unstar it, mark it finished or back to reading. Pass only the fields the user asked to change. bookId defaults to the current book.",
     parameters: obj({
       bookId: opt(str()),
+      ...(scope.kind === "global"
+        ? {
+            bookIds: opt(
+              arr(str({ minLength: 1, maxLength: 256 }), {
+                minItems: 1,
+                maxItems: MAX_BOOKS_PER_UPDATE,
+                description: "Several books to star/unstar or mark finished together; do not combine with bookId",
+              }),
+            ),
+          }
+        : {}),
       title: opt(str({ description: "New title" })),
       author: opt(str({ description: "New author" })),
       starred: opt(bool({ description: "Add to / remove from favorites" })),
       finished: opt(bool({ description: "Mark finished, or false to resume reading" })),
     }),
     executionMode: "sequential",
-    execute: async (_id, params) => {
-      const { bookId, title, author, starred, finished } = params as {
+    execute: async (_id, params, signal) => {
+      const { bookId, bookIds, title, author, starred, finished } = params as {
         bookId?: string;
+        bookIds?: string[];
         title?: string;
         author?: string;
         starred?: boolean;
@@ -93,6 +110,48 @@ export function buildShelfTools(scope: ThreadScope, deps: RuntimeDeps): AgentToo
       const normalizedTitle = title?.trim();
       if (title !== undefined && !normalizedTitle) {
         throw new AppError("ui/invalid-target", "Book title must not be blank");
+      }
+      if (bookIds !== undefined) {
+        if (scope.kind !== "global" || bookId !== undefined)
+          throw new AppError("ui/invalid-target", "Pass either bookId or bookIds");
+        if (title !== undefined || author !== undefined)
+          throw new AppError("ui/invalid-target", "Titles and authors change one book at a time");
+        const targets = [...new Set(bookIds)] as Id[];
+        const shelf = new Set((await deps.library.listBooks()).map((book) => book.id));
+        const unknown = targets.filter((id) => !shelf.has(id));
+        // Nothing is written when any named book does not exist.
+        if (unknown.length) throw new AppError("library/book-not-found", `Unknown book IDs: ${unknown.join(", ")}`);
+        const failed: Array<{ bookId: string; errorCode: string }> = [];
+        for (const target of targets) {
+          signal?.throwIfAborted();
+          try {
+            if (starred !== undefined) await deps.library.setBookStarred(target, starred);
+            if (finished !== undefined) await deps.library.setBookFinished(target, finished);
+          } catch (error) {
+            // One book's failure does not undo the others; the receipt names it.
+            deps.log?.warn("shelf update failed for a book", error);
+            failed.push({ bookId: target, errorCode: errorCode(error) ?? "internal" });
+          }
+        }
+        const saved = new Map((await deps.library.listBooks()).map((book) => [book.id, book]));
+        const books = targets.map((target) => {
+          const book = saved.get(target);
+          return {
+            bookId: target,
+            ...(starred !== undefined ? { starred: book?.starred ?? false } : {}),
+            ...(finished !== undefined ? { finished: book?.status === "finished" } : {}),
+          };
+        });
+        return textResult({
+          updated: books.filter(
+            (book) =>
+              (starred === undefined || book.starred === starred) &&
+              (finished === undefined || book.finished === finished),
+          ).length,
+          requested: targets.length,
+          books,
+          ...(failed.length ? { failed } : {}),
+        });
       }
       const target = resolveBookId(scope, bookId);
       if (!(await deps.library.getBook(target))) throw new Error(`unknown book: ${target}`);

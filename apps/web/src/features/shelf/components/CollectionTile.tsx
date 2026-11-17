@@ -1,4 +1,4 @@
-import { useRef, type DragEvent, type ReactNode } from "react";
+import { useRef, type CSSProperties, type DragEvent, type ReactNode } from "react";
 import { CaretRight, FolderSimple } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
 import { useLocalAtom } from "@read-aware/ui/state";
@@ -17,26 +17,38 @@ type CollectionTileProps = {
   onDropBooks?: (ids: string[]) => void;
 };
 
-/** How far each card behind sits up and to the right, in percent of the box. */
+/**
+ * How far each card behind sits up and to the right, in percent of the box:
+ * a tight pile at rest, fanned out while a fine pointer hovers the tile.
+ */
 const STACK_STEP = 5;
+const SPREAD_STEP = 10;
+
+/** One card's box at a given step: the front card bottom left, each one behind up and right. */
+function cardBox(index: number, depth: number, step: number) {
+  return { left: `${index * step}%`, top: `${(depth - index) * step}%`, size: `${100 - depth * step}%` };
+}
 
 /**
- * Member covers stacked as a small pile, each whole at the book aspect: the
- * front card at the bottom left, the ones behind stepping up and right. Fewer
+ * Member covers stacked as a small pile, each whole at the book aspect. Fewer
  * members make a shallower pile, never an empty slot; an empty collection
- * shows a folder glyph in the same footprint. Fills its positioned box;
- * `label` lies on the front card.
+ * shows a folder glyph in the same footprint. Fills its positioned box. With
+ * `spreads`, the pile fans out while the tile is hovered or focused and every
+ * card dims, so the veil follows the cards rather than the box; `front` lies
+ * on the front card.
  */
 function CoverStack({
   covers,
   compact,
   active,
-  label,
+  spreads = false,
+  front,
 }: {
   covers: CollectionCover[];
   compact: boolean;
   active: boolean;
-  label?: ReactNode;
+  spreads?: boolean;
+  front?: ReactNode;
 }) {
   const cards = covers.slice(0, COLLECTION_STACK_DEPTH);
   if (cards.length === 0)
@@ -48,78 +60,114 @@ function CoverStack({
         )}
       >
         <FolderSimple size={compact ? 18 : 24} weight="regular" aria-hidden="true" />
-        {label}
+        {front}
       </div>
     );
   const depth = cards.length - 1;
-  const size = `${100 - depth * STACK_STEP}%`;
   return (
     <div className="absolute inset-0">
       {/* Painted back to front so the first member lies on top. */}
       {cards
-        .map((cover, index) => (
-          <div
-            key={cover.id}
-            style={{
-              width: size,
-              height: size,
-              left: `${index * STACK_STEP}%`,
-              top: `${(depth - index) * STACK_STEP}%`,
-            }}
-            className={cn(
-              // Bare like a book cover on the shelf: no outline. A soft shadow
-              // lifts each card off the one behind it; the front card carries
-              // the hover and drop state.
-              "absolute overflow-hidden rounded-mark bg-fill",
-              index < depth && "shadow-sm",
-              index === 0 &&
-                "transition-shadow pointer-fine:group-hover:shadow-md pointer-fine:group-focus-within:shadow-md",
-              index === 0 && active && "ring-2 ring-fg",
-            )}
-          >
-            <div className="h-full w-full" aria-hidden="true">
-              {cover.coverUrl ? (
-                <img src={cover.coverUrl} alt="" draggable={false} className="h-full w-full object-cover" />
-              ) : (
-                <BookCoverPlaceholder
-                  title={cover.title}
-                  author={cover.author}
-                  format={cover.format}
-                  compact={compact}
-                />
+        .map((cover, index) => {
+          const rest = cardBox(index, depth, STACK_STEP),
+            spread = cardBox(index, depth, SPREAD_STEP);
+          return (
+            <div
+              key={cover.id}
+              style={
+                {
+                  "--rest-left": rest.left,
+                  "--rest-top": rest.top,
+                  "--rest-size": rest.size,
+                  "--spread-left": spread.left,
+                  "--spread-top": spread.top,
+                  "--spread-size": spread.size,
+                } as CSSProperties
+              }
+              className={cn(
+                // Bare like a book cover on the shelf: no outline. A soft
+                // shadow lifts each card off the one behind it.
+                "absolute overflow-hidden rounded-mark bg-fill",
+                "[left:var(--rest-left)] [top:var(--rest-top)] [width:var(--rest-size)] [height:var(--rest-size)]",
+                spreads &&
+                  depth > 0 &&
+                  cn(
+                    "transition-[left,top,width,height] duration-200 ease-out motion-reduce:transition-none",
+                    "pointer-fine:group-hover:[left:var(--spread-left)] pointer-fine:group-hover:[top:var(--spread-top)]",
+                    "pointer-fine:group-hover:[width:var(--spread-size)] pointer-fine:group-hover:[height:var(--spread-size)]",
+                    "pointer-fine:group-focus-within:[left:var(--spread-left)] pointer-fine:group-focus-within:[top:var(--spread-top)]",
+                    "pointer-fine:group-focus-within:[width:var(--spread-size)] pointer-fine:group-focus-within:[height:var(--spread-size)]",
+                  ),
+                index < depth && "shadow-sm",
+                index === 0 && active && "ring-2 ring-fg",
               )}
+            >
+              <div className="h-full w-full" aria-hidden="true">
+                {cover.coverUrl ? (
+                  <img src={cover.coverUrl} alt="" draggable={false} className="h-full w-full object-cover" />
+                ) : (
+                  <BookCoverPlaceholder
+                    title={cover.title}
+                    author={cover.author}
+                    format={cover.format}
+                    compact={compact}
+                  />
+                )}
+              </div>
+              {/* Cards behind recede toward the page, so the front cover leads. */}
+              {index > 0 && <span className="absolute inset-0 bg-paper/40" />}
+              {spreads && index > 0 && <span className={VEIL} />}
+              {index === 0 && front}
             </div>
-            {/* Cards behind recede toward the page, so the front cover leads. */}
-            {index > 0 && <span className="absolute inset-0 bg-paper/40" />}
-            {index === 0 && label}
-          </div>
-        ))
+          );
+        })
         .reverse()}
     </div>
   );
 }
 
+/** The hover veil, the same dimming a book cover takes under its details. */
+const VEIL =
+  "pointer-events-none absolute inset-0 bg-stone-950/0 transition-colors pointer-fine:group-hover:bg-stone-950/75 pointer-fine:group-focus-within:bg-stone-950/75";
+
 /**
- * The collection's name and count, worn like a book's details: shown over the
- * front cover on hover with a fine pointer, and on touch, where nothing
- * hovers, as a band along its foot so the name is always there to read.
+ * The collection's details, worn like a book's: with a fine pointer they
+ * appear on the front card, veiled like the cards behind it, on hover or
+ * focus. Touch has no hover, so there the name and count ride a band along
+ * the front cover's foot instead (`StackBand`) and are always there to read.
  */
-function StackLabel({ name, count }: { name: string; count: string }) {
+function StackVeil({ name, count, titles }: { name: string; count: string; titles: string[] }) {
   return (
     <div
       className={cn(
-        "pointer-events-none absolute inset-x-0 bottom-0 bg-stone-950/70 px-2 py-1.5",
-        "pointer-fine:top-0 pointer-fine:bg-stone-950/0 pointer-fine:p-3 pointer-fine:opacity-0 pointer-fine:transition-all",
-        "pointer-fine:group-hover:bg-stone-950/80 pointer-fine:group-hover:opacity-100",
-        "pointer-fine:group-focus-within:bg-stone-950/80 pointer-fine:group-focus-within:opacity-100",
+        VEIL,
+        "hidden flex-col justify-between p-3 opacity-0 transition-all pointer-fine:flex pointer-fine:group-hover:opacity-100 pointer-fine:group-focus-within:opacity-100",
       )}
     >
-      <span className="block truncate font-serif text-xs font-medium leading-tight text-white/95 pointer-fine:line-clamp-3 pointer-fine:whitespace-normal pointer-fine:break-words pointer-fine:text-sm">
-        {name}
-      </span>
-      <span className="mt-0.5 block font-sans text-[10px] tabular-nums text-white/70 pointer-fine:mt-1 pointer-fine:text-[11px]">
-        {count}
-      </span>
+      <div className="min-w-0">
+        <span className="line-clamp-3 font-serif text-sm font-medium leading-tight break-words text-white/95">
+          {name}
+        </span>
+        <span className="mt-1 block font-sans text-[11px] tabular-nums text-white/70">{count}</span>
+      </div>
+      {titles.length > 0 && (
+        <ul className="min-w-0 space-y-0.5">
+          {titles.map((title, index) => (
+            <li key={index} className="truncate font-sans text-[11px] text-white/70">
+              {title}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function StackBand({ name, count }: { name: string; count: string }) {
+  return (
+    <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-stone-950/70 px-2 py-1.5 pointer-fine:hidden">
+      <span className="block truncate font-serif text-xs font-medium leading-tight text-white/95">{name}</span>
+      <span className="mt-0.5 block font-sans text-[10px] tabular-nums text-white/70">{count}</span>
     </div>
   );
 }
@@ -208,7 +256,17 @@ export function CollectionTile({ data, layout, onOpen, onDropBooks }: Collection
             covers={data.covers}
             compact={false}
             active={dragOver}
-            label={<StackLabel name={data.name} count={countLabel} />}
+            spreads
+            front={
+              <>
+                <StackVeil
+                  name={data.name}
+                  count={countLabel}
+                  titles={data.covers.slice(0, COLLECTION_STACK_DEPTH).map((cover) => cover.title)}
+                />
+                <StackBand name={data.name} count={countLabel} />
+              </>
+            }
           />
         </div>
       </button>

@@ -1,6 +1,6 @@
 import type { FoliateBook } from "../../reader/lib/foliate-engine";
 import { ContentBudgetError } from "../../../../foliate-js/src/content-budget";
-import { isInlineFootnote, NON_FOOTNOTE_IMAGE_SELECTOR } from "../../reader/lib/inline-footnote";
+import { isInlineFootnote, NON_FOOTNOTE_IMAGE_SELECTOR } from "../../../services/inline-footnote";
 
 export type ImageCandidate = { element: Element; src: string; original: boolean };
 const selector = `${NON_FOOTNOTE_IMAGE_SELECTOR}, image`;

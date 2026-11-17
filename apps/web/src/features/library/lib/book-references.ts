@@ -18,7 +18,7 @@ import {
   ContentBudgetError,
   CONTENT_QUERY_MAX_SOURCE_BYTES,
 } from "../../../../foliate-js/src/content-budget";
-import { INLINE_FOOTNOTE_SELECTOR, inlineFootnoteText } from "../../reader/lib/inline-footnote";
+import { INLINE_FOOTNOTE_SELECTOR, inlineFootnoteText } from "../../../services/inline-footnote";
 
 const selector = `a[href], a[*|href], ${INLINE_FOOTNOTE_SELECTOR}`;
 const inlineNote = (element: Element) => element.localName === "img";

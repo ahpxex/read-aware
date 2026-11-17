@@ -17,6 +17,7 @@ export const userDomain = createDomainApi("user");
 
 export {
   createLibraryDomain,
+  chapterHrefsThrough,
   getExtractedChapters,
   getPersistedChapters,
   toBookSummary,

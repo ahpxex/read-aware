@@ -5,7 +5,7 @@ import { readerFocus } from "../../../../services/reader-focus";
 import { readerImage } from "../../../../services/reader-image";
 import { readerImageOpen } from "../../../../services/reader-image-open";
 import { readBookImage } from "../../../library/lib/book-images";
-import { chapterHrefsThrough } from "../../../../domain/library";
+import { chapterHrefsThrough } from "../../../../domain";
 import { readerReferencePreview } from "../../../../services/reader-reference-preview";
 import { createBookTextPort } from "./book-text-port";
 import { readingRuntime } from "../../../../domain/reading-runtime";

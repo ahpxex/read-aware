@@ -1,4 +1,4 @@
-import { isInlineFootnote } from "./inline-footnote";
+import { isInlineFootnote } from "../../../services/inline-footnote";
 /**
  * Click-to-view eligibility for images inside book sections (issue #13).
  * Decides whether a tap landed on a real illustration — as opposed to an

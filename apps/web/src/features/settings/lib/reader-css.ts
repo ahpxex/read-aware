@@ -20,7 +20,7 @@ import {
 } from "./reader-settings";
 import { curatedFallback, getCuratedFont, type CuratedFontKind } from "./curated-fonts";
 import type { ReaderPalette } from "./reader-theme";
-import { INLINE_FOOTNOTE_SELECTOR } from "../../reader/lib/inline-footnote";
+import { INLINE_FOOTNOTE_SELECTOR } from "../../../services/inline-footnote";
 
 // Trailing fallbacks after a user-picked system family, so a missing glyph (or a
 // font that was later uninstalled) lands on a readable default.

@@ -140,7 +140,7 @@ import { useVolumeKeySteps } from "../hooks/useVolumeKeySteps";
 import type { ReaderEngineSession } from "../lib/reader-engine-session";
 import type { ActiveReadingClock } from "../lib/reading-session-policy";
 import { useReaderEngineSession } from "../hooks/useReaderEngineSession";
-import { INLINE_FOOTNOTE_SELECTOR, inlineFootnoteText } from "../lib/inline-footnote";
+import { INLINE_FOOTNOTE_SELECTOR, inlineFootnoteText } from "../../../services/inline-footnote";
 
 type FoliateReaderViewProps = {
   selectedBook?: LibraryBook | null;

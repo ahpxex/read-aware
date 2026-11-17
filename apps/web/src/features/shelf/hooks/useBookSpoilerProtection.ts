@@ -5,7 +5,7 @@ import { useToast } from "@read-aware/ui";
 import { userDomain } from "../../../domain";
 import { describeError, useTranslation } from "../../../i18n";
 import { createLogger } from "../../../platform/logger";
-import type { LibraryBook } from "../../library/lib/library-types";
+import type { LibraryBook } from "../../library";
 
 const log = createLogger("shelf");
 

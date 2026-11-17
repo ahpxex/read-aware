@@ -3,6 +3,7 @@ import { Trans, useTranslation } from "../../../i18n";
 import { useBookAnnotations } from "../../annotations/hooks/useBookAnnotations";
 import type { BookMetadataPatch, LibraryBook } from "../../library/lib/library-types";
 import { useBookDetailsMarks } from "../hooks/useBookDetailsMarks";
+import { useBookSpoilerProtection } from "../hooks/useBookSpoilerProtection";
 import { BookDetailsDialogView } from "./BookDetailsDialogView";
 
 type BookDetailsDialogProps = {
@@ -22,6 +23,7 @@ export function BookDetailsDialog({ book, open, onClose, onUpdateMetadata }: Boo
   // Only observe annotations while the dialog is open.
   const observed = useBookAnnotations(open ? book.id : null);
   const marks = useBookDetailsMarks(book.id, open, onClose, observed);
+  const spoilerProtection = useBookSpoilerProtection(book);
   return (
     <BookDetailsDialogView
       book={book}
@@ -29,6 +31,7 @@ export function BookDetailsDialog({ book, open, onClose, onUpdateMetadata }: Boo
       onClose={onClose}
       onUpdateMetadata={onUpdateMetadata}
       marks={marks}
+      spoilerProtection={spoilerProtection}
     />
   );
 }

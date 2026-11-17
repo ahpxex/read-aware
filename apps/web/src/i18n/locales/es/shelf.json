@@ -65,7 +65,10 @@
     "notes": "Notas",
     "annotations": "Notas y resaltados",
     "back": "Volver a los detalles del libro",
-    "openPassageFailed": "No se pudo abrir este pasaje"
+    "openPassageFailed": "No se pudo abrir este pasaje",
+    "spoilerProtection": "Protección contra spoilers",
+    "spoilerProtectionHint": "El asistente no revelará lo que pasa después de donde vas en este libro.",
+    "spoilerProtectionFailed": "No se pudo cambiar la protección contra spoilers"
   },
   "removeBook": {
     "title": "¿Quitar el libro?",

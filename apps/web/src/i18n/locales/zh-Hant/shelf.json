@@ -61,7 +61,10 @@
     "notes": "筆記",
     "annotations": "筆記與螢光標示",
     "back": "返回書籍詳細資訊",
-    "openPassageFailed": "無法開啟這段原文"
+    "openPassageFailed": "無法開啟這段原文",
+    "spoilerProtection": "防劇透",
+    "spoilerProtectionHint": "AI 助手不會提前透露你還沒讀到的內容。",
+    "spoilerProtectionFailed": "無法變更防劇透設定"
   },
   "removeBook": {
     "title": "移除書籍？",

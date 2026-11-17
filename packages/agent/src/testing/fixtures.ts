@@ -641,7 +641,8 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
       }),
       listBooks: async () => books,
       listBookRemovalCleanup: async () => ({ items: [], nextCursor: null }),
-      getBook: async (id) => books.find((book) => book.id === id),
+      // A copy, as the host port returns one: later writes never reach a snapshot already read.
+      getBook: async (id) => structuredClone(books.find((book) => book.id === id)),
       listCollections: async () => collections,
       booksInCollection: async (collectionId) =>
         books.filter((book) => book.collectionId === collectionId).map((book) => book.id),

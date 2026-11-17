@@ -14,6 +14,7 @@ import {
   ERR_AI_MEMORY_DISABLED,
   ERR_AI_PROVIDER,
   profileContextText,
+  type Id,
   type ProfileContext,
 } from "@read-aware/core";
 import { runMemoryBuild } from "../memory/build-policy";
@@ -154,6 +155,8 @@ export class AgentThread {
    */
   private readonly lifecycle = new AbortController();
   private backgroundWork: Promise<void> = Promise.resolve();
+  /** The book classification running for this thread, if any. */
+  private classification?: Promise<void>;
   /**
    * 书线程的章节会话（doc §5）：会话内 agent.state 连续累积（含工具调用的
    * 完整上下文树）；仅当用户在**另一个章节**发出新消息时才重置回无状态基线。
@@ -445,49 +448,23 @@ export class AgentThread {
       let narrativeUnfinished = false;
       let currentBook: BookOverview | undefined;
       if (this.scope.kind === "book") {
-        let book = await call.wait(this.deps.library.getBook(this.scope.bookId));
-        // Upgrade legacy narrative classifications before enforcing a plot fence.
-        // Cache the independent verdict through the existing conditional event seam.
-        // No source text is sampled when surrounding-text sharing is disabled.
+        const book = await call.wait(this.deps.library.getBook(this.scope.bookId));
+        // A book without a verdict is classified in the background and stays
+        // protected until then: the reply never waits for the classifier.
         if (
           book &&
           book.status !== "finished" &&
-          book.spoilerSensitive === undefined &&
-          book.narrativity !== "expository"
-        ) {
-          const deadline = new AbortController();
-          const timer = setTimeout(
-            () => deadline.abort(new DOMException("Book classification timed out", "TimeoutError")),
-            15_000,
+          (book.narrativity === undefined || book.spoilerSensitive === undefined)
+        )
+          this.classifyInBackground(
+            book.id,
+            call.permissions.surrounding ? (cursor?.chapterIndex ?? 0) : 0,
+            call.permissions,
           );
-          const signal = AbortSignal.any([call.signal, deadline.signal]);
-          const classificationCall = readingContextCall(this.deps.readingContextPolicy, signal, call.permissions);
-          try {
-            await classificationCall.wait(
-              ensureBookClassification(
-                {
-                  deps: this.deps,
-                  bookId: book.id,
-                  model: this.resolveModel("fast"),
-                  complete: this.completeFn,
-                  signal,
-                },
-                call.permissions.surrounding ? (cursor?.chapterIndex ?? 0) : 0,
-              ),
-            );
-            book = await call.wait(this.deps.library.getBook(book.id));
-          } catch (error) {
-            call.assertAllowed();
-            this.deps.log?.warn("book reading policy unavailable; keeping conservative fallback", error);
-          } finally {
-            clearTimeout(timer);
-            classificationCall.dispose();
-          }
-        }
         currentBook = book;
         this.turnState.bookMemoryBoundary = chapterMemoryPolicy(book, cursor?.chapterIndex).boundary;
-        narrativeUnfinished =
-          !!book && (book.spoilerSensitive ?? book.narrativity === "narrative") && needsSpoilerProtection(book);
+        // One verdict for the fence, the spoiler card, the prompt and the graph.
+        narrativeUnfinished = !!book && needsSpoilerProtection(book);
         this.turnState.spoilerProtected = narrativeUnfinished;
         if (narrativeUnfinished && cursor?.chapterIndex !== undefined) {
           // 位置在章内（已定位，或宿主给了视口文本）→ 本章不整章开放：这一判断用宿主的
@@ -931,6 +908,38 @@ export class AgentThread {
       if (snapshot) await deps.memory.reinforceMemory(snapshot);
     }
     return summary;
+  }
+
+  /**
+   * Classify the thread's book off the reply's path. It is reading policy, not
+   * memory, so the memory-build switch does not gate it; the reading-context
+   * permissions captured for this turn do. One classification at a time; a
+   * failed or unsure verdict is retried by a later turn.
+   */
+  private classifyInBackground(bookId: Id, beforeChapterIndex: number, permissions: ReadingContextPermissions): void {
+    if (this.classification || this.disposed) return;
+    const call = readingContextCall(this.deps.readingContextPolicy, this.lifecycle.signal, permissions);
+    const work = call
+      .wait(
+        ensureBookClassification(
+          { deps: this.deps, bookId, model: this.resolveModel("fast"), complete: this.completeFn, signal: call.signal },
+          beforeChapterIndex,
+        ),
+      )
+      .then(
+        () => undefined,
+        (error: unknown) => {
+          if (!this.lifecycle.signal.aborted)
+            this.deps.log?.warn("background book classification failed; the book stays protected", error);
+        },
+      )
+      .finally(() => {
+        call.dispose();
+        this.classification = undefined;
+      });
+    this.classification = work;
+    const previous = this.backgroundWork;
+    this.backgroundWork = Promise.all([previous, work]).then(() => undefined);
   }
 
   /** 每轮对话为当前书补建的纪要章数（聊哪本书，哪本书的图就优先追平）。 */

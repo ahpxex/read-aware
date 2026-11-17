@@ -6,7 +6,12 @@ export type ChapterMemoryPolicy = { flavor: DigestFlavor; boundary: BookGraphBou
 
 type PolicyBook = { narrativity?: DigestFlavor | null; spoilerSensitive?: boolean | null; status?: string };
 
-/** Legacy/unknown books stay conservative until the classifier fills this independent flag. */
+/**
+ * The one verdict on whether a book's plot is protected for its reader. The
+ * reader's own setting (a user classification) is final; the background
+ * classifier only fills a missing flag; an unclassified book stays protected.
+ * The fence, the spoiler card, the prompt and the graph boundary all read this.
+ */
 export function needsSpoilerProtection(book: PolicyBook | undefined): boolean {
   return book?.status !== "finished" && (book?.spoilerSensitive ?? book?.narrativity !== "expository");
 }

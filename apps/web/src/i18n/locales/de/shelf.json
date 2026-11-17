@@ -63,7 +63,10 @@
     "notes": "Notizen",
     "annotations": "Notizen & Markierungen",
     "back": "Zurück zu den Buchdetails",
-    "openPassageFailed": "Diese Stelle konnte nicht geöffnet werden"
+    "openPassageFailed": "Diese Stelle konnte nicht geöffnet werden",
+    "spoilerProtection": "Spoilerschutz",
+    "spoilerProtectionHint": "Der Assistent verrät nichts, was in diesem Buch nach deiner Leseposition kommt.",
+    "spoilerProtectionFailed": "Spoilerschutz konnte nicht geändert werden"
   },
   "removeBook": {
     "title": "Buch entfernen?",

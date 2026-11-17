@@ -63,7 +63,10 @@
     "notes": "Notes",
     "annotations": "Notes & highlights",
     "back": "Back to book details",
-    "openPassageFailed": "Couldn't open this passage"
+    "openPassageFailed": "Couldn't open this passage",
+    "spoilerProtection": "Spoiler protection",
+    "spoilerProtectionHint": "The assistant won't reveal what happens after where you are in this book.",
+    "spoilerProtectionFailed": "Couldn't change spoiler protection"
   },
   "removeBook": {
     "title": "Remove book?",

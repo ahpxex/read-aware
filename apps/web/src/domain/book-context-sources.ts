@@ -15,6 +15,7 @@ import { getVirtualTextSource } from "../features/library/lib/virtual-text-sourc
 import { invoke } from "../platform/ipc";
 import { getDesktopBlob } from "../platform/blob-store";
 import { parseBookTextRecord, textComplete } from "../features/library/lib/book-text-record";
+import { needsSpoilerProtection } from "@read-aware/agent";
 import { bookMemoryBoundary } from "./book-memory-boundary";
 import { readingRuntime } from "./reading-runtime";
 
@@ -27,9 +28,11 @@ type Host = {
 /** Only verified persisted metadata, never a running extraction or raw book text item. */
 async function chapterHrefs(source: BookContextSnapshot, host: Host, signal: AbortSignal): Promise<string[][] | null> {
   if (
-    source.readingStatus === "finished" ||
-    source.spoilerSensitive === false ||
-    (source.spoilerSensitive == null && source.flavor === "expository") ||
+    !needsSpoilerProtection({
+      narrativity: source.flavor,
+      spoilerSensitive: source.spoilerSensitive,
+      status: source.readingStatus,
+    }) ||
     source.format === "virtual" ||
     !source.contentHash ||
     !source.textHash

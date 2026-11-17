@@ -6,7 +6,7 @@ import { createInMemoryDeps } from "../testing/fixtures";
 import { memoryPolicyState } from "../testing/memory-policy";
 import { AgentThread } from "./thread";
 
-test("legacy factual narrative is classified before its first answer; later text and graph are available without a grant", async () => {
+test("an unclassified book stays protected for its first reply and opens once the background verdict lands", async () => {
   const faux = registerFauxProvider({ tokensPerSecond: 100_000 }),
     model = faux.getModel() as Model<Api>;
   const { deps, stores } = createInMemoryDeps({
@@ -30,24 +30,29 @@ test("legacy factual narrative is classified before its first answer; later text
       ],
     },
   });
-  // Classification is book metadata, independent of optional memory building.
+  // Classification is reading policy, independent of optional memory building.
   const memory = memoryPolicyState();
   memory.set(false);
   deps.memoryPolicy = memory.policy;
   let classifications = 0;
   const prompts: string[] = [];
+  const results: string[] = [];
   faux.setResponses([
     (context) => {
       prompts.push(getCurrentSystemPrompt(context.messages));
       return fauxAssistantMessage([fauxToolCall("read_chapter", { chapterIndex: 1 })]);
     },
     (context) => {
-      expect(JSON.stringify(context.messages)).toContain("The 1992 journey accelerated reform.");
-      return fauxAssistantMessage("The 1992 journey accelerated reform.");
+      results.push(JSON.stringify(context.messages[context.messages.length - 1]));
+      return fauxAssistantMessage("That part is later in the book.");
     },
     (context) => {
       prompts.push(getCurrentSystemPrompt(context.messages));
-      return fauxAssistantMessage("Later reforms.");
+      return fauxAssistantMessage([fauxToolCall("read_chapter", { chapterIndex: 1 })]);
+    },
+    (context) => {
+      results.push(JSON.stringify(context.messages[context.messages.length - 1]));
+      return fauxAssistantMessage("The 1992 journey accelerated reform.");
     },
   ]);
   const thread = new AgentThread({
@@ -62,29 +67,74 @@ test("legacy factual narrative is classified before its first answer; later text
     },
   });
   try {
-    const chunks = [];
-    for await (const chunk of thread.sendTurn({
-      text: "What changed in 1992? Check the book.",
-      readingCursor: { chapterIndex: 0, visibleText: "A childhood in the village." },
-    }))
-      chunks.push(chunk);
-    for await (const _ of thread.sendTurn({ text: "Thanks." })) {
+    const cursor = { chapterIndex: 0, visibleText: "A childhood in the village." };
+    for await (const _ of thread.sendTurn({ text: "What changed in 1992? Check the book.", readingCursor: cursor })) {
       /* drain */
     }
-    expect(stores.books[0]!.narrativity).toBe("narrative");
-    expect(stores.books[0]!.spoilerSensitive).toBe(false);
+    // The first reply did not wait for the classifier: it ran behind the fence.
+    expect(prompts[0]).toContain("request_spoiler_access");
+    expect(results[0]).not.toContain("The 1992 journey");
+    await thread.flushBackgroundWork();
+    // Classification is reading policy: it runs with memory building switched off.
     expect(classifications).toBe(1);
-    expect(
-      chunks
-        .filter((c) => c.type === "text")
-        .map((c) => c.text)
-        .join(""),
-    ).toBe("The 1992 journey accelerated reform.");
-    for (const prompt of prompts) {
-      expect(prompt).toContain("Later reform evidence");
-      expect(prompt).not.toContain("first-sentence caution");
-      expect(prompt).toContain("This book has no plot-spoiler boundary");
+    expect(stores.books[0]!.spoilerSensitive).toBe(false);
+    for await (const _ of thread.sendTurn({ text: "What changed in 1992? Check the book.", readingCursor: cursor })) {
+      /* drain */
     }
+    expect(prompts[1]).toContain("Later reform evidence");
+    expect(prompts[1]).toContain("This book has no plot-spoiler boundary");
+    expect(results[1]).toContain("The 1992 journey accelerated reform.");
+  } finally {
+    thread.dispose();
+    await thread.flushBackgroundWork();
+    faux.unregister();
+  }
+});
+
+test("a book the classifier cannot place keeps the fence, the spoiler card and the prompt rules together", async () => {
+  const faux = registerFauxProvider({ tokensPerSecond: 100_000 }),
+    model = faux.getModel() as Model<Api>;
+  const { deps } = createInMemoryDeps({
+    books: [{ id: "u", title: "Untitled manuscript", status: "reading" }],
+    chapters: {
+      u: [
+        { title: "One", text: "Opening scene." },
+        { title: "Two", text: "The twist is revealed." },
+      ],
+    },
+  });
+  let prompt = "";
+  let result = "";
+  faux.setResponses([
+    (context) => {
+      prompt = getCurrentSystemPrompt(context.messages);
+      return fauxAssistantMessage([fauxToolCall("read_chapter", { chapterIndex: 1 })]);
+    },
+    (context) => {
+      result = JSON.stringify(context.messages[context.messages.length - 1]);
+      return fauxAssistantMessage("That comes later.");
+    },
+  ]);
+  const thread = new AgentThread({
+    scope: { kind: "book", bookId: "u" },
+    deps,
+    resolveModel: () => model,
+    getApiKey: () => "fixture",
+    streamFn: streamSimple,
+    // An unsure verdict is not recorded: the book stays unclassified.
+    completeFn: async () =>
+      fauxAssistantMessage('{"narrativity":"narrative","spoilerSensitive":true,"confidence":0.2}'),
+  });
+  try {
+    for await (const _ of thread.sendTurn({
+      text: "What happens next?",
+      readingCursor: { chapterIndex: 0, visibleText: "Opening scene." },
+    })) {
+      /* drain */
+    }
+    expect(prompt).toContain("request_spoiler_access");
+    expect(result).not.toContain("The twist is revealed.");
+    expect(result).toContain("request_spoiler_access");
   } finally {
     thread.dispose();
     await thread.flushBackgroundWork();

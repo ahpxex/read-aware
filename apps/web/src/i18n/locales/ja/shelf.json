@@ -61,7 +61,10 @@
     "notes": "メモ",
     "annotations": "メモとハイライト",
     "back": "本の詳細に戻る",
-    "openPassageFailed": "この箇所を開けませんでした"
+    "openPassageFailed": "この箇所を開けませんでした",
+    "spoilerProtection": "ネタバレ防止",
+    "spoilerProtectionHint": "アシスタントは、この本で読み進めた位置より先の内容を明かしません。",
+    "spoilerProtectionFailed": "ネタバレ防止を変更できませんでした"
   },
   "removeBook": {
     "title": "本を削除しますか？",

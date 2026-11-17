@@ -61,7 +61,10 @@
     "notes": "笔记",
     "annotations": "笔记与高亮",
     "back": "返回书籍详情",
-    "openPassageFailed": "无法打开这段原文"
+    "openPassageFailed": "无法打开这段原文",
+    "spoilerProtection": "防剧透",
+    "spoilerProtectionHint": "AI 助手不会提前透露你还没读到的内容。",
+    "spoilerProtectionFailed": "无法更改防剧透设置"
   },
   "removeBook": {
     "title": "移除书籍？",

@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import { useAtomValue } from "jotai";
 import { CaretRight } from "@phosphor-icons/react";
-import { Body, Button, Caption, Dialog, InlineError, Progress, TextField } from "@read-aware/ui";
+import { Body, Button, Caption, Dialog, InlineError, Progress, TextField, Toggle } from "@read-aware/ui";
 import { formatNumber, formatPercent, useTranslation } from "../../../i18n";
 import { describeErrorCode } from "../../../i18n/describe-error";
 import { readingStatsAtom } from "../../../state/ui";
 import type { BookMetadataPatch, LibraryBook } from "../../library";
 import { formatReadingDuration, getBookReadingStats } from "../../reader";
 import type { BookDetailsMarks } from "../hooks/useBookDetailsMarks";
+import type { BookSpoilerProtection } from "../hooks/useBookSpoilerProtection";
 import { BookCoverPlaceholder } from "./BookCoverPlaceholder";
 import { BookMarksPage, type BookMarksFilter } from "./BookMarksPage";
 
@@ -19,6 +20,8 @@ export type BookDetailsDialogViewProps = {
   onUpdateMetadata?: (patch: BookMetadataPatch) => void;
   /** The book's highlights and notes; the container observes them. */
   marks: BookDetailsMarks;
+  /** The reader's spoiler-protection choice for this book; omitted where it cannot be saved. */
+  spoilerProtection?: BookSpoilerProtection;
 };
 
 /** A single labelled figure in the stat strip. */
@@ -76,7 +79,14 @@ type Page = { kind: "details" } | { kind: "marks"; from: "highlight" | "note" };
  * No visible title: the cover and the book's own title already say what the
  * dialog is; the accessible name still does.
  */
-export function BookDetailsDialogView({ book, open, onClose, onUpdateMetadata, marks }: BookDetailsDialogViewProps) {
+export function BookDetailsDialogView({
+  book,
+  open,
+  onClose,
+  onUpdateMetadata,
+  marks,
+  spoilerProtection,
+}: BookDetailsDialogViewProps) {
   const { t } = useTranslation(["shelf", "common"]);
   const store = useAtomValue(readingStatsAtom);
   const readingTime = formatReadingDuration(getBookReadingStats(store, book.id).totalMs);
@@ -240,6 +250,23 @@ export function BookDetailsDialogView({ book, open, onClose, onUpdateMetadata, m
             >
               {failure?.body ?? t("common:errors.generic")}
             </InlineError>
+          )}
+
+          {spoilerProtection && (
+            <div className="flex items-start justify-between gap-4 border-t border-border pt-4">
+              <div className="min-w-0">
+                <Body className="text-sm text-fg">{t("details.spoilerProtection")}</Body>
+                <Caption className="mt-0.5 block text-fg-muted">{t("details.spoilerProtectionHint")}</Caption>
+              </div>
+              <Toggle
+                aria-label={t("details.spoilerProtection")}
+                checked={spoilerProtection.enabled}
+                disabled={spoilerProtection.saving}
+                aria-busy={spoilerProtection.saving}
+                onChange={spoilerProtection.setEnabled}
+                className="shrink-0 pt-0.5"
+              />
+            </div>
           )}
 
           {/* Actions */}

@@ -65,7 +65,10 @@
     "notes": "Notes",
     "annotations": "Notes et surlignages",
     "back": "Retour aux détails du livre",
-    "openPassageFailed": "Impossible d'ouvrir ce passage"
+    "openPassageFailed": "Impossible d'ouvrir ce passage",
+    "spoilerProtection": "Protection contre les spoilers",
+    "spoilerProtectionHint": "L’assistant ne révèle rien de ce qui suit l’endroit où vous en êtes dans ce livre.",
+    "spoilerProtectionFailed": "Impossible de modifier la protection contre les spoilers"
   },
   "removeBook": {
     "title": "Retirer le livre ?",

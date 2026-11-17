@@ -28,7 +28,7 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Grid layout: the first three members stacked, the name and count beneath. */
+/** Grid layout: the first three members stacked; hover shows the name and count, touch bands them on the front cover. */
 export const Grid: Story = {};
 
 /** Fewer members make a shallower stack, never an empty slot. */
@@ -65,7 +65,7 @@ export const GridEmpty: Story = {
   args: { data: { id: "c3", name: "To read", count: 0, covers: [] } },
 };
 
-/** A long name truncates on one line beneath the stack. */
+/** A long name wraps to three lines on hover and truncates in the touch band. */
 export const GridLongName: Story = {
   args: {
     data: {

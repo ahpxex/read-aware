@@ -1,4 +1,4 @@
-import { useRef, type DragEvent } from "react";
+import { useRef, type DragEvent, type ReactNode } from "react";
 import { CaretRight, FolderSimple } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
 import { useLocalAtom } from "@read-aware/ui/state";
@@ -24,25 +24,37 @@ const STACK_STEP = 5;
  * Member covers stacked as a small pile, each whole at the book aspect: the
  * front card at the bottom left, the ones behind stepping up and right. Fewer
  * members make a shallower pile, never an empty slot; an empty collection
- * shows a folder glyph in the same footprint.
+ * shows a folder glyph in the same footprint. Fills its positioned box;
+ * `label` lies on the front card.
  */
-function CoverStack({ covers, compact, active }: { covers: CollectionCover[]; compact: boolean; active: boolean }) {
+function CoverStack({
+  covers,
+  compact,
+  active,
+  label,
+}: {
+  covers: CollectionCover[];
+  compact: boolean;
+  active: boolean;
+  label?: ReactNode;
+}) {
   const cards = covers.slice(0, COLLECTION_STACK_DEPTH);
   if (cards.length === 0)
     return (
       <div
         className={cn(
-          "flex h-full w-full items-center justify-center rounded-mark border border-border bg-fill text-fg-subtle",
+          "absolute inset-0 flex items-center justify-center overflow-hidden rounded-mark border border-border bg-fill text-fg-subtle",
           active && "ring-2 ring-fg",
         )}
       >
         <FolderSimple size={compact ? 18 : 24} weight="regular" aria-hidden="true" />
+        {label}
       </div>
     );
   const depth = cards.length - 1;
   const size = `${100 - depth * STACK_STEP}%`;
   return (
-    <div className="relative h-full w-full" aria-hidden="true">
+    <div className="absolute inset-0">
       {/* Painted back to front so the first member lies on top. */}
       {cards
         .map((cover, index) => (
@@ -65,13 +77,21 @@ function CoverStack({ covers, compact, active }: { covers: CollectionCover[]; co
               index === 0 && active && "ring-2 ring-fg",
             )}
           >
-            {cover.coverUrl ? (
-              <img src={cover.coverUrl} alt="" draggable={false} className="h-full w-full object-cover" />
-            ) : (
-              <BookCoverPlaceholder title={cover.title} author={cover.author} format={cover.format} compact={compact} />
-            )}
+            <div className="h-full w-full" aria-hidden="true">
+              {cover.coverUrl ? (
+                <img src={cover.coverUrl} alt="" draggable={false} className="h-full w-full object-cover" />
+              ) : (
+                <BookCoverPlaceholder
+                  title={cover.title}
+                  author={cover.author}
+                  format={cover.format}
+                  compact={compact}
+                />
+              )}
+            </div>
             {/* Cards behind recede toward the page, so the front cover leads. */}
             {index > 0 && <span className="absolute inset-0 bg-paper/40" />}
+            {index === 0 && label}
           </div>
         ))
         .reverse()}
@@ -80,8 +100,33 @@ function CoverStack({ covers, compact, active }: { covers: CollectionCover[]; co
 }
 
 /**
- * A collection rendered as a shelf peer — a stack of its covers on a book's
- * footprint, with its name and count beneath so it reads as a folder. Opens
+ * The collection's name and count, worn like a book's details: shown over the
+ * front cover on hover with a fine pointer, and on touch, where nothing
+ * hovers, as a band along its foot so the name is always there to read.
+ */
+function StackLabel({ name, count }: { name: string; count: string }) {
+  return (
+    <div
+      className={cn(
+        "pointer-events-none absolute inset-x-0 bottom-0 bg-stone-950/70 px-2 py-1.5",
+        "pointer-fine:top-0 pointer-fine:bg-stone-950/0 pointer-fine:p-3 pointer-fine:opacity-0 pointer-fine:transition-all",
+        "pointer-fine:group-hover:bg-stone-950/80 pointer-fine:group-hover:opacity-100",
+        "pointer-fine:group-focus-within:bg-stone-950/80 pointer-fine:group-focus-within:opacity-100",
+      )}
+    >
+      <span className="block truncate font-serif text-xs font-medium leading-tight text-white/95 pointer-fine:line-clamp-3 pointer-fine:whitespace-normal pointer-fine:break-words pointer-fine:text-sm">
+        {name}
+      </span>
+      <span className="mt-0.5 block font-sans text-[10px] tabular-nums text-white/70 pointer-fine:mt-1 pointer-fine:text-[11px]">
+        {count}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * A collection rendered as a shelf peer — a stack of its covers on exactly a
+ * book's footprint, its name and count shown the way a book shows its title. Opens
  * the collection on click; accepts book drags from the shelf as a drop target.
  */
 export function CollectionTile({ data, layout, onOpen, onDropBooks }: CollectionTileProps) {
@@ -134,7 +179,7 @@ export function CollectionTile({ data, layout, onOpen, onDropBooks }: Collection
             dragOver && "bg-fg/5 ring-1 ring-fg",
           )}
         >
-          <div className="h-16 w-11 shrink-0">
+          <div className="relative h-16 w-11 shrink-0">
             <CoverStack covers={data.covers} compact active={false} />
           </div>
           <div className="min-w-0 flex-1">
@@ -157,12 +202,15 @@ export function CollectionTile({ data, layout, onOpen, onDropBooks }: Collection
         {...dropProps}
         className="group flex w-full flex-col text-left focus-visible:outline-none"
       >
-        {/* The same footprint as a book cover, so the grid stays aligned. */}
-        <div className="aspect-[2/3] w-full">
-          <CoverStack covers={data.covers} compact={false} active={dragOver} />
+        {/* Exactly a book cover's footprint, so the grid stays aligned. */}
+        <div className="relative aspect-[2/3] w-full">
+          <CoverStack
+            covers={data.covers}
+            compact={false}
+            active={dragOver}
+            label={<StackLabel name={data.name} count={countLabel} />}
+          />
         </div>
-        <span className="mt-2 block truncate font-serif text-sm font-medium leading-tight text-fg">{data.name}</span>
-        <span className="mt-0.5 block font-sans text-caption tabular-nums text-fg-muted">{countLabel}</span>
       </button>
       <PluginContextMenu input={{ surface: "collection", collection: data }} className="absolute right-1 top-1" />
     </div>

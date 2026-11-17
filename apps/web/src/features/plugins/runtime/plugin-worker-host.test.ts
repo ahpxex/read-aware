@@ -343,6 +343,8 @@ class FaultWorker {
   static current: FaultWorker;
   static beforeReady: ((worker: FaultWorker) => Promise<void>) | undefined;
   static bootFault: "failed" | "clone" | "version" | "early-call" | undefined;
+  /** Leave deactivation unacknowledged, as a plugin whose deactivate() is still running. */
+  static holdDeactivation = false;
   onmessage: ((event: MessageEvent) => Promise<void>) | null = null;
   onerror: ((event: ErrorEvent) => void) | null = null;
   onmessageerror: (() => void) | null = null;
@@ -378,6 +380,10 @@ class FaultWorker {
     if (message.t === "quiesce")
       queueMicrotask(() => {
         void this.deliver({ t: "quiesced" });
+      });
+    if (message.t === "deactivate" && !FaultWorker.holdDeactivation)
+      queueMicrotask(() => {
+        void this.deliver({ t: "deactivated" });
       });
     if (message.t === "release") this.callbacks.release(message.handles!);
   }
@@ -1205,6 +1211,22 @@ describe("plugin worker capability bridge", () => {
       await expect(runtime.checkHealth()).rejects.toMatchObject({ code: "plugin/unavailable" });
       expect(worker.terminated).toBe(true);
     } finally {
+      await close();
+    }
+  });
+
+  test("a plugin still running deactivate() is not terminated until it reports it settled", async () => {
+    const { worker, runtime, close } = await hostFixture();
+    FaultWorker.holdDeactivation = true;
+    try {
+      const terminated = runtime.terminate();
+      await new Promise((done) => setTimeout(done, 100));
+      expect(worker.terminated).toBe(false);
+      await worker.deliver({ t: "deactivated" });
+      await terminated;
+      expect(worker.terminated).toBe(true);
+    } finally {
+      FaultWorker.holdDeactivation = false;
       await close();
     }
   });

@@ -607,6 +607,8 @@ self.onmessage = async (event: MessageEvent<unknown>) => {
         console.error("[plugin-sandbox] deactivate threw", error);
       }
       callbacks.clear();
+      // Sent past the stopped gate on purpose: it is the host's signal to terminate.
+      post({ t: "deactivated" });
       return;
     }
   }

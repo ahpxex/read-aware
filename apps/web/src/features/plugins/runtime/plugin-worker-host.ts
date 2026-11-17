@@ -68,6 +68,8 @@ const actionRegistrations = new Set(
 );
 
 const log = createLogger("plugins");
+/** How long a plugin's own deactivate() may run before its Worker is terminated anyway. */
+const DEACTIVATION_DEADLINE_MS = 2_000;
 
 export type SandboxedPlugin = {
   manifest: PluginManifest;
@@ -280,6 +282,7 @@ export function startPluginWorker(
   let termination: Promise<void> | undefined;
   let invalidMessageReported = false;
   let acknowledgeQuiescence: ((error?: string) => void) | undefined;
+  let acknowledgeDeactivation: (() => void) | undefined;
   const traffic = pluginTrafficBudget.open();
   let retireForTraffic: (error: unknown) => void;
   const accountTraffic = (usage?: { bytes: number; entries: number }) => {
@@ -644,10 +647,24 @@ export function startPluginWorker(
                     await drainRuntime();
                     if (quiescenceError) throw new AppError("plugin/unavailable", quiescenceError);
                   } finally {
+                    // Wait for the plugin's own deactivate() to settle, bounded like quiescence.
+                    let settle: (() => void) | undefined;
+                    const deactivated = new Promise<void>((done) => {
+                      const timeout = setTimeout(() => {
+                        log.warn(`plugin "${manifest.id}" did not finish deactivating; terminating it`);
+                        done();
+                      }, DEACTIVATION_DEADLINE_MS);
+                      settle = acknowledgeDeactivation = () => {
+                        clearTimeout(timeout);
+                        done();
+                      };
+                    });
                     try {
                       post({ t: "deactivate" });
-                      await new Promise((done) => setTimeout(done, 50));
+                      await deactivated;
                     } finally {
+                      settle?.();
+                      acknowledgeDeactivation = undefined;
                       closeTransport(`plugin "${manifest.id}" was deactivated`);
                     }
                   }
@@ -681,6 +698,10 @@ export function startPluginWorker(
 
         case "quiesced":
           acknowledgeQuiescence?.(message.error);
+          return;
+
+        case "deactivated":
+          acknowledgeDeactivation?.();
           return;
 
         case "cancel":

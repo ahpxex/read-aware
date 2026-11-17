@@ -17,7 +17,9 @@ export type WorkerMessage =
   | { t: "healthy"; id: number }
   | { t: "migrated"; id: number; ok: true }
   | { t: "migrated"; id: number; ok: false; error: string }
-  | { t: "quiesced"; error?: string };
+  | { t: "quiesced"; error?: string }
+  /** The plugin's own deactivate() has settled; the host may terminate the Worker. */
+  | { t: "deactivated" };
 
 const record = (value: unknown): value is Record<string, unknown> =>
   value !== null &&
@@ -128,6 +130,9 @@ export function parsePluginWorkerMessage(
         break;
       case "quiesced":
         valid = keys(value, ["t", "error"]) && (value.error === undefined || string(value.error, 4096));
+        break;
+      case "deactivated":
+        valid = keys(value, ["t"]);
         break;
     }
   if (!valid) throw new AppError("plugin/invalid-input", "Invalid plugin Worker message");

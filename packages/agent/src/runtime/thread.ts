@@ -26,7 +26,7 @@ import type { CompleteFn, StreamFn } from "../models/complete";
 import { classifyModelFailure } from "../models/failure";
 import { READAWARE_IDENTITY } from "../models/identity";
 import type { ResolveModel } from "../models/roles";
-import type { BookOverview, RuntimeDeps, TurnAttachment, TurnRecord, TurnImage } from "../ports";
+import type { BookOverview, RuntimeDeps, TurnAttachment, TurnImage } from "../ports";
 import { prepareImageInputs } from "./image-input";
 import { findChapterByHref } from "../text/chapter-lookup";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
@@ -37,24 +37,10 @@ import { hasExplicitSpoilerPermission } from "../tools/spoiler-permission";
 import { interactionFromToolDetails } from "../tools/user-interaction";
 import { AsyncQueue } from "./async-queue";
 import { elideStaleToolResults, releaseToolImages } from "./context-slim";
-import {
-  formatUserTurn,
-  historyBeforeTurn,
-  lastAssistantText,
-  lastTurnTail,
-  turnRecordsToMessages,
-  turnsForModel,
-} from "./history";
+import { formatUserTurn, historyBeforeTurn, lastAssistantText, lastTurnTail, turnRecordsToMessages } from "./history";
 import { resolveReadingPosition, type ChapterRange, type TurnReadingPosition } from "./reading-position";
-import { narrativeFallbackAnswer } from "./narrative-fallback";
 import { renderExtensionContext } from "./extension-context";
 import { persistExtensionMemory } from "./extension-memory";
-import {
-  inspectNarrativeEvidence,
-  loadNarrativeBookIndex,
-  type NarrativeBookIndex,
-  type NarrativeEvidenceViolation,
-} from "./narrative-evidence";
 import { formatPromptTurn, type ReadingCursor } from "./reading-cursor";
 import { toolResultText } from "./tool-trace";
 import { windowByTurns } from "./windowing";
@@ -102,7 +88,6 @@ interface RetryCheckpoint {
   chunks: ThreadChunk[];
   runMessageStart: number;
   startedAt: string;
-  bufferedText: string;
   sawReference: boolean;
   sawInteraction: boolean;
   policyKey?: string;
@@ -118,8 +103,6 @@ export interface AgentThreadOptions {
   getApiKey: (provider: string) => string | undefined;
   /** 后台管道（记忆提炼）的补全调用，跑在 fast 档位上 */
   completeFn: CompleteFn;
-  /** 剧透证据闸触发后的重写调用；生产使用 smart，测试可独立注入。 */
-  repairCompleteFn?: CompleteFn;
   /** 主聊天的流式调用，使用与后台管道相同的 provider registry。 */
   streamFn: StreamFn;
   /** 聊天轮次（smart 档）的 thinking effort，默认 "off" */
@@ -134,15 +117,6 @@ export interface AgentThreadOptions {
 }
 
 const DEFAULT_WINDOW_TURNS = 12;
-/**
- * A safety-triggered rebuild needs enough bounded conversation to repair a
- * recap, while still keeping the stateless chapter baseline small. Six
- * complete exchanges cover the supported recent-turns contract.
- */
-const REBUILD_HISTORY_TURNS = 6;
-/** The most of the reader's located page a safety rewrite is given as evidence. */
-const REPAIR_PAGE_CHARS = 4000;
-
 /**
  * "Never use emoji" 是产品级绝对禁令（设计系统: editorial restraint）——
  * 在流层确定性执行,不赌模型自觉(低 thinking 档位实测会违禁)。
@@ -162,7 +136,6 @@ export class AgentThread {
   private readonly resolveModel: ResolveModel;
   private readonly getApiKey: (provider: string) => string | undefined;
   private readonly completeFn: CompleteFn;
-  private readonly repairCompleteFn: CompleteFn;
   private readonly streamFn: StreamFn;
   private readonly thinkingLevel: ThinkingLevel;
   private readonly maxWindowTurns: number;
@@ -190,13 +163,9 @@ export class AgentThread {
   private sessionStarted = false;
   private sessionChapter: string | undefined;
   private sessionMemoryPolicy: string | undefined;
-  /** Set only after a safety rewrite so the next chapter rebuild keeps context. */
-  private preserveRecentHistoryOnRebuild = false;
   private contextPermissionsKey: string | undefined;
   /** 一轮内的工具侧状态（出卡去重 + 剧透围栏）；每轮 sendTurn 开始时重算。 */
   private readonly turnState = createAgentTurnState();
-  /** 未读正文只留在宿主侧作负证据索引，绝不进入模型上下文。 */
-  private narrativeBookIndex?: Promise<NarrativeBookIndex>;
 
   constructor(options: AgentThreadOptions) {
     this.scope = options.scope;
@@ -207,9 +176,6 @@ export class AgentThread {
     const rawComplete = options.completeFn;
     this.completeFn = (model, context, callOptions) =>
       rawComplete(model, context, { signal: this.lifecycle.signal, ...callOptions });
-    const rawRepair = options.repairCompleteFn ?? options.completeFn;
-    this.repairCompleteFn = (model, context, callOptions) =>
-      rawRepair(model, context, { signal: this.lifecycle.signal, ...callOptions });
     this.streamFn = options.streamFn;
     this.thinkingLevel = options.thinkingLevel ?? "off";
     this.maxWindowTurns = options.maxWindowTurns ?? DEFAULT_WINDOW_TURNS;
@@ -242,109 +208,12 @@ export class AgentThread {
    * ConversationPort 重新水化。丢弃廉价：工具是重建的闭包，全局线程的
    * 重水化只是一次 conversations.load。
    */
-  private discardAgent(options?: { preserveRecentHistory?: boolean }): void {
+  private discardAgent(): void {
     this.retryCheckpoint = undefined;
     this.agent = undefined;
     this.sessionStarted = false;
     this.sessionChapter = undefined;
     this.sessionMemoryPolicy = undefined;
-    this.preserveRecentHistoryOnRebuild = options?.preserveRecentHistory ?? false;
-  }
-
-  private loadNarrativeIndex(): Promise<NarrativeBookIndex> | undefined {
-    if (this.scope.kind !== "book") return undefined;
-    this.narrativeBookIndex ??= loadNarrativeBookIndex(this.deps.bookText, this.scope.bookId);
-    return this.narrativeBookIndex;
-  }
-
-  /** Load only bounded transcript context for a safety rewrite. */
-  private async loadRepairSessionTurns(call: ReadingContextCall, turnId?: string): Promise<TurnRecord[]> {
-    if (this.scope.kind !== "book") return [];
-    const load = <T>(promise: Promise<T>, label: string): Promise<T | undefined> =>
-      promise.catch((error) => {
-        // A permission revocation must still abort the turn; only an ordinary
-        // transcript read failure is allowed to degrade this optional context.
-        call.assertAllowed();
-        this.deps.log?.warn(label, error);
-        return undefined;
-      });
-    const records = await call.wait(
-      load(this.deps.conversations.load(this.key), "repair conversation history unavailable"),
-    );
-    call.assertAllowed();
-    return turnsForModel(
-      permittedTurnRecords(
-        lastTurnTail(historyBeforeTurn(records ?? [], turnId), REBUILD_HISTORY_TURNS),
-        call.permissions,
-      ),
-    );
-  }
-
-  private async repairUnsafeAnswer(input: {
-    readerText: string;
-    draft: string;
-    /** The text of the reader's page: what the model was sent of it, or the located viewport's own text. */
-    pageText?: string;
-    /** Viewport text the model was sent this turn (only when the position had no coordinates). */
-    visibleText?: string;
-    attachments?: TurnAttachment[];
-    recentTurns?: TurnRecord[];
-    violations: NarrativeEvidenceViolation[];
-    book: NarrativeBookIndex;
-    signal?: AbortSignal;
-  }): Promise<{ answer: string; usage?: Usage; elapsedMs: number }> {
-    const started = performance.now();
-    const forbidden = input.violations.map((item) => item.phrase);
-    const safeEvidence = [
-      input.pageText,
-      ...(input.attachments?.map((attachment) => attachment.text) ?? []),
-      ...this.turnState.evidenceTexts,
-    ].filter((value): value is string => !!value?.trim());
-    const message = await this.repairCompleteFn(
-      this.resolveModel("smart"),
-      {
-        systemPrompt: [
-          "You are a final response safety rewriter for a reading app.",
-          "Return only the replacement answer, in the reader's language.",
-          "Use only the reader message and the safe evidence below for book-specific claims.",
-          "The recent conversation transcript is bounded continuity context, not a source of book facts. Reader turns show what was asked or said, and past assistant turns are unverified. Never use an old assistant draft as permission to reveal an unread detail.",
-          "For a recap, use the transcript to identify what was discussed, but keep book-specific claims within the current safe evidence instead of replacing the conversation with the current viewport merely because that viewport is available.",
-          "Answer every requested part supported by that evidence. If evidence is insufficient for a requested part, state that limit briefly instead of silently dropping it or leaving an empty heading or list item.",
-          "Remove every future-only or edition-ungrounded detail. Do not name, quote, negate, hint at, or apologize for the removed details.",
-          "For a progress or TOC question, give only the requested position or structure without previews.",
-        ].join("\n"),
-        messages: [
-          {
-            role: "user",
-            content: JSON.stringify({
-              readerMessage: input.readerText,
-              recentTurns: input.recentTurns ?? [],
-              safeEvidence,
-              unsafeDraft: input.draft,
-              forbiddenMaterial: forbidden,
-            }),
-            timestamp: Date.now(),
-          },
-        ],
-      },
-      { signal: input.signal },
-    );
-    const candidate = stripEmoji(lastAssistantText([message]));
-    const remaining = inspectNarrativeEvidence({
-      answer: candidate,
-      readerText: input.readerText,
-      attachments: input.attachments,
-      fence: this.turnState.spoilerFence,
-      visibleText: input.visibleText,
-      toolEvidence: this.turnState.evidenceTexts,
-      book: input.book,
-      allowFuture: this.turnState.spoilerGranted,
-    });
-    return {
-      answer: candidate.trim() && remaining.length === 0 ? candidate : narrativeFallbackAnswer(input.readerText),
-      usage: message.usage,
-      elapsedMs: Math.round(performance.now() - started),
-    };
   }
 
   /**
@@ -499,9 +368,7 @@ export class AgentThread {
       this.turnState.modelImageCount = 0;
       this.turnState.modelImageBytes = 0;
       this.turnState.spoilerPermissionGranted = hasExplicitSpoilerPermission(input.text);
-      this.turnState.spoilerPermissionDenied = false;
       this.turnState.spoilerGranted = false;
-      this.turnState.evidenceTexts.length = 0;
     }
     this.turnState.readingContextPermissions = call.permissions;
     try {
@@ -635,8 +502,6 @@ export class AgentThread {
           };
         }
       }
-      // 与远端推理并行预热；未读正文不会进入 prompt，只在回包前作负证据比对。
-      const narrativeIndexPromise = narrativeUnfinished ? this.loadNarrativeIndex() : undefined;
       const extensionContext = await call.wait(
         Promise.resolve(
           this.deps
@@ -664,8 +529,7 @@ export class AgentThread {
         // 发自另一个章节时，才把 state 重置回无状态基线 —— 上一轮
         // user↔assistant 原文（覆盖"那第二点呢？"式的明显 follow-up）加上
         // system prompt 里的滚动摘要；普通新会话仍只带最后一轮，避免把整本书
-        // 的旧对话自动灌入模型。安全重写后的一次重建则带固定数量的最近完整轮次，
-        // 防止连续 guard repair 把 recap 的早期上下文截断。更早的历史 agent 用
+        // 的旧对话自动灌入模型。更早的历史 agent 用
         // get_recent_turns / search_conversation 拉取。章节未知（选区与阅读位置都没带 href）
         // 不算换章。UI 的连续转录在持久层，不受影响。
         const crossedChapter =
@@ -707,16 +571,14 @@ export class AgentThread {
         }
         if (newSession) {
           const records = historyBeforeTurn(await call.wait(this.deps.conversations.load(this.key)), input.turnId);
-          const tailTurns = this.preserveRecentHistoryOnRebuild ? REBUILD_HISTORY_TURNS : 1;
           agent.state.messages = withConversation(
             agent.state.messages,
             turnRecordsToMessages(
-              permittedTurnRecords(lastTurnTail(records, tailTurns), call.permissions),
+              permittedTurnRecords(lastTurnTail(records, 1), call.permissions),
               this.resolveModel("smart"),
             ),
           );
           this.sessionStarted = true;
-          this.preserveRecentHistoryOnRebuild = false;
         }
         if (turnChapter !== undefined) this.sessionChapter = turnChapter;
       } else {
@@ -809,7 +671,6 @@ export class AgentThread {
       let round = 0;
       let roundStartedAt = 0;
       let firstDeltaAt = 0;
-      let bufferedText = resume?.bufferedText ?? "";
       let checkpoint: RetryCheckpoint | undefined;
       for await (const event of queue) {
         switch (event.type) {
@@ -820,7 +681,6 @@ export class AgentThread {
               chunks: emitted.slice(),
               runMessageStart,
               startedAt,
-              bufferedText,
               sawInteraction,
               sawReference,
               policyKey: this.sessionMemoryPolicy,
@@ -852,9 +712,7 @@ export class AgentThread {
           case "message_update":
             if (!firstDeltaAt) firstDeltaAt = performance.now();
             if (event.assistantMessageEvent.type === "text_delta") {
-              const delta = stripEmoji(event.assistantMessageEvent.delta);
-              if (narrativeUnfinished) bufferedText += delta;
-              else yield { type: "text", text: delta };
+              yield { type: "text", text: stripEmoji(event.assistantMessageEvent.delta) };
             } else if (event.assistantMessageEvent.type === "thinking_delta") {
               yield { type: "thinking", text: event.assistantMessageEvent.delta };
             }
@@ -967,90 +825,10 @@ export class AgentThread {
       // opaque tool trace is not a visible answer; only text and purpose-built
       // reference/interaction chunks can complete an otherwise empty turn.
       const runMessages = agent.state.messages.slice(runMessageStart);
-      let answer = lastAssistantText(runMessages);
-      if (!answer.trim() && !bufferedText.trim() && !sawReference && !sawInteraction) {
+      const answer = lastAssistantText(runMessages);
+      if (!answer.trim() && !sawReference && !sawInteraction) {
         throw new AppError(ERR_AI_PROVIDER, "[ai/provider] Model returned an empty response", { retryable: true });
       }
-      let discardUnsafeAgent = false;
-      if (narrativeUnfinished) {
-        const visibleDraft = bufferedText || stripEmoji(answer);
-        if (this.turnState.spoilerPermissionDenied && !this.turnState.spoilerGranted) {
-          answer = narrativeFallbackAnswer(input.text);
-          discardUnsafeAgent = true;
-          this.deps.log?.warn("narrative answer replaced after an unauthorized spoiler-tool attempt");
-          yield { type: "text", text: answer };
-        } else {
-          const bookIndex = await narrativeIndexPromise?.catch((error) => {
-            this.deps.log?.warn("narrative evidence index failed to load", error);
-            return undefined;
-          });
-          // Viewport text counts as seen only when it was what the model received.
-          const visibleText = position.viewport ? undefined : cursor?.visibleText;
-          const violations = bookIndex
-            ? inspectNarrativeEvidence({
-                answer: visibleDraft,
-                readerText: input.text,
-                attachments: input.attachments,
-                fence: this.turnState.spoilerFence,
-                visibleText,
-                toolEvidence: this.turnState.evidenceTexts,
-                book: bookIndex,
-                allowFuture: this.turnState.spoilerGranted,
-              })
-            : [];
-          if (violations.length > 0 && bookIndex) {
-            // Removing a whole block can silently drop the requested answer while
-            // leaving its heading or dependent prose. Recompose from safe evidence
-            // once, then apply the same boundary check before publication.
-            const viewport = position.viewport;
-            const repaired = await this.repairUnsafeAnswer({
-              readerText: input.text,
-              draft: visibleDraft,
-              pageText: viewport
-                ? bookIndex.chapterTexts[viewport.chapterIndex]?.slice(
-                    Math.max(viewport.start, viewport.through - REPAIR_PAGE_CHARS),
-                    viewport.through,
-                  )
-                : visibleText,
-              visibleText,
-              attachments: input.attachments,
-              recentTurns: await this.loadRepairSessionTurns(call, input.turnId),
-              violations,
-              book: bookIndex,
-              signal: input.signal,
-            }).catch((error) => {
-              this.deps.log?.warn("narrative answer rewrite failed; using deterministic fallback", error);
-              return {
-                answer: narrativeFallbackAnswer(input.text),
-                usage: undefined,
-                elapsedMs: 0,
-              };
-            });
-            answer = repaired.answer;
-            discardUnsafeAgent = true;
-            this.deps.log?.warn("narrative answer replaced at evidence boundary", violations);
-            if (repaired.elapsedMs > 0 || repaired.usage) {
-              yield {
-                type: "metric",
-                round: round + 1,
-                ttfbMs: repaired.elapsedMs,
-                totalMs: repaired.elapsedMs,
-                tokens: repaired.usage && {
-                  input: repaired.usage.input,
-                  output: repaired.usage.output,
-                  cacheRead: repaired.usage.cacheRead,
-                  cacheWrite: repaired.usage.cacheWrite,
-                },
-                costUsd: repaired.usage?.cost.total,
-              };
-            }
-            yield { type: "text", text: answer };
-          } else if (visibleDraft) {
-            yield { type: "text", text: visibleDraft };
-          }
-        }
-      }
-
       // The transcript is the host's to persist (ConversationPort): it saved the
       // user message before this turn and saves the streamed reply after it.
 
@@ -1069,7 +847,6 @@ export class AgentThread {
       // （doc §10 第 6 步）
       call.assertAllowed();
       this.scheduleBackgroundPipeline(userText, answer, call.permissions, cursor?.chapter, input.turnId);
-      if (discardUnsafeAgent) this.discardAgent({ preserveRecentHistory: true });
       turnCompleted = true;
     } finally {
       // A retry restores the saved pre-request messages, never pi's failed draft.

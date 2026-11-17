@@ -120,19 +120,10 @@ export function formatEvalReport(summary: EvalSummary): string {
 
 /**
  * Why a run did not pass its checks, in the terms that decide what to do next:
- * an environment failure says nothing about the agent, an answer the runtime
- * withheld or rewrote points at the answer check, and only what is left is the
- * model's own answer or tool use.
+ * an environment failure says nothing about the agent, and only what is left
+ * is the model's own answer or tool use.
  */
-export type RunCause =
-  | "timeout"
-  | "provider"
-  | "setup"
-  | "harness"
-  | "answer-withheld"
-  | "answer-rewritten"
-  | "tool-error"
-  | "answer";
+export type RunCause = "timeout" | "provider" | "setup" | "harness" | "tool-error" | "answer";
 
 export function runCause(record: EvalRunRecord): RunCause | undefined {
   if (record.error) {
@@ -141,9 +132,6 @@ export function runCause(record: EvalRunRecord): RunCause | undefined {
     return record.error.code?.startsWith("ai/") ? "provider" : "harness";
   }
   if (record.status !== "failed") return undefined;
-  const interventions = (record.output as { interventions?: { kind: string }[] } | undefined)?.interventions ?? [];
-  if (interventions.some((entry) => entry.kind === "answer-withheld")) return "answer-withheld";
-  if (interventions.some((entry) => entry.kind === "answer-rewritten")) return "answer-rewritten";
   const failed = record.assessment?.checks.filter((check) => !check.passed) ?? [];
   return failed.length > 0 && failed.every((check) => check.id.startsWith("tool.")) ? "tool-error" : "answer";
 }
@@ -153,13 +141,11 @@ const CAUSE_LABELS: Record<RunCause, string> = {
   provider: "model provider error",
   setup: "scenario setup failed",
   harness: "harness error",
-  "answer-withheld": "answer withheld by the answer check",
-  "answer-rewritten": "answer rewritten by the answer check",
   "tool-error": "tool use",
   answer: "the answer itself",
 };
 
-/** "3 the answer itself, 2 answer withheld by the answer check, 1 timed out", most frequent first; empty when all passed. */
+/** "3 the answer itself, 2 tool use, 1 timed out", most frequent first; empty when all passed. */
 export function formatRunCauses(records: readonly EvalRunRecord[]): string {
   const counts = new Map<RunCause, number>();
   for (const record of records) {

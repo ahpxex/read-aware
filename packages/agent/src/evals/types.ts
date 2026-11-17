@@ -102,11 +102,6 @@ export interface AgentEvalObservation {
   reviewEvidence?: JsonValue;
   /** The book pipeline this scenario ran on: the app's headless host, or the in-memory fixtures. */
   environment?: string;
-  /**
-   * Turns whose published answer is not the model's own: the runtime's answer
-   * check rewrote it, or withheld it and sent the fallback instead.
-   */
-  interventions?: { turn: number; kind: "answer-rewritten" | "answer-withheld" }[];
 }
 
 export interface EvalScenario<TObservation> {

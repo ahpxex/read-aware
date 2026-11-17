@@ -1,7 +1,7 @@
 import type { Api, AssistantMessage, Context, Model, SimpleStreamOptions, Usage } from "@earendil-works/pi-ai";
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import type { CompleteFn, StreamFn } from "../models/complete";
-import { createCompleteFn, createStreamFn } from "../models/complete";
+import { createStreamFn } from "../models/complete";
 import type { LlmAccount } from "../models/accounts";
 import { accountCredential, accountProviderId, createModelResolver } from "../models/accounts";
 import { applyEvalRouting } from "./model-config";
@@ -9,7 +9,6 @@ import type { ProviderRegistry } from "../models/registry";
 import type { ResolveModel } from "../models/roles";
 import type { SendTurnInput } from "../runtime/thread";
 import { AgentThread } from "../runtime/thread";
-import { narrativeFallbackAnswer } from "../runtime/narrative-fallback";
 import type { InMemorySeed } from "../testing/fixtures";
 import { hostTurn } from "../testing/transcript-host";
 import { evalHost, type EvalEnvironment } from "./host";
@@ -71,22 +70,8 @@ export interface AgentEvalVariantOptions {
   thinkingLevel?: ThinkingLevel;
   maxWindowTurns?: number;
   completeFn?: CompleteFn;
-  repairCompleteFn?: CompleteFn;
   streamFn?: StreamFn;
   transformSystemPrompt?: (prompt: string, scope: ThreadScope) => string;
-}
-
-/** Which turns' answers the runtime replaced, and how: with the fallback, or with a rewrite that passed the check. */
-function answerInterventions(
-  observation: AgentEvalObservation,
-  rewrites: ReadonlySet<number>,
-): NonNullable<AgentEvalObservation["interventions"]> {
-  type Intervention = NonNullable<AgentEvalObservation["interventions"]>[number];
-  return observation.turns.flatMap((turn): Intervention[] => {
-    const asked = typeof turn.input.text === "string" ? turn.input.text : "";
-    if (turn.answer.trim() === narrativeFallbackAnswer(asked)) return [{ turn: turn.turn, kind: "answer-withheld" }];
-    return rewrites.has(turn.turn) ? [{ turn: turn.turn, kind: "answer-rewritten" }] : [];
-  });
 }
 
 function emptyUsage(): Usage {
@@ -155,11 +140,6 @@ export function createAgentEvalVariant(
   }
   const baseStreamFn = options.streamFn ?? createStreamFn(options.registry!, options.account!, thinkingLevel);
   const completeFn = options.completeFn ?? noMemoryComplete;
-  const baseRepairCompleteFn =
-    options.repairCompleteFn ??
-    (options.account && options.registry
-      ? createCompleteFn(options.registry, options.account, thinkingLevel)
-      : completeFn);
   const baseResolve =
     options.resolveModel ??
     createModelResolver(options.account!, { smart: options.modelId, fast: options.modelId }, options.registry);
@@ -204,14 +184,6 @@ export function createAgentEvalVariant(
         modelRequests.push(captureModelRequest(activeTurn, activeRound, model, modelContext, streamOptions));
         return baseStreamFn(model, modelContext, streamOptions);
       };
-      // The answer check asking for a rewrite is the runtime saying the model's answer could not stand.
-      const rewrites = new Set<number>();
-      const tracedRepairCompleteFn: CompleteFn = (model, modelContext, completeOptions) => {
-        rewrites.add(activeTurn);
-        activeRound += 1;
-        modelRequests.push(captureModelRequest(activeTurn, activeRound, model, modelContext, completeOptions));
-        return baseRepairCompleteFn(model, modelContext, completeOptions);
-      };
 
       const thread = new AgentThread({
         scope: scenario.scope,
@@ -219,7 +191,6 @@ export function createAgentEvalVariant(
         resolveModel,
         getApiKey: options.getApiKey ?? (() => (options.account ? accountCredential(options.account) : undefined)),
         completeFn,
-        repairCompleteFn: tracedRepairCompleteFn,
         streamFn: tracedStreamFn,
         thinkingLevel,
         maxWindowTurns: options.maxWindowTurns,
@@ -234,8 +205,6 @@ export function createAgentEvalVariant(
         });
         observation.reviewEvidence = captureReviewEvidence(scenario, originalSources, observation, initialState);
         observation.environment = setupContext.environment;
-        const interventions = answerInterventions(observation, rewrites);
-        if (interventions.length) observation.interventions = interventions;
         return { observation, telemetry: observation.telemetry };
       });
 
@@ -274,8 +243,6 @@ export function createAgentEvalVariant(
         });
         observation.reviewEvidence = captureReviewEvidence(scenario, originalSources, observation, initialState);
         observation.environment = setupContext.environment;
-        const interventions = answerInterventions(observation, rewrites);
-        if (interventions.length) observation.interventions = interventions;
         return { observation, telemetry: observation.telemetry };
       } catch (error) {
         throw new EvalStageError("execution", `agent execution failed: ${scenario.id}`, error);

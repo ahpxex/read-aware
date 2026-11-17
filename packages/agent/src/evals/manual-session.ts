@@ -3,7 +3,7 @@ import { toJsonValue } from "./json";
 import type { Api, AssistantMessage, Context, Model, SimpleStreamOptions, Usage } from "@earendil-works/pi-ai";
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import { accountCredential, accountProviderId, createModelResolver } from "../models/accounts";
-import { createCompleteFn, createStreamFn, type CompleteFn, type StreamFn } from "../models/complete";
+import { createStreamFn, type StreamFn } from "../models/complete";
 import type { ResolveModel } from "../models/roles";
 import { AgentThread } from "../runtime/thread";
 import { createInMemoryEnvironment } from "./host";
@@ -66,7 +66,6 @@ export async function createManualEvalSession(options: ManualEvalSessionOptions)
   );
   const resolveModel: ResolveModel = (role) => applyEvalRouting(baseResolve(role));
   const baseStreamFn = createStreamFn(registry, resolved.account, thinkingLevel);
-  const repairCompleteFn = createCompleteFn(registry, resolved.account, thinkingLevel);
   // The viewer has no app host: a free session reads the book's snapshot through the in-memory port.
   const setupContext = createInMemoryEnvironment(options.scenario);
   await options.scenario.setup?.(setupContext);
@@ -78,18 +77,12 @@ export async function createManualEvalSession(options: ManualEvalSessionOptions)
     modelRequests.push(captureModelRequest(1, activeRound, model, modelContext, streamOptions));
     return baseStreamFn(model, modelContext, streamOptions);
   };
-  const tracedRepairCompleteFn: CompleteFn = (model, modelContext, completeOptions) => {
-    activeRound += 1;
-    modelRequests.push(captureModelRequest(1, activeRound, model, modelContext, completeOptions));
-    return repairCompleteFn(model, modelContext, completeOptions);
-  };
   const thread = new AgentThread({
     scope: options.scenario.scope,
     deps: setupContext.deps,
     resolveModel,
     getApiKey: () => accountCredential(resolved.account),
     completeFn: noMemoryComplete,
-    repairCompleteFn: tracedRepairCompleteFn,
     streamFn: tracedStreamFn,
     thinkingLevel,
   });

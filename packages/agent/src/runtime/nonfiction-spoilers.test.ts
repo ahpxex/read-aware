@@ -34,8 +34,7 @@ test("legacy factual narrative is classified before its first answer; later text
   const memory = memoryPolicyState();
   memory.set(false);
   deps.memoryPolicy = memory.policy;
-  let classifications = 0,
-    repairs = 0;
+  let classifications = 0;
   const prompts: string[] = [];
   faux.setResponses([
     (context) => {
@@ -61,10 +60,6 @@ test("legacy factual narrative is classified before its first answer; later text
       classifications++;
       return fauxAssistantMessage('{"narrativity":"narrative","spoilerSensitive":false,"confidence":0.98}');
     },
-    repairCompleteFn: async () => {
-      repairs++;
-      return fauxAssistantMessage("Should not repair factual history.");
-    },
   });
   try {
     const chunks = [];
@@ -79,7 +74,6 @@ test("legacy factual narrative is classified before its first answer; later text
     expect(stores.books[0]!.narrativity).toBe("narrative");
     expect(stores.books[0]!.spoilerSensitive).toBe(false);
     expect(classifications).toBe(1);
-    expect(repairs).toBe(0);
     expect(
       chunks
         .filter((c) => c.type === "text")

@@ -38,20 +38,11 @@ test("a run that did not pass says why, in the terms that decide what to do abou
   expect(runCause(errored("execution", "ai/provider"))).toBe("provider");
   expect(runCause(errored("setup"))).toBe("setup");
   expect(runCause(errored("execution"))).toBe("harness");
-  // The runtime replaced the model's answer: a missing keyword is then a symptom, not the cause.
-  expect(runCause(failed(["answer.contains.0"], { interventions: [{ turn: 1, kind: "answer-withheld" }] }))).toBe(
-    "answer-withheld",
-  );
-  expect(runCause(failed(["answer.contains.0"], { interventions: [{ turn: 1, kind: "answer-rewritten" }] }))).toBe(
-    "answer-rewritten",
-  );
   // What is left is the model's own tool use or answer.
   expect(runCause(failed(["tool.no-errors", "tool.max-calls"]))).toBe("tool-error");
   expect(runCause(failed(["tool.no-errors", "answer.contains.0"]))).toBe("answer");
   expect(runCause({ ...base, status: "passed" } as unknown as EvalRunRecord)).toBeUndefined();
-  expect(
-    formatRunLine(failed(["answer.contains.0"], { interventions: [{ turn: 1, kind: "answer-withheld" }] })),
-  ).toEndWith("cause=answer-withheld");
+  expect(formatRunLine(failed(["answer.contains.0"]))).toEndWith("cause=answer");
   expect(
     formatRunCauses([
       failed(["a"]),

@@ -118,7 +118,8 @@
     "reading": "読書中",
     "unread": "次に読む",
     "finished": "読了",
-    "unknownAuthor": "著者不明"
+    "unknownAuthor": "著者不明",
+    "collections": "コレクション"
   },
   "toolbar": {
     "selected_other": "{{count}}件選択中",

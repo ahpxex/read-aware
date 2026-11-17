@@ -123,7 +123,8 @@
     "reading": "Currently Reading",
     "unread": "Up Next",
     "finished": "Finished",
-    "unknownAuthor": "Unknown author"
+    "unknownAuthor": "Unknown author",
+    "collections": "Collections"
   },
   "toolbar": {
     "selected_one": "{{count}} selected",

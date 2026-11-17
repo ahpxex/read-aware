@@ -119,7 +119,12 @@ export interface Collection {
   createdAt: string;
 }
 
+/** One item on the shelf: a book, or a collection standing among the books. */
+export type ShelfEntry =
+  | { kind: "book"; book: LibraryBook }
+  | { kind: "collection"; collection: Collection; members: LibraryBook[] };
+
 export type ShelfSection = {
   label: string;
-  books: LibraryBook[];
+  entries: ShelfEntry[];
 };

@@ -3,22 +3,11 @@ import { CaretRight, FolderSimple } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
 import { useLocalAtom } from "@read-aware/ui/state";
 import { useTranslation } from "../../../i18n";
-import type { LibraryBook } from "../../library/lib/library-types";
 import { dragCarriesBooks, readBookDragPayload } from "../lib/book-drag";
+import { COLLECTION_STACK_DEPTH, type CollectionCover, type CollectionTileData } from "../lib/collection-tile-data";
 import type { ShelfLayout } from "../lib/shelf-view";
 import { PluginContextMenu } from "../../plugins/components/PluginContextMenu";
 import { BookCoverPlaceholder } from "./BookCoverPlaceholder";
-
-/** A member shown on the collection's stack: its cover, or the placeholder a coverless book gets. */
-export type CollectionCover = Pick<LibraryBook, "id" | "title" | "author" | "format" | "coverUrl">;
-
-export type CollectionTileData = {
-  id: string;
-  name: string;
-  count: number;
-  /** The first members, front to back; the stack shows up to three. */
-  covers: CollectionCover[];
-};
 
 type CollectionTileProps = {
   data: CollectionTileData;
@@ -28,7 +17,6 @@ type CollectionTileProps = {
   onDropBooks?: (ids: string[]) => void;
 };
 
-const STACK_DEPTH = 3;
 /** How far each card behind sits up and to the right, in percent of the box. */
 const STACK_STEP = 5;
 
@@ -39,7 +27,7 @@ const STACK_STEP = 5;
  * shows a folder glyph in the same footprint.
  */
 function CoverStack({ covers, compact, active }: { covers: CollectionCover[]; compact: boolean; active: boolean }) {
-  const cards = covers.slice(0, STACK_DEPTH);
+  const cards = covers.slice(0, COLLECTION_STACK_DEPTH);
   if (cards.length === 0)
     return (
       <div

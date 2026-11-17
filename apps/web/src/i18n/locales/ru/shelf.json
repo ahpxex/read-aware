@@ -133,7 +133,8 @@
     "reading": "Читаю сейчас",
     "unread": "На очереди",
     "finished": "Прочитано",
-    "unknownAuthor": "Неизвестный автор"
+    "unknownAuthor": "Неизвестный автор",
+    "collections": "Коллекции"
   },
   "toolbar": {
     "selected_one": "Выбрано: {{count}}",

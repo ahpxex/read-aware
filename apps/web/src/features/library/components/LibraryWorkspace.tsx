@@ -7,11 +7,10 @@ import { useTranslation } from "../../../i18n";
 import { Shelf } from "../../shelf/components/Shelf";
 import { BooksRemoveDialog } from "../../shelf/components/BookDialogs";
 import { CollectionHeader } from "../../shelf/components/CollectionHeader";
-import type { CollectionTileData } from "../../shelf/components/CollectionTile";
 import { NewCollectionDialog } from "../../shelf/components/NewCollectionDialog";
 import { ShelfDragDock } from "../../shelf/components/ShelfDragDock";
 import { ShelfSelectionToolbar } from "../../shelf/components/ShelfSelectionToolbar";
-import { deriveShelfView } from "../../shelf/lib/derive-shelf-view";
+import { deriveShelfView, type ShelfCollection } from "../../shelf/lib/derive-shelf-view";
 import { useShelfBookDrag } from "../../shelf/hooks/useShelfBookDrag";
 import { useShelfSelection } from "../../shelf/hooks/useShelfSelection";
 import { activeCollectionAtom, shelfViewAtom } from "../../../state/ui";
@@ -142,10 +141,8 @@ export const LibraryWorkspace = memo(function LibraryWorkspace({
     [activeCollection, shelfBooks],
   );
 
-  const sections = deriveShelfView(visible, shelfView, t);
-
-  // Collection tiles (top level only): true member counts and the first members for the cover stack.
-  const collectionTiles: CollectionTileData[] = useMemo(() => {
+  // Collections stand among the books at the top level only, with their true members.
+  const shelfCollections: ShelfCollection[] = useMemo(() => {
     if (activeCollectionId) return [];
     const members = new Map<string, LibraryBook[]>();
     for (const book of books) {
@@ -154,18 +151,10 @@ export const LibraryWorkspace = memo(function LibraryWorkspace({
       list.push(book);
       members.set(book.collectionId, list);
     }
-    return collections.map((collection) => {
-      const inside = members.get(collection.id) ?? [];
-      return {
-        id: collection.id,
-        name: collection.name,
-        count: inside.length,
-        covers: inside
-          .slice(0, 3)
-          .map(({ id, title, author, format, coverUrl }) => ({ id, title, author, format, coverUrl })),
-      };
-    });
+    return collections.map((collection) => ({ collection, members: members.get(collection.id) ?? [] }));
   }, [activeCollectionId, books, collections]);
+
+  const sections = deriveShelfView(visible, shelfCollections, shelfView, t);
 
   const collectionCount = activeCollection ? books.filter((b) => b.collectionId === activeCollection.id).length : 0;
 
@@ -245,7 +234,7 @@ export const LibraryWorkspace = memo(function LibraryWorkspace({
             />
           )}
 
-          {visible.length === 0 && collectionTiles.length === 0 ? (
+          {sections.length === 0 ? (
             <Body className="py-16 text-center text-sm text-fg-muted">
               {activeCollection ? t("workspace.emptyCollection") : t("workspace.nothingToShow")}
             </Body>
@@ -253,7 +242,6 @@ export const LibraryWorkspace = memo(function LibraryWorkspace({
             <Shelf
               sections={sections}
               layout={shelfView.layout}
-              collections={collectionTiles}
               pendingBookIds={pendingBookIds}
               openingBookId={openingBookId}
               getDragIds={dragIdsFor}

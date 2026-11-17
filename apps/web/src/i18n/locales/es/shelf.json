@@ -128,7 +128,8 @@
     "reading": "Leyendo ahora",
     "unread": "A continuación",
     "finished": "Terminados",
-    "unknownAuthor": "Autor desconocido"
+    "unknownAuthor": "Autor desconocido",
+    "collections": "Colecciones"
   },
   "toolbar": {
     "selected_one": "{{count}} seleccionado",

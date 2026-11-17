@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { CollectionTile, type CollectionCover } from "./CollectionTile";
+import type { CollectionCover } from "../lib/collection-tile-data";
+import { CollectionTile } from "./CollectionTile";
 
 /** Flat-color stand-ins for member covers, matching the Shelf stories' helper. */
 const cover = (fill: string) =>

@@ -511,21 +511,6 @@
   {
     "type": "dependency",
     "from": "src/features/library/components/LibraryWorkspace.tsx",
-    "to": "src/features/shelf/components/CollectionTile.tsx",
-    "unresolvedTo": "../../shelf/components/CollectionTile",
-    "dependencyTypes": [
-      "local",
-      "type-only",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/library/components/LibraryWorkspace.tsx",
     "to": "src/features/shelf/components/NewCollectionDialog.tsx",
     "unresolvedTo": "../../shelf/components/NewCollectionDialog",
     "dependencyTypes": [
@@ -4636,6 +4621,21 @@
   {
     "type": "dependency",
     "from": "src/features/shelf/components/ShelfSelectionToolbar.tsx",
+    "to": "src/features/library/lib/library-types.ts",
+    "unresolvedTo": "../../library/lib/library-types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "features-via-public-index"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/features/shelf/lib/collection-tile-data.ts",
     "to": "src/features/library/lib/library-types.ts",
     "unresolvedTo": "../../library/lib/library-types",
     "dependencyTypes": [

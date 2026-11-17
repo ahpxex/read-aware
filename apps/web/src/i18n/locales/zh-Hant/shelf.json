@@ -118,7 +118,8 @@
     "reading": "正在閱讀",
     "unread": "接下來",
     "finished": "已讀完",
-    "unknownAuthor": "不明作者"
+    "unknownAuthor": "不明作者",
+    "collections": "收藏"
   },
   "toolbar": {
     "selected_other": "已選取 {{count}} 項",

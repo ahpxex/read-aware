@@ -3,18 +3,19 @@ import { cn } from "@read-aware/ui/cn";
 import type {
   BookMetadataPatch,
   LibraryBook,
+  ShelfEntry,
   ShelfSection as LibraryShelfSection,
 } from "../../library/lib/library-types";
+import { collectionTileData } from "../lib/collection-tile-data";
 import type { ShelfLayout } from "../lib/shelf-view";
 import { BookCover } from "./BookCover";
 import { BookRow } from "./BookRow";
-import { CollectionTile, type CollectionTileData } from "./CollectionTile";
+import { CollectionTile } from "./CollectionTile";
 
 type SectionBodyProps = {
-  books: LibraryBook[];
+  /** Books and collections, in shelf order. */
+  entries: ShelfEntry[];
   layout: ShelfLayout;
-  /** Collection tiles rendered as peers ahead of the books (top-level only). */
-  collections?: CollectionTileData[];
   pendingBookIds?: ReadonlySet<string>;
   onOpenCollection?: (id: string) => void;
   selecting?: boolean;
@@ -54,9 +55,8 @@ function PendingBookPlaceholder({ layout }: { layout: ShelfLayout }) {
 }
 
 function SectionBody({
-  books,
+  entries,
   layout,
-  collections = [],
   pendingBookIds,
   onOpenCollection,
   selecting,
@@ -70,67 +70,46 @@ function SectionBody({
   onDropBooksOnCollection,
   openingBookId,
 }: SectionBodyProps) {
-  const tiles = collections.map((data) => (
-    <CollectionTile
-      key={`collection-${data.id}`}
-      data={data}
-      layout={layout}
-      onOpen={() => onOpenCollection?.(data.id)}
-      onDropBooks={onDropBooksOnCollection ? (ids) => onDropBooksOnCollection(data.id, ids) : undefined}
-    />
-  ));
-
-  if (layout === "list") {
+  const items = entries.map((entry) => {
+    if (entry.kind === "collection") {
+      const { id } = entry.collection;
+      return (
+        <CollectionTile
+          key={`collection-${id}`}
+          data={collectionTileData(entry.collection, entry.members)}
+          layout={layout}
+          onOpen={() => onOpenCollection?.(id)}
+          onDropBooks={onDropBooksOnCollection ? (ids) => onDropBooksOnCollection(id, ids) : undefined}
+        />
+      );
+    }
+    const { book } = entry;
+    if (pendingBookIds?.has(book.id)) return <PendingBookPlaceholder key={book.id} layout={layout} />;
+    const Card = layout === "list" ? BookRow : BookCover;
     return (
-      <div className="flex flex-col divide-y divide-border/60">
-        {tiles}
-        {books.map((book) =>
-          pendingBookIds?.has(book.id) ? (
-            <PendingBookPlaceholder key={book.id} layout={layout} />
-          ) : (
-            <BookRow
-              key={book.id}
-              book={book}
-              getDragIds={getDragIds ? () => getDragIds(book) : undefined}
-              selecting={selecting}
-              selected={selectedIds?.has(book.id) ?? false}
-              opening={book.id === openingBookId}
-              onClick={() => onSelect?.(book)}
-              onRemove={() => onRemove?.(book)}
-              onToggleStar={() => onToggleStar?.(book)}
-              onUpdateMetadata={(patch) => onUpdateMetadata?.(book, patch)}
-              onToggleSelect={() => onToggleSelect?.(book)}
-            />
-          ),
-        )}
-      </div>
+      <Card
+        key={book.id}
+        book={book}
+        getDragIds={getDragIds ? () => getDragIds(book) : undefined}
+        selecting={selecting}
+        selected={selectedIds?.has(book.id) ?? false}
+        opening={book.id === openingBookId}
+        onClick={() => onSelect?.(book)}
+        onRemove={() => onRemove?.(book)}
+        onToggleStar={() => onToggleStar?.(book)}
+        onUpdateMetadata={(patch) => onUpdateMetadata?.(book, patch)}
+        onToggleSelect={() => onToggleSelect?.(book)}
+      />
     );
-  }
+  });
+
+  if (layout === "list") return <div className="flex flex-col divide-y divide-border/60">{items}</div>;
 
   return (
     // Above 2xl the fixed column steps hand over to auto-fill, so covers keep
     // flowing into new columns on any wider window instead of gaining gutters.
     <div className="grid grid-cols-3 gap-x-4 gap-y-8 sm:grid-cols-4 sm:gap-x-5 md:grid-cols-5 md:gap-x-6 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-[repeat(auto-fill,minmax(10rem,1fr))]">
-      {tiles}
-      {books.map((book) =>
-        pendingBookIds?.has(book.id) ? (
-          <PendingBookPlaceholder key={book.id} layout={layout} />
-        ) : (
-          <BookCover
-            key={book.id}
-            book={book}
-            getDragIds={getDragIds ? () => getDragIds(book) : undefined}
-            selecting={selecting}
-            selected={selectedIds?.has(book.id) ?? false}
-            opening={book.id === openingBookId}
-            onClick={() => onSelect?.(book)}
-            onRemove={() => onRemove?.(book)}
-            onToggleStar={() => onToggleStar?.(book)}
-            onUpdateMetadata={(patch) => onUpdateMetadata?.(book, patch)}
-            onToggleSelect={() => onToggleSelect?.(book)}
-          />
-        ),
-      )}
+      {items}
     </div>
   );
 }
@@ -138,8 +117,6 @@ function SectionBody({
 type ShelfProps = {
   sections: LibraryShelfSection[];
   layout: ShelfLayout;
-  /** Collection tiles to lead the grid (top-level view only). */
-  collections?: CollectionTileData[];
   /** Prepared imports rendered in their real sorted positions. */
   pendingBookIds?: ReadonlySet<string>;
   onOpenCollection?: (id: string) => void;
@@ -162,7 +139,6 @@ type ShelfProps = {
 export function Shelf({
   sections,
   layout,
-  collections = [],
   pendingBookIds,
   onOpenCollection,
   selecting,
@@ -177,19 +153,14 @@ export function Shelf({
   openingBookId,
   className,
 }: ShelfProps) {
-  // Collections lead the first section so they sit in the same grid as the books;
-  // when there are no book sections they get a section of their own.
-  const effectiveSections = sections.length > 0 ? sections : collections.length > 0 ? [{ label: "", books: [] }] : [];
-
   return (
     <div className={cn(layout === "list" ? "space-y-8" : "space-y-12", className)}>
-      {effectiveSections.map((section, index) => (
+      {sections.map((section, index) => (
         <section key={section.label || `section-${index}`}>
           {section.label && <Eyebrow className="mb-4 block">{section.label}</Eyebrow>}
           <SectionBody
-            books={section.books}
+            entries={section.entries}
             layout={layout}
-            collections={index === 0 ? collections : []}
             pendingBookIds={pendingBookIds}
             onOpenCollection={onOpenCollection}
             selecting={selecting}

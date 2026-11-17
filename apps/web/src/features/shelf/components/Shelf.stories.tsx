@@ -1,7 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Shelf } from "./Shelf";
-import type { CollectionTileData } from "./CollectionTile";
-import type { LibraryBook } from "../../library/lib/library-types";
+import type { LibraryBook, ShelfEntry } from "../../library/lib/library-types";
 
 const currentlyReading: LibraryBook[] = [
   {
@@ -245,25 +244,27 @@ const finished: LibraryBook[] = [
 
 const allBooks = [...currentlyReading, ...upNext, ...finished];
 
-// Self-contained fake covers so the collection montages need no network images.
+// Self-contained fake covers so the collection stacks need no network images.
 const fakeCover = (fill: string) =>
   `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='360'%3E%3Crect width='240' height='360' fill='%23${fill}'/%3E%3C/svg%3E`;
 
-const collections: CollectionTileData[] = [
-  {
-    id: "c1",
-    name: "Italian Fiction",
-    count: 4,
-    covers: ["1c1917", "44403c", "78716c"].map((fill, index) => ({
-      id: `c1-${index}`,
-      title: `Member ${index + 1}`,
-      author: "Author",
-      format: "epub" as const,
-      coverUrl: fakeCover(fill),
-    })),
-  },
-  { id: "c2", name: "To Read in 2026", count: 0, covers: [] },
-];
+const asEntries = (books: LibraryBook[]): ShelfEntry[] => books.map((book) => ({ kind: "book", book }));
+
+const italianFiction: ShelfEntry = {
+  kind: "collection",
+  collection: { id: "c1", name: "Italian Fiction", createdAt: "2026-03-13T00:00:00.000Z" },
+  members: ["1c1917", "44403c", "78716c", "a8a29e"].map((fill, index) => ({
+    ...allBooks[index],
+    id: `c1-${index}`,
+    collectionId: "c1",
+    coverUrl: fakeCover(fill),
+  })),
+};
+const toRead: ShelfEntry = {
+  kind: "collection",
+  collection: { id: "c2", name: "To Read in 2026", createdAt: "2026-03-13T00:00:00.000Z" },
+  members: [],
+};
 
 const meta: Meta<typeof Shelf> = {
   title: "Interface/Shelf/Shelf",
@@ -280,7 +281,7 @@ type Story = StoryObj<typeof Shelf>;
 export const FlatGrid: Story = {
   args: {
     layout: "grid",
-    sections: [{ label: "", books: allBooks }],
+    sections: [{ label: "", entries: asEntries(allBooks) }],
   },
 };
 
@@ -289,9 +290,9 @@ export const GroupedGrid: Story = {
   args: {
     layout: "grid",
     sections: [
-      { label: "Currently Reading", books: currentlyReading },
-      { label: "Up Next", books: upNext },
-      { label: "Finished", books: finished },
+      { label: "Currently Reading", entries: asEntries(currentlyReading) },
+      { label: "Up Next", entries: asEntries(upNext) },
+      { label: "Finished", entries: asEntries(finished) },
     ],
   },
 };
@@ -300,7 +301,7 @@ export const GroupedGrid: Story = {
 export const ListLayout: Story = {
   args: {
     layout: "list",
-    sections: [{ label: "", books: allBooks }],
+    sections: [{ label: "", entries: asEntries(allBooks) }],
   },
 };
 
@@ -309,9 +310,9 @@ export const GroupedList: Story = {
   args: {
     layout: "list",
     sections: [
-      { label: "Currently Reading", books: currentlyReading },
-      { label: "Up Next", books: upNext },
-      { label: "Finished", books: finished },
+      { label: "Currently Reading", entries: asEntries(currentlyReading) },
+      { label: "Up Next", entries: asEntries(upNext) },
+      { label: "Finished", entries: asEntries(finished) },
     ],
   },
 };
@@ -320,19 +321,29 @@ export const GroupedList: Story = {
 export const SelectionMode: Story = {
   args: {
     layout: "grid",
-    sections: [{ label: "", books: allBooks }],
+    sections: [{ label: "", entries: asEntries(allBooks) }],
     selecting: true,
     selectedIds: new Set(["2", "5", "8"]),
     onToggleSelect: () => {},
   },
 };
 
-/** Collection tiles lead the first section as grid peers of the books. */
+/** Collections stand among the books, wherever the shelf's order puts them. */
 export const WithCollections: Story = {
   args: {
     layout: "grid",
-    sections: [{ label: "", books: allBooks }],
-    collections,
+    sections: [
+      {
+        label: "",
+        entries: [
+          ...asEntries(allBooks.slice(0, 2)),
+          italianFiction,
+          ...asEntries(allBooks.slice(2, 6)),
+          toRead,
+          ...asEntries(allBooks.slice(6)),
+        ],
+      },
+    ],
     onOpenCollection: () => {},
   },
 };
@@ -341,7 +352,7 @@ export const WithCollections: Story = {
 export const ImportingPending: Story = {
   args: {
     layout: "grid",
-    sections: [{ label: "", books: allBooks }],
+    sections: [{ label: "", entries: asEntries(allBooks) }],
     pendingBookIds: new Set(["4", "6"]),
   },
 };
@@ -350,7 +361,7 @@ export const ImportingPending: Story = {
 export const OpeningBook: Story = {
   args: {
     layout: "grid",
-    sections: [{ label: "", books: allBooks }],
+    sections: [{ label: "", entries: asEntries(allBooks) }],
     openingBookId: "1",
   },
 };

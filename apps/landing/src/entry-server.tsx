@@ -7,6 +7,7 @@
  * parseable from its plain HTTP response. The browser still boots the normal
  * SPA on top (main.tsx).
  */
+import { StrictMode } from "react";
 import { renderToString } from "react-dom/server";
 import { RouterProvider, createMemoryHistory } from "@tanstack/react-router";
 import { createEnglishLandingI18n, createLandingI18n } from "./i18n";
@@ -38,5 +39,9 @@ export async function render(url: string): Promise<string> {
     history: createMemoryHistory({ initialEntries: [`${pathname}${location.search}`] }),
   });
   await router.load();
-  return renderToString(<RouterProvider router={router} />);
+  return renderToString(
+    <StrictMode>
+      <RouterProvider router={router} />
+    </StrictMode>,
+  );
 }

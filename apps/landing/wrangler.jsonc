@@ -13,7 +13,7 @@
     "not_found_handling": "404-page"
   },
   "analytics_engine_datasets": [{ "binding": "SITE_ANALYTICS", "dataset": "readaware_site_events" }],
-  "workers_dev": true,
-  "preview_urls": true,
+  "workers_dev": false,
+  "preview_urls": false,
   "routes": [{ "pattern": "readaware.app", "custom_domain": true }]
 }

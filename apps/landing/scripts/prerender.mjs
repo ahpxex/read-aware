@@ -29,12 +29,18 @@ const pathSet = new Set(paths);
 const SITE_ORIGIN = "https://readaware.app";
 const SITE_NAME = "ReadAware";
 const OG_IMAGE = `${SITE_ORIGIN}/og.jpg`;
-const OG_IMAGE_ALT = "The ReadAware library — a grid of book covers across many languages and formats.";
+const LICENSE_URL = "https://www.gnu.org/licenses/agpl-3.0.html";
 const DOWNLOAD_URL = "https://github.com/ahpxex/read-aware/releases/latest";
+const WINDOWS_DOWNLOAD_URL =
+  "https://github.com/ahpxex/read-aware/releases/latest/download/ReadAware-windows-x64-setup.exe";
+const ANDROID_DOWNLOAD_URL =
+  "https://github.com/ahpxex/read-aware/releases/latest/download/ReadAware-android-arm64.apk";
 const GITHUB_URL = "https://github.com/ahpxex/read-aware";
 const DISCORD_URL = "https://discord.gg/whDrKXwHWU";
 const LOGO_URL = `${SITE_ORIGIN}/favicon.png`;
 const FEED_URL = `${SITE_ORIGIN}/feed.xml`;
+const SHELF_SCREENSHOT_LIGHT = "/screenshots/shelf-light.webp?v=043";
+const SHELF_SCREENSHOT_DARK = "/screenshots/shelf-dark.webp?v=043";
 
 // Locale prefixes must mirror src/lib/i18n.ts.
 const LOCALES = [
@@ -152,8 +158,13 @@ function alternateLinks(routePath) {
 
 /** Open Graph + Twitter card tags, from the route's own title/description. */
 function socialTags(routePath, title, description) {
+  const currentLocale = localeOf(routePath);
   const url = canonicalUrl(routePath);
   const ogType = basePathOf(routePath).startsWith("/blog/") ? "article" : "website";
+  const ogImageAlt = SITE_RESOURCES[currentLocale.locale].home.shelfAlt;
+  const alternateOgLocales = localeVariants(routePath)
+    .filter((entry) => entry.locale !== currentLocale.locale)
+    .map((entry) => `<meta property="og:locale:alternate" content="${entry.ogLocale}" />`);
   const tags = [
     `<meta property="og:site_name" content="${escapeAttr(SITE_NAME)}" />`,
     `<meta property="og:type" content="${ogType}" />`,
@@ -163,8 +174,9 @@ function socialTags(routePath, title, description) {
     `<meta property="og:image" content="${OG_IMAGE}" />`,
     `<meta property="og:image:width" content="1200" />`,
     `<meta property="og:image:height" content="630" />`,
-    `<meta property="og:image:alt" content="${escapeAttr(OG_IMAGE_ALT)}" />`,
-    `<meta property="og:locale" content="${localeOf(routePath).ogLocale}" />`,
+    `<meta property="og:image:alt" content="${escapeAttr(ogImageAlt)}" />`,
+    `<meta property="og:locale" content="${currentLocale.ogLocale}" />`,
+    ...alternateOgLocales,
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:title" content="${escapeAttr(title)}" />`,
     `<meta name="twitter:description" content="${escapeAttr(description)}" />`,
@@ -173,8 +185,40 @@ function socialTags(routePath, title, description) {
   return tags.join("\n    ");
 }
 
-/** SoftwareApplication structured data, emitted on each locale's homepage. */
+const TOPIC_SOFTWARE_TARGETS = {
+  "/open-source-ebook-reader": {
+    operatingSystem: "macOS, Windows, Linux, Android",
+    downloadUrl: DOWNLOAD_URL,
+    screenshot: `${SITE_ORIGIN}/screenshots/shelf-light.webp`,
+  },
+  "/cbz-cbr-reader": {
+    operatingSystem: "macOS, Windows, Linux, Android",
+    downloadUrl: DOWNLOAD_URL,
+    screenshot: `${SITE_ORIGIN}/screenshots/shelf-light.webp`,
+  },
+  "/epub-reader-for-windows": {
+    operatingSystem: "Windows",
+    downloadUrl: WINDOWS_DOWNLOAD_URL,
+    screenshot: `${SITE_ORIGIN}/screenshots/reader-light.webp`,
+  },
+  "/epub-reader-for-android": {
+    operatingSystem: "Android",
+    downloadUrl: ANDROID_DOWNLOAD_URL,
+    screenshot: `${SITE_ORIGIN}/screenshots/android-reader-light.png`,
+  },
+};
+
+/** SoftwareApplication structured data for homepages and software entry pages. */
 function softwareApplicationJsonLd(routePath, description) {
+  const base = basePathOf(routePath);
+  const target = isHomepage(routePath)
+    ? {
+        operatingSystem: "macOS, Windows, Linux, Android",
+        downloadUrl: DOWNLOAD_URL,
+        screenshot: `${SITE_ORIGIN}/screenshots/shelf-light.webp`,
+      }
+    : TOPIC_SOFTWARE_TARGETS[base];
+  if (!target) return "";
   const data = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
@@ -182,10 +226,13 @@ function softwareApplicationJsonLd(routePath, description) {
     description,
     url: canonicalUrl(routePath),
     image: OG_IMAGE,
+    screenshot: target.screenshot,
     applicationCategory: "EducationalApplication",
-    operatingSystem: "macOS, Windows, Linux, Android",
+    operatingSystem: target.operatingSystem,
+    softwareVersion: CHANGELOG[0].version,
+    license: LICENSE_URL,
     offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
-    downloadUrl: DOWNLOAD_URL,
+    downloadUrl: target.downloadUrl,
     inLanguage: localeOf(routePath).hreflang,
   };
   return jsonLdScript(data);
@@ -215,6 +262,16 @@ function jsonLdScript(data) {
   return `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, "\\u003c")}</script>`;
 }
 
+/** WebSite structured data on the domain root homepage, for Google site names. */
+function websiteJsonLd() {
+  return jsonLdScript({
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: SITE_NAME,
+    url: `${SITE_ORIGIN}/`,
+  });
+}
+
 /** Organization structured data, emitted next to SoftwareApplication on homepages. */
 function organizationJsonLd() {
   return jsonLdScript({
@@ -225,19 +282,88 @@ function organizationJsonLd() {
 }
 
 /** BlogPosting structured data for a blog-article route. */
-function blogPostingJsonLd(routePath, title, description, post) {
+function blogPostingJsonLd(routePath, description, post) {
+  const currentLocale = localeOf(routePath);
   return jsonLdScript({
     "@context": "https://schema.org",
     "@type": "BlogPosting",
-    headline: title,
+    headline: post.text[currentLocale.locale]?.title ?? post.text.en.title,
     description,
     url: canonicalUrl(routePath),
     datePublished: post.date,
     image: OG_IMAGE,
-    inLanguage: localeOf(routePath).hreflang,
+    inLanguage: currentLocale.hreflang,
     author: ORGANIZATION,
     publisher: ORGANIZATION,
   });
+}
+
+const DOCS_LEAF_LABELS = {
+  "/docs/install": "install",
+  "/docs/getting-started": "gettingStarted",
+  "/docs/plugins/develop": "pluginsDevelop",
+  "/docs/plugins/capabilities": "pluginsCapabilities",
+  "/docs/plugins/api": "pluginsApi",
+  "/docs/plugins/publishing": "pluginsPublishing",
+};
+
+/** BreadcrumbList structured data for /docs and /blog hierarchies. */
+function breadcrumbJsonLd(routePath, post) {
+  const { locale, prefix } = localeOf(routePath);
+  const base = basePathOf(routePath);
+  const site = SITE_RESOURCES[locale];
+  const homePath = prefix || "/";
+  const crumbs = [{ name: SITE_NAME, path: homePath }];
+
+  if (base === "/docs") {
+    crumbs.push({ name: site.chrome.docs, path: routePath });
+  } else if (base.startsWith("/docs/")) {
+    crumbs.push({ name: site.chrome.docs, path: `${prefix}/docs` });
+    if (base === "/docs/plugins") {
+      crumbs.push({ name: site.docsNav.labels.pluginsOverview, path: routePath });
+    } else if (base.startsWith("/docs/plugins/")) {
+      crumbs.push({ name: site.docsNav.labels.pluginsOverview, path: `${prefix}/docs/plugins` });
+      const labelKey = DOCS_LEAF_LABELS[base];
+      if (labelKey) crumbs.push({ name: site.docsNav.labels[labelKey], path: routePath });
+    } else {
+      const labelKey = DOCS_LEAF_LABELS[base];
+      if (labelKey) crumbs.push({ name: site.docsNav.labels[labelKey], path: routePath });
+    }
+  } else if (base === "/blog") {
+    crumbs.push({ name: site.chrome.blog, path: routePath });
+  } else if (post) {
+    crumbs.push({ name: site.chrome.blog, path: `${prefix}/blog` });
+    crumbs.push({ name: post.text[locale]?.title ?? post.text.en.title, path: routePath });
+  } else {
+    return "";
+  }
+
+  return jsonLdScript({
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: crumbs.map((crumb, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: crumb.name,
+      item: canonicalUrl(crumb.path),
+    })),
+  });
+}
+
+function resourcePreloads(routePath) {
+  const tags = [];
+  if (localeOf(routePath).locale === "ru") {
+    tags.push(
+      '<link rel="preload" as="font" type="font/woff2" href="/fonts/literata-normal-cyrillic.woff2" crossorigin />',
+    );
+  }
+  if (isHomepage(routePath)) {
+    tags.push(
+      `<link rel="preload" as="image" href="${SHELF_SCREENSHOT_LIGHT}" media="(prefers-color-scheme: light)" fetchpriority="high" />`,
+      `<link rel="preload" as="image" href="${SHELF_SCREENSHOT_DARK}" media="(prefers-color-scheme: dark)" fetchpriority="high" />`,
+    );
+  }
+  return tags.join("\n    ");
 }
 
 const searchPages = [];
@@ -249,10 +375,14 @@ for (const routePath of paths) {
 
   // <HeadContent /> emits the route's <title>/<meta name="description"> where
   // it sits in the body markup; lift them into the document head so parsers
-  // and previews see per-page metadata, and drop the in-body copies.
+  // and previews see per-page metadata, and drop the in-body copies (plus
+  // React's automatic preload of the small header icon, so hero screenshots win).
   const title = body.match(/<title[^>]*>([\s\S]*?)<\/title>/)?.[1] ?? "";
   const description = body.match(/<meta[^>]*name="description"[^>]*content="([^"]*)"/)?.[1] ?? "";
-  body = body.replace(/<title[^>]*>[\s\S]*?<\/title>/g, "").replace(/<meta[^>]*name="description"[^>]*>/g, "");
+  body = body
+    .replace(/<title[^>]*>[\s\S]*?<\/title>/g, "")
+    .replace(/<meta[^>]*name="description"[^>]*>/g, "")
+    .replace(/<link rel="preload" as="image" href="\/icon-64\.png[^"]*"\s*\/?>/g, "");
 
   let html = template.replace('<div id="root"></div>', () => {
     return `<div id="root">${body}</div>`;
@@ -276,13 +406,16 @@ for (const routePath of paths) {
   const plainDescription = decodeEntities(description);
   const post = blogPostOf(routePath);
   const headTags = [
+    resourcePreloads(routePath),
     `<link rel="canonical" href="${canonicalUrl(routePath)}" />`,
     `<link rel="alternate" type="application/rss+xml" title="${escapeAttr(`${SITE_NAME} Blog`)}" href="${FEED_URL}" />`,
     alternateLinks(routePath),
     socialTags(routePath, plainTitle, plainDescription),
     post ? `<meta property="article:published_time" content="${post.date}" />` : "",
-    post ? blogPostingJsonLd(routePath, plainTitle, plainDescription, post) : "",
-    isHomepage(routePath) ? softwareApplicationJsonLd(routePath, plainDescription) : "",
+    post ? blogPostingJsonLd(routePath, plainDescription, post) : "",
+    breadcrumbJsonLd(routePath, post),
+    softwareApplicationJsonLd(routePath, plainDescription),
+    routePath === "/" ? websiteJsonLd() : "",
     isHomepage(routePath) ? organizationJsonLd() : "",
   ].filter(Boolean);
   html = html.replace("</head>", () => `    ${headTags.join("\n    ")}\n  </head>`);

@@ -10,16 +10,30 @@ import { useLatestRelease } from "../hooks/useLatestRelease";
 import { useSiteCopy } from "../i18n/use-site-copy";
 import { LOCALES, LOCALE_CHOICE_KEY, type Locale } from "../lib/i18n";
 
+const BOT_USER_AGENT = /bot|crawl|spider|slurp|yandex|baidu|sogou|duckduck|bingpreview|lighthouse|petalbot/i;
+const SEARCH_REFERRER_HOST =
+  /(?:^|\.)(?:google\.[a-z.]+|bing\.com|duckduckgo\.com|baidu\.com|yandex\.[a-z.]+|yahoo\.com|ecosia\.org|search\.brave\.com|kagi\.com)$/i;
+
+function cameFromSearchEngine(referrer: string): boolean {
+  if (!referrer) return false;
+  try {
+    return SEARCH_REFERRER_HOST.test(new URL(referrer).hostname);
+  } catch {
+    return false;
+  }
+}
+
 /**
- * First visit to `/`: follow the browser language to /zh or /ja. An explicit
+ * First visit to `/`: follow the browser language to /zh, /ja, etc. An explicit
  * pick in the language switcher (persisted under LOCALE_CHOICE_KEY) always
  * wins — someone who chose English on a zh-CN system stays on English, and
- * someone who chose 中文 gets it back on their next visit. Only the homepage
- * redirects; deep links to docs/blog land exactly where they point.
+ * someone who chose 中文 gets it back on their next visit. Crawlers and
+ * organic search clicks (where hreflang already selected `/`) stay on `/`.
  */
 function useBrowserLocaleRedirect(locale: Locale) {
   useEffect(() => {
     if (locale !== "en" || window.location.pathname !== "/") return;
+    if (navigator.webdriver || BOT_USER_AGENT.test(navigator.userAgent)) return;
     let choice: string | null = null;
     try {
       choice = localStorage.getItem(LOCALE_CHOICE_KEY);
@@ -27,6 +41,7 @@ function useBrowserLocaleRedirect(locale: Locale) {
       // Storage unavailable — treat as no stored preference.
     }
     const stored = choice && (LOCALES as readonly string[]).includes(choice) ? (choice as Locale) : null;
+    if (!stored && cameFromSearchEngine(document.referrer)) return;
     const target = stored ? (stored === "en" ? null : stored) : detectBrowserLocale();
     if (target) window.location.replace(`/${target}/${window.location.search}${window.location.hash}`);
   }, [locale]);

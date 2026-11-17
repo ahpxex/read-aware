@@ -29,6 +29,7 @@ export function Plate({
           width={2400}
           height={1600}
           loading={eager ? "eager" : "lazy"}
+          fetchPriority={eager ? "high" : undefined}
           className="block w-full border border-border-strong"
         />
       </picture>

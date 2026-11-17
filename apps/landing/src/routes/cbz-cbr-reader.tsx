@@ -5,11 +5,11 @@ import { TopicPage, type TopicFaq } from "../components/TopicPage";
 export const Route = createFileRoute("/cbz-cbr-reader")({
   head: () => ({
     meta: [
-      { title: "Free CBZ & CBR Comic Book Reader for Desktop and Android — ReadAware" },
+      { title: "Free CBZ & CBR Comic Reader for Desktop & Android — ReadAware" },
       {
         name: "description",
         content:
-          "Read CBZ and CBR comic archives directly — no conversion — on Windows, macOS, Linux, and Android. A free, open-source reader that keeps comics and ebooks in one library, with progress that syncs end-to-end encrypted.",
+          "Open CBZ and CBR comic archives directly without conversion on Windows, macOS, Linux, and Android. Free, open-source library with offline progress and E2E sync.",
       },
     ],
   }),
@@ -77,6 +77,7 @@ const FAQS: TopicFaq[] = [
   },
   {
     question: "What platforms does it run on?",
-    answer: "Windows, macOS, and Linux on desktop, and Android via a direct APK. iOS is on the way.",
+    answer:
+      "Windows, macOS, and Linux on desktop, Android via a direct APK, and iOS via the public TestFlight beta (App Store release coming soon).",
   },
 ];

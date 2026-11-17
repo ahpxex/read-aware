@@ -38,8 +38,8 @@
     }
   },
   "home": {
-    "metaTitle": "ReadAware — Lector de ebooks gratuito y de código abierto que te conoce",
-    "metaDescription": "Un lector de ebooks gratuito y de código abierto para Windows, macOS, Linux y Android. Un solo lector para EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML y PDF que construye memoria a partir de tu lectura, crece con plugins y sincroniza cifrado de extremo a extremo: local primero (local-first) y privado.",
+    "metaTitle": "ReadAware — Lector de ebooks gratuito y abierto que te conoce",
+    "metaDescription": "Lector de ebooks gratuito y de código abierto para Windows, macOS, Linux y Android. Lee EPUB, PDF, MOBI y cómics sin conexión con memoria IA y sync cifrada.",
     "heroTitle": "ReadAware",
     "heroLead": "Un lector gratuito y de código abierto. Lee tus ebooks sin conexión, con IA contextual y sincronización cifrada opcionales.",
     "shelfAlt": "La biblioteca de ReadAware: una cuadrícula de portadas de libros en varios idiomas y formatos.",
@@ -57,7 +57,7 @@
     "pluginAlt": "El panel de plugins de ReadAware: diccionario, temas y lector RSS, cada uno en su sandbox; algunos ponen nuevas herramientas en manos del asistente.",
     "pluginCaption": "Voces, diccionarios, temas, fuentes — y herramientas que el asistente adopta.",
     "syncTitle": "Tu lectura te sigue",
-    "syncBody": "La sincronización opcional con cifrado de extremo a extremo lleva libros, subrayados, notas, posición de lectura y memoria entre dispositivos. Las cuentas gratuitas incluyen 50 MB; los planes de pago amplían el almacenamiento. El relay de sincronización solo guarda texto cifrado. Disponible en escritorio, Android e iOS.",
+    "syncBody": "La sincronización opcional con cifrado de extremo a extremo lleva libros, subrayados, notas, posición de lectura y memoria entre dispositivos. Las cuentas gratuitas incluyen 50 MB; los planes de pago amplían el almacenamiento. El relay de sincronización solo guarda texto cifrado. Disponible en escritorio y Android, y en beta pública de TestFlight para iOS.",
     "inShortTitle": "En resumen",
     "notes": [
       {
@@ -92,8 +92,8 @@
     }
   },
   "pricing": {
-    "metaTitle": "Precios — ReadAware",
-    "metaDescription": "El lector es gratuito e incluye biblioteca local, anotaciones e IA con tu clave. Las cuentas gratuitas tienen 50 MB de sincronización cifrada. Los planes de pago amplían el almacenamiento; Pro y Max también incluyen IA integrada.",
+    "metaTitle": "Precios: lector gratuito, sync cifrada e IA — ReadAware",
+    "metaDescription": "El lector es gratuito con biblioteca local, notas e IA con tu clave. 50 MB de sync cifrada gratis; los planes de pago amplían espacio e IA integrada.",
     "title": "Precios",
     "lead": "El lector es gratuito e incluye biblioteca local, anotaciones e IA con tu clave. Las cuentas gratuitas tienen 50 MB de sincronización cifrada. Los planes de pago amplían el almacenamiento; Pro y Max también incluyen IA integrada.",
     "perMonth": "/mes",

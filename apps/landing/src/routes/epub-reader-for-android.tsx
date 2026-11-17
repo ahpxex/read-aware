@@ -10,7 +10,7 @@ export const Route = createFileRoute("/epub-reader-for-android")({
       {
         name: "description",
         content:
-          "A free, open-source EPUB reader for Android. Reads MOBI, AZW3, FB2, PDF, CBZ, and CBR too, works fully offline, and syncs highlights, notes, and reading position with your desktop — end-to-end encrypted. Direct APK download.",
+          "Free, open-source Android EPUB, MOBI, PDF, and comic reader. Read offline with highlights, e-ink mode, and E2E encrypted desktop sync. Direct ARM64 APK.",
       },
     ],
   }),

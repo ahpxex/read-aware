@@ -10,7 +10,7 @@ export const Route = createFileRoute("/open-source-ebook-reader")({
       {
         name: "description",
         content:
-          "ReadAware is a free, open-source (AGPL-3.0) ebook reader for Windows, macOS, Linux, and Android. EPUB, MOBI, PDF, and comics in one local-first reader with highlights, notes, an AI assistant, and end-to-end encrypted sync.",
+          "Free AGPL-3.0 ebook reader for Windows, macOS, Linux, and Android. Read EPUB, PDF, MOBI, and comics offline with local highlights, AI memory, and E2E sync.",
       },
     ],
   }),

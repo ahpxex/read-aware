@@ -24,9 +24,10 @@
 
 ## Blog
 
-- [Reading that remembers](https://readaware.app/blog/reading-that-remembers/): why memory, not chat history, is the product
-- [Your library is not a cloud feature](https://readaware.app/blog/local-first/): the local-first design and why data lives on-device
+- [Lake Baikal: sync that had to be earned](https://readaware.app/blog/lake-baikal/): end-to-end encrypted event-log sync, ghost books, and an app-wide error-handling audit
 - [Plugins: the reader, extended](https://readaware.app/blog/plugins-v1/): the sandboxed plugin system, v1
+- [Your library is not a cloud feature](https://readaware.app/blog/local-first/): the local-first design and why data lives on-device
+- [Reading that remembers](https://readaware.app/blog/reading-that-remembers/): why memory, not chat history, is the product
 
 ## Optional
 

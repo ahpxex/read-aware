@@ -38,8 +38,8 @@
     }
   },
   "home": {
-    "metaTitle": "ReadAware — Lecteur d'ebooks gratuit et open source qui vous connaît",
-    "metaDescription": "Un lecteur d'ebooks gratuit et open source pour Windows, macOS, Linux et Android. Un seul lecteur pour EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML et PDF, qui construit une mémoire à partir de vos lectures, grandit par les plugins et se synchronise chiffré de bout en bout — local d'abord et privé.",
+    "metaTitle": "ReadAware — Lecteur d’ebooks gratuit et open source avec mémoire",
+    "metaDescription": "Lecteur d’ebooks gratuit et open source (Windows, macOS, Linux, Android). Lisez EPUB, PDF, MOBI et BD hors ligne avec mémoire IA, plugins et sync chiffrée.",
     "heroTitle": "ReadAware",
     "heroLead": "Un lecteur gratuit et open source. Lisez vos ebooks hors ligne, avec une IA contextuelle et une synchronisation chiffrée en option.",
     "shelfAlt": "La bibliothèque ReadAware — une grille de couvertures de livres dans de nombreuses langues et formats.",
@@ -57,7 +57,7 @@
     "pluginAlt": "Le panneau de plugins de ReadAware — dictionnaire, thèmes et lecteur RSS, chacun dans son bac à sable, certains confiant de nouveaux outils à l'assistant.",
     "pluginCaption": "Voix, dictionnaires, thèmes, flux — et des outils que l'assistant adopte.",
     "syncTitle": "Votre lecture vous suit",
-    "syncBody": "La synchronisation optionnelle, chiffrée de bout en bout, transporte livres, surlignages, notes, position de lecture et mémoire entre appareils. Les comptes gratuits incluent 50 Mo ; les formules payantes augmentent la capacité. Le relais de synchronisation ne stocke que du contenu chiffré. Disponible sur ordinateur, Android et iOS.",
+    "syncBody": "La synchronisation optionnelle, chiffrée de bout en bout, transporte livres, surlignages, notes, position de lecture et mémoire entre appareils. Les comptes gratuits incluent 50 Mo ; les formules payantes augmentent la capacité. Le relais de synchronisation ne stocke que du contenu chiffré. Disponible sur ordinateur et Android, et en bêta publique TestFlight sur iOS.",
     "inShortTitle": "En bref",
     "notes": [
       {
@@ -92,8 +92,8 @@
     }
   },
   "pricing": {
-    "metaTitle": "Tarifs — ReadAware",
-    "metaDescription": "Le lecteur est gratuit : bibliothèque locale, annotations et IA avec votre clé. Les comptes gratuits incluent 50 Mo de synchronisation chiffrée. Les formules payantes augmentent le stockage ; Pro et Max incluent aussi une IA intégrée.",
+    "metaTitle": "Tarifs : lecteur gratuit, sync chiffrée et IA — ReadAware",
+    "metaDescription": "Le lecteur est gratuit avec bibliothèque locale, notes et IA via votre clé. 50 Mo de sync chiffrée inclus ; les offres payantes ajoutent stockage et IA.",
     "title": "Tarifs",
     "lead": "Le lecteur est gratuit : bibliothèque locale, annotations et IA avec votre clé. Les comptes gratuits incluent 50 Mo de synchronisation chiffrée. Les formules payantes augmentent le stockage ; Pro et Max incluent aussi une IA intégrée.",
     "perMonth": "/mois",
@@ -167,7 +167,7 @@
   },
   "changelog": {
     "metaTitle": "Journal des modifications — ReadAware",
-    "metaDescription": "Ce qui a changé dans chaque version, écrit pour celles et ceux qui utilisent l'application. Les notes complètes et les téléchargements de chaque version sont sur GitHub.",
+    "metaDescription": "Nouveautés et correctifs de chaque version de ReadAware. Les notes complètes et les téléchargements sont disponibles sur GitHub.",
     "leadIn": " : ",
     "entries": [
       {

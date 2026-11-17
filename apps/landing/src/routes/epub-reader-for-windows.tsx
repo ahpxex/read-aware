@@ -5,11 +5,11 @@ import { TopicPage, type TopicFaq } from "../components/TopicPage";
 export const Route = createFileRoute("/epub-reader-for-windows")({
   head: () => ({
     meta: [
-      { title: "Free EPUB Reader for Windows — ReadAware" },
+      { title: "Free Open-Source EPUB Reader for Windows — ReadAware" },
       {
         name: "description",
         content:
-          "Read EPUB on Windows with a free, open-source reader — plus MOBI, AZW3, FB2, PDF, and comics. Highlights, notes, and an AI assistant that knows your library. Installer, MSI, and portable ZIP; no account needed.",
+          "Free, open-source EPUB, PDF, MOBI, and comic reader for Windows. Offline highlights, notes, and AI reading memory. Download x64 installer, MSI, or portable ZIP.",
       },
     ],
   }),

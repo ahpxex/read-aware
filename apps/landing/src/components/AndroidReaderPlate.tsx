@@ -12,7 +12,8 @@ export function AndroidReaderPlate({ locale = "en" }: { locale?: "en" | "zh" }) 
           }
           width={1080}
           height={2400}
-          loading="lazy"
+          loading="eager"
+          fetchPriority="high"
           className="block h-auto w-full border border-border-strong"
         />
       </picture>

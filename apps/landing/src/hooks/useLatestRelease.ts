@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   CURRENT_RELEASE_TAG,
   DOWNLOADS,
@@ -23,10 +23,15 @@ export type LatestReleaseState = {
  * blinking in when a rate-limited GitHub API call happens to succeed.
  */
 export function useLatestRelease(): LatestReleaseState {
-  const [state] = useState<LatestReleaseState>(() => ({
+  // Start OS-neutral so hydration matches the prerendered HTML, then feature
+  // the visitor's platform on the client.
+  const [platform, setPlatform] = useState<PlatformId | null>(null);
+  useEffect(() => {
+    setPlatform(detectPlatform());
+  }, []);
+  return {
     tag: CURRENT_RELEASE_TAG,
     downloads: DOWNLOADS,
-    platform: detectPlatform(),
-  }));
-  return state;
+    platform,
+  };
 }

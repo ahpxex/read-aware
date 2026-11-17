@@ -39,7 +39,7 @@
   },
   "home": {
     "metaTitle": "ReadAware — Free, Open-Source Ebook Reader That's Aware of You",
-    "metaDescription": "A free, open-source ebook reader for Windows, macOS, Linux, and Android. One reader for EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, and PDF that builds memory from your reading, grows through plugins, and syncs end-to-end encrypted — local-first and private.",
+    "metaDescription": "Free, open-source ebook reader for macOS, Windows, Linux, and Android. Read EPUB, PDF, MOBI, and comics offline with AI memory, plugins, and encrypted sync.",
     "heroTitle": "ReadAware",
     "heroLead": "A free, open-source ebook reader. Read your own files offline, then add context-aware AI and encrypted sync when you need them.",
     "shelfAlt": "The ReadAware library — a grid of book covers across many languages and formats.",
@@ -57,7 +57,7 @@
     "pluginAlt": "The ReadAware plugin panel — dictionary, themes, and RSS reader installed, each in its own sandbox, some handing the assistant new tools.",
     "pluginCaption": "Voices, dictionaries, themes, feeds — and tools the assistant picks up.",
     "syncTitle": "Your reading follows you",
-    "syncBody": "Optional end-to-end encrypted sync carries books, highlights, notes, reading position, and memory between devices. Free accounts include 50 MB; paid plans expand storage. The sync relay stores ciphertext. Available on desktop, Android, and iOS.",
+    "syncBody": "Optional end-to-end encrypted sync carries books, highlights, notes, reading position, and memory between devices. Free accounts include 50 MB; paid plans expand storage. The sync relay stores ciphertext. Available on desktop and Android, with iOS in public TestFlight beta.",
     "inShortTitle": "In short",
     "notes": [
       {
@@ -92,8 +92,8 @@
     }
   },
   "pricing": {
-    "metaTitle": "Pricing — ReadAware",
-    "metaDescription": "The reader is free, including local books, annotations, and BYOK AI. Free accounts include 50 MB of encrypted sync. Paid plans expand storage; Pro and Max also include built-in AI.",
+    "metaTitle": "Pricing: Free Reader, Encrypted Sync & Built-In AI — ReadAware",
+    "metaDescription": "ReadAware is free for local books, annotations, and BYOK AI. Free accounts include 50 MB of encrypted sync; paid plans add storage and optional built-in AI.",
     "title": "Pricing",
     "lead": "The reader is free, including local books, annotations, and BYOK AI. Free accounts include 50 MB of encrypted sync. Paid plans expand storage; Pro and Max also include built-in AI.",
     "perMonth": "/month",
@@ -166,7 +166,7 @@
     ]
   },
   "changelog": {
-    "metaTitle": "Changelog — ReadAware",
+    "metaTitle": "Changelog & Release Notes — ReadAware",
     "metaDescription": "What changed in each ReadAware release, written for the people using it.",
     "leadIn": ". ",
     "entries": [
@@ -1227,7 +1227,7 @@
     ]
   },
   "blog": {
-    "metaTitle": "Blog — ReadAware",
+    "metaTitle": "Blog: Reading, Memory & Local-First Software — ReadAware",
     "metaDescription": "Notes from building ReadAware: reading, memory, local-first software, and plugins.",
     "title": "Blog",
     "lead": "Notes from building ReadAware — on reading, memory, and software that stays yours.",

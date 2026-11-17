@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Check, CircleNotch } from "@phosphor-icons/react";
 import { cn } from "@read-aware/ui/cn";
@@ -27,18 +27,16 @@ export function PricingPage({ locale }: { locale: Locale }) {
   useDocumentLang(locale);
   const copy = useSiteCopy("pricing");
 
-  // Stripe bounces back here with ?purchase=success (prerendered HTML never
-  // carries the query, so read it lazily on the client only).
-  const [purchased] = useState(
-    () => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("purchase") === "success",
-  );
-  // The app's Upgrade button arrives with #upgrade=<ticket> in the fragment:
-  // a short-lived relay ticket that binds the checkout to the signed-in
-  // account and sends the buyer back into the app after paying. Fragment,
-  // not query — it never reaches a server or an access log.
-  const [upgradeTicket] = useState(() =>
-    typeof window !== "undefined" ? new URLSearchParams(window.location.hash.replace(/^#/, "")).get("upgrade") : null,
-  );
+  // Stripe bounces back here with ?purchase=success, and the app's Upgrade
+  // button arrives with #upgrade=<ticket> in the fragment (never sent to a
+  // server or access log). Read both after mount so hydration matches the
+  // query-free prerendered HTML.
+  const [purchased, setPurchased] = useState(false);
+  const [upgradeTicket, setUpgradeTicket] = useState<string | null>(null);
+  useEffect(() => {
+    setPurchased(new URLSearchParams(window.location.search).get("purchase") === "success");
+    setUpgradeTicket(new URLSearchParams(window.location.hash.replace(/^#/, "")).get("upgrade"));
+  }, []);
   const [busyPlan, setBusyPlan] = useState<PricingPlanId | null>(null);
   const [checkoutError, setCheckoutError] = useState(false);
 

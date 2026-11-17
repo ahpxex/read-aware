@@ -39,7 +39,7 @@
   },
   "home": {
     "metaTitle": "ReadAware — 懂你的免費開源電子書閱讀器",
-    "metaDescription": "免費開源的電子書閱讀器，支援 Windows、macOS、Linux 和 Android。一個閱讀器讀遍 EPUB、MOBI、AZW3、FB2、CBZ、CBR、TXT、HTML 和 PDF，從你的閱讀中長出記憶，靠外掛生長，端對端加密同步——本地優先且注重隱私。",
+    "metaDescription": "免費開源的跨平台電子書閱讀器（Windows、macOS、Linux、Android），直讀 EPUB、MOBI、AZW3、PDF 與漫畫，支援離線註記、AI 閱讀記憶、沙箱外掛與端對端加密同步。",
     "heroTitle": "ReadAware",
     "heroLead": "免費開源的電子書閱讀器。離線閱讀自己的書，需要時再連接理解上下文的 AI 和加密同步。",
     "shelfAlt": "ReadAware 書架——一個包含多種語言和格式的書籍封面格線。",
@@ -57,7 +57,7 @@
     "pluginAlt": "ReadAware 外掛面板——字典、主題、RSS 閱讀器各自裝在沙盒裡，有的還給智慧助理帶來新工具。",
     "pluginCaption": "語音、字典、主題、訂閱源——還有交到助理手裡的新工具。",
     "syncTitle": "你的閱讀跟著你走",
-    "syncBody": "可選端對端加密同步在裝置間傳遞書籍、劃線、筆記、閱讀位置和記憶。免費帳號包含 50 MB 額度，付費方案擴充容量。同步中繼只儲存密文。桌面、Android 和 iOS 均已支援。",
+    "syncBody": "可選端對端加密同步在裝置間傳遞書籍、劃線、筆記、閱讀位置和記憶。免費帳號包含 50 MB 額度，付費方案擴充容量。同步中繼只儲存密文。支援桌面端與 Android，iOS 提供公開 TestFlight 測試版。",
     "inShortTitle": "簡單來說",
     "notes": [
       {
@@ -92,7 +92,7 @@
     }
   },
   "pricing": {
-    "metaTitle": "定價 — ReadAware",
+    "metaTitle": "ReadAware 價格方案：免費閱讀器、加密同步與內建 AI",
     "metaDescription": "閱讀器免費，包含本機書庫、註記和自備 Key 的 AI。免費帳號提供 50 MB 加密同步；付費方案擴充容量，Pro 和 Max 還包含內建 AI。",
     "title": "定價",
     "lead": "閱讀器免費，包含本機書庫、註記和自備 Key 的 AI。免費帳號提供 50 MB 加密同步；付費方案擴充容量，Pro 和 Max 還包含內建 AI。",
@@ -166,8 +166,8 @@
     ]
   },
   "changelog": {
-    "metaTitle": "更新日誌 — ReadAware",
-    "metaDescription": "每個版本變了什麼，寫給使用的人看。每個版本的完整說明與下載都在 GitHub 上。",
+    "metaTitle": "ReadAware 更新日誌：桌面端與行動端版本發佈記錄",
+    "metaDescription": "查看 ReadAware 電子書閱讀器各版本的完整更新記錄：閱讀引擎、AI 閱讀記憶、外掛系統、端對端加密同步與跨平台問題修復。",
     "leadIn": "：",
     "entries": [
       {

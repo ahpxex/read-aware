@@ -18,6 +18,9 @@
 /favicon.png
   Cache-Control: public, max-age=14400, must-revalidate
 
+/icon-64.png
+  Cache-Control: public, max-age=14400, must-revalidate
+
 /apple-touch-icon.png
   Cache-Control: public, max-age=14400, must-revalidate
 

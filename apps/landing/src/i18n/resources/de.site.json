@@ -39,7 +39,7 @@
   },
   "home": {
     "metaTitle": "ReadAware — Kostenloser Open-Source-E-Book-Reader, der dich kennt",
-    "metaDescription": "Ein kostenloser Open-Source-E-Book-Reader für Windows, macOS, Linux und Android. Ein Reader für EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML und PDF, der aus deinem Lesen Erinnerung aufbaut, durch Plugins wächst und Ende-zu-Ende-verschlüsselt synchronisiert — Local-First und privat.",
+    "metaDescription": "Kostenloser Open-Source-E-Book-Reader für Windows, macOS, Linux und Android. EPUB, PDF, MOBI & Comics offline lesen – mit KI-Gedächtnis, Plugins und E2E-Sync.",
     "heroTitle": "ReadAware",
     "heroLead": "Ein kostenloser Open-Source-E-Book-Reader. Lies eigene Bücher offline, mit kontextbezogener KI und verschlüsseltem Sync nach Bedarf.",
     "shelfAlt": "Die ReadAware-Bibliothek — ein Raster aus Buchcovern in vielen Sprachen und Formaten.",
@@ -57,7 +57,7 @@
     "pluginAlt": "Das Plugin-Panel von ReadAware — Wörterbuch, Themes und RSS-Reader, jedes in seiner Sandbox, manche geben dem Assistenten neue Werkzeuge.",
     "pluginCaption": "Stimmen, Wörterbücher, Themes, Feeds — und Werkzeuge für den Assistenten.",
     "syncTitle": "Dein Lesen folgt dir",
-    "syncBody": "Optionaler Ende-zu-Ende-verschlüsselter Sync überträgt Bücher, Markierungen, Notizen, Leseposition und Gedächtnis zwischen Geräten. Kostenlose Konten enthalten 50 MB; bezahlte Tarife erweitern den Speicher. Das Sync-Relay speichert nur Chiffretext. Verfügbar für Desktop, Android und iOS.",
+    "syncBody": "Optionaler Ende-zu-Ende-verschlüsselter Sync überträgt Bücher, Markierungen, Notizen, Leseposition und Gedächtnis zwischen Geräten. Kostenlose Konten enthalten 50 MB; bezahlte Tarife erweitern den Speicher. Das Sync-Relay speichert nur Chiffretext. Verfügbar für Desktop und Android sowie als öffentliche TestFlight-Beta für iOS.",
     "inShortTitle": "Kurz gesagt",
     "notes": [
       {
@@ -92,8 +92,8 @@
     }
   },
   "pricing": {
-    "metaTitle": "Preise — ReadAware",
-    "metaDescription": "Der Reader ist kostenlos, einschließlich lokaler Bibliothek, Anmerkungen und KI mit eigenem Schlüssel. Kostenlose Konten enthalten 50 MB verschlüsselten Sync. Bezahlte Tarife erweitern den Speicher; Pro und Max bieten auch integrierte KI.",
+    "metaTitle": "Preise: Kostenloser Reader, E2E-Sync & KI — ReadAware",
+    "metaDescription": "Der Reader ist kostenlos – inklusive lokaler Bücher, Notizen und BYOK-KI. 50 MB verschlüsselter Sync gratis; Tarife erweitern Speicher und integrierte KI.",
     "title": "Preise",
     "lead": "Der Reader ist kostenlos, einschließlich lokaler Bibliothek, Anmerkungen und KI mit eigenem Schlüssel. Kostenlose Konten enthalten 50 MB verschlüsselten Sync. Bezahlte Tarife erweitern den Speicher; Pro und Max bieten auch integrierte KI.",
     "perMonth": "/Monat",

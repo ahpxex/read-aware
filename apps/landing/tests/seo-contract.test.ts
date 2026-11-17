@@ -1,11 +1,18 @@
 import { expect, test } from "bun:test";
-import { availableLocales, localeFromPathname, LOCALES, LOCALE_LANG } from "../src/lib/i18n";
+import { availableLocales, LOCALES, LOCALE_LANG } from "../src/lib/i18n";
 import { DOWNLOADS } from "../src/lib/releases";
+import { TOPIC_PAGES } from "../src/lib/topic-pages";
 import { validateManifest } from "../scripts/search-manifest.ts";
 
 const dist = new URL("../dist/", import.meta.url);
 const manifest = validateManifest(await Bun.file(new URL("search-manifest.json", dist)).json());
 const urls = new Set(manifest.pages.map((page) => page.url));
+
+function parseJsonLdBlocks(html: string): Record<string, any>[] {
+  return [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map((match) =>
+    JSON.parse(match[1]!),
+  );
+}
 
 test("every public page has a unique title, description, canonical and resolvable language alternates", async () => {
   const titles = new Set<string>();
@@ -49,14 +56,31 @@ test("every public page has a unique title, description, canonical and resolvabl
       })
       .transform(new Response(html))
       .text();
-    expect(title.join(""), url).not.toBe("");
-    const localizedTitle = `${localeFromPathname(path)}:${title.join("")}`;
-    expect(titles.has(localizedTitle), url).toBe(false);
-    titles.add(localizedTitle);
+    const fullTitle = title.join("");
+    expect(fullTitle, url).not.toBe("");
+    expect(fullTitle.length, url).toBeGreaterThanOrEqual(18);
+    expect(fullTitle.length, url).toBeLessThanOrEqual(70);
+    expect(titles.has(fullTitle), `${url}: duplicate title "${fullTitle}"`).toBe(false);
+    titles.add(fullTitle);
     expect(descriptions, url).toHaveLength(1);
-    expect(descriptions[0]!.length, url).toBeGreaterThan(20);
+    expect(descriptions[0]!.length, url).toBeGreaterThanOrEqual(35);
+    expect(descriptions[0]!.length, url).toBeLessThanOrEqual(190);
     expect(canonical, url).toEqual([url]);
     expect(h1, url).toBe(1);
+    const schemas = parseJsonLdBlocks(html);
+    if (path === "/") {
+      expect(schemas.map((s) => s["@type"])).toContain("WebSite");
+    }
+    if (/^\/(?:(zh-hant|zh|ja|fr|de|ru|es)\/)?(?:docs|blog)(?:\/|$)/.test(path)) {
+      expect(
+        schemas.map((s) => s["@type"]),
+        `${url}: BreadcrumbList`,
+      ).toContain("BreadcrumbList");
+    }
+    const blogPosting = schemas.find((s) => s["@type"] === "BlogPosting");
+    if (blogPosting) {
+      expect(blogPosting.headline, url).not.toContain("— ReadAware");
+    }
     const locales = availableLocales(path);
     if (locales.length) {
       expect(alternates.map((a) => a.lang).sort(), url).toEqual(
@@ -67,13 +91,12 @@ test("every public page has a unique title, description, canonical and resolvabl
   }
 });
 
-test("Chinese platform pages have localized navigation, direct assets, FAQs and actual images", async () => {
+test("Chinese platform pages have localized navigation, direct assets, FAQs, SoftwareApplication schema and actual images", async () => {
   for (const platform of ["android", "windows"]) {
     const html = await Bun.file(new URL(`zh/epub-reader-for-${platform}/index.html`, dist)).text();
     const primary: string[] = [],
       images: string[] = [],
-      faqText: string[] = [],
-      schemas: string[] = [];
+      faqText: string[] = [];
     await new HTMLRewriter()
       .on("article > header a", {
         element(el) {
@@ -90,11 +113,6 @@ test("Chinese platform pages have localized navigation, direct assets, FAQs and 
           faqText.push(t.text);
         },
       })
-      .on('script[type="application/ld+json"]', {
-        text(t) {
-          schemas.push(t.text);
-        },
-      })
       .transform(new Response(html))
       .text();
     const download = DOWNLOADS.find((p) => p.id === platform)?.primary;
@@ -102,16 +120,32 @@ test("Chinese platform pages have localized navigation, direct assets, FAQs and 
     expect(primary[0]).toBe(download.url);
     expect(html).toContain('lang="zh-CN"');
     expect(html).toContain('href="/zh/pricing/"');
-    const faq = JSON.parse(schemas.join(""));
-    expect(faq["@type"]).toBe("FAQPage");
-    for (const question of faq.mainEntity) {
+    const schemas = parseJsonLdBlocks(html);
+    const faq = schemas.find((s) => s["@type"] === "FAQPage");
+    expect(faq).toBeDefined();
+    for (const question of faq!.mainEntity) {
       expect(faqText.join("")).toContain(question.name);
       expect(faqText.join("")).toContain(question.acceptedAnswer.text);
     }
+    const appSchema = schemas.find((s) => s["@type"] === "SoftwareApplication");
+    expect(appSchema).toBeDefined();
+    expect(appSchema!.downloadUrl).toBe(download.url);
+    expect(appSchema!.operatingSystem.toLowerCase()).toBe(platform);
     for (const src of images)
       expect(await Bun.file(new URL(new URL(src, "https://readaware.app").pathname.slice(1), dist)).exists()).toBe(
         true,
       );
+  }
+});
+
+test("llms.txt stays synchronized with published blog posts and topic entry pages", async () => {
+  const llms = await Bun.file(new URL("llms.txt", dist)).text();
+  const enSite = await Bun.file(new URL("../src/i18n/resources/en.site.json", import.meta.url)).json();
+  for (const slug of Object.keys(enSite.blog.posts)) {
+    expect(llms).toContain(`https://readaware.app/blog/${slug}/`);
+  }
+  for (const topic of TOPIC_PAGES) {
+    expect(llms).toContain(`https://readaware.app${topic.path}/`);
   }
 });
 

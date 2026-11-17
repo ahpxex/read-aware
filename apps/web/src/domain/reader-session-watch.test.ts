@@ -5,7 +5,8 @@ import { watchReaderSession } from "./reader-session-watch";
 
 const state = (patch: Partial<ReadingSessionSnapshot>): ReadingSessionSnapshot =>
   stampEventCause(
-    { revision: 1, sessionId: "s1", bookId: "b1", status: "ready", location: null, visibleText: "", ...patch },
+    // Only the identity fields matter to the watch.
+    { revision: 1, sessionId: "s1", bookId: "b1", status: "ready", location: null, ...patch } as ReadingSessionSnapshot,
     "system",
   );
 

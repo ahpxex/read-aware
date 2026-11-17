@@ -14,32 +14,16 @@ import type { FullBackupReview, FullBackupImportProgress } from "../lib/full-bac
 import type { FullBackupRestoreReceipt } from "../lib/full-backup-apply";
 import { reviewFullBackupPrograms } from "../lib/full-backup-program-review";
 import { migrateFullBackupPrograms } from "../lib/full-backup-program-migration";
-import {
-  backupChoicesComplete,
-  chooseBackupData,
-  chooseBackupRows,
-  loadBackupReviewModel,
-  readBackupDecisions,
-  type BackupReviewModel,
-  type BackupRowsPage,
-  type BackupFieldsPage,
-} from "../lib/full-backup-review-model";
-import type { BackupReviewPage } from "../lib/backup-review-types";
-import type { BackupSide } from "../../plugins/runtime/backup-program-review";
+import { loadBackupReviewModel, type BackupReviewModel } from "../lib/full-backup-review-model";
 
 export type BackupImportOutcome = FullBackupRestoreReceipt | null;
+/** The merge the reader confirms once: what the backup adds, nothing to pick. */
 type ReviewView = {
   step: "review";
   review: FullBackupReview;
   model: BackupReviewModel;
-  table: string;
-  rows: BackupRowsPage | null;
-  catalogPages: Record<"files" | "programs" | "credentials", number>;
-  fields: BackupFieldsPage | null;
-  issues: Extract<BackupReviewPage, { kind: "rowIssues" }> | null;
   busy: boolean;
   error?: string;
-  confirmed: boolean;
 };
 type View =
   | { step: "form"; password: string; error?: string }
@@ -143,18 +127,7 @@ export function useBackupImport() {
       current.review = review;
       const model = await loadBackupReviewModel(review);
       current.signal.throwIfAborted();
-      publish({
-        step: "review",
-        review,
-        model,
-        table: "",
-        rows: null,
-        catalogPages: { files: 0, programs: 0, credentials: 0 },
-        fields: null,
-        issues: null,
-        busy: false,
-        confirmed: false,
-      });
+      publish({ step: "review", review, model, busy: false });
     } catch (error) {
       log.warn("Backup preparation failed", error);
       await current.review?.dispose();
@@ -167,123 +140,10 @@ export function useBackupImport() {
       current.running = false;
     }
   };
-  const reviewWork = async (operation: (value: ReviewView, current: Flight) => Promise<ReviewView>) => {
-    const current = flight.current,
-      value = currentView.current;
-    if (!current || current.running || value?.step !== "review" || value.busy) return;
-    current.running = true;
-    publish({ ...value, busy: true, error: undefined });
-    try {
-      const next = await operation(value, current);
-      current.signal.throwIfAborted();
-      publish({ ...next, busy: false });
-    } catch (error) {
-      log.warn("Backup review failed", error);
-      if (current.signal.aborted) await cancelFlight(current);
-      else publish({ ...value, busy: false, error: describeError(error).body });
-    } finally {
-      current.running = false;
-    }
-  };
-  const rows = async (review: FullBackupReview, table: string, after: number | null = null) => {
-    const page = await review.read({ kind: "rows", table, after, limit: 20 });
-    if (page.kind !== "rows") throw new AppError("backup/changed", "Unexpected row page");
-    return page;
-  };
-  const selectTable = (table: string, after: number | null = null) =>
-    reviewWork(async (value) => ({ ...value, table, rows: await rows(value.review, table, after), fields: null }));
-  const bulk = (side: BackupSide) =>
-    reviewWork(async (value) => {
-      const decisions = await chooseBackupRows(value.review, side);
-      return {
-        ...value,
-        model: { ...chooseBackupData(value.model, side), decisions },
-        confirmed: false,
-        issues: null,
-        rows: value.table ? await rows(value.review, value.table) : null,
-        fields: null,
-      };
-    });
-  const chooseRow = (entryId: number, choice: "source" | "target" | "clear") =>
-    reviewWork(async (value) => {
-      await value.review.chooseRows({
-        expectedRevision: value.model.decisions.revision,
-        edits: [{ table: value.table, entryId, choice }],
-      });
-      const decisions = await readBackupDecisions(value.review);
-      return {
-        ...value,
-        model: { ...value.model, decisions },
-        confirmed: false,
-        issues: null,
-        rows: value.rows
-          ? {
-              ...value.rows,
-              decisionRevision: decisions.revision,
-              entries: value.rows.entries.map((row) =>
-                row.entryId === entryId ? { ...row, selection: choice === "clear" ? null : choice } : row,
-              ),
-            }
-          : null,
-      };
-    });
-  const inspectRow = (entryId: number, after: number | null = null) =>
-    reviewWork(async (value) => {
-      const page = await value.review.read({ kind: "rowFields", table: value.table, entryId, after, limit: 20 });
-      if (page.kind !== "rowFields") throw new AppError("backup/changed", "Unexpected fields page");
-      return { ...value, fields: page };
-    });
-  const fieldChunk = (column: string, side: BackupSide, offset: number) =>
-    reviewWork(async (value) => {
-      if (!value.fields) return value;
-      const page = await value.review.read({
-        kind: "rowField",
-        table: value.table,
-        entryId: value.fields.entryId,
-        column,
-        side,
-        offset,
-      });
-      if (page.kind !== "rowField") throw new AppError("backup/changed", "Unexpected field chunk");
-      return {
-        ...value,
-        fields: {
-          ...value.fields,
-          entries: value.fields.entries.map((field) =>
-            field.name === column ? { ...field, [side]: page.value } : field,
-          ),
-        },
-      };
-    });
-  const editChoices = (
-    patch: Partial<Pick<BackupReviewModel, "fileChoices" | "programChoices" | "credentialChoices">>,
-  ) => {
-    const value = currentView.current;
-    if (value?.step === "review" && !value.busy)
-      publish({ ...value, model: { ...value.model, ...patch }, confirmed: false, error: undefined });
-  };
-  const check = () =>
-    reviewWork(async (value) => {
-      if (!backupChoicesComplete(value.model))
-        throw new AppError("backup/incomplete", "Some restore choices remain unresolved");
-      if (value.review.plan.conflictingEvents)
-        throw new AppError("backup/incomplete", "Source has conflicting immutable event identities");
-      const checked = await value.review.checkRows(value.model.decisions.revision);
-      const page = await value.review.read({ kind: "rowIssues", expectedRevision: checked.revision, limit: 100 });
-      if (page.kind !== "rowIssues") throw new AppError("backup/changed", "Unexpected row issues");
-      return { ...value, issues: page, confirmed: checked.constraintsPassed };
-    });
   const restore = async () => {
     const current = flight.current,
       value = currentView.current;
-    if (
-      !current ||
-      current.running ||
-      value?.step !== "review" ||
-      !value.confirmed ||
-      !backupChoicesComplete(value.model)
-    )
-      return;
+    if (!current || current.running || value?.step !== "review" || value.review.plan.conflictingEvents) return;
     const origin = causalActor("user");
     current.running = true;
     publish({ ...value, busy: true });
@@ -298,9 +158,12 @@ export function useBackupImport() {
         publish({ step: "consent" });
         const consent = await requestInstallConsent(program.manifest, current.signal, books);
         current.signal.throwIfAborted();
+        // Declined code is not installed; the plugin's data is still restored
+        // and waits, inactive, for code the reader approves.
         if (!consent.approved) {
-          publish({ ...value, busy: false });
-          return;
+          const choice = choices.get(program.id);
+          if (choice) choices.set(program.id, { ...choice, program: null });
+          continue;
         }
         grants.set(program.id, structuredClone(consent.grant));
       }
@@ -317,9 +180,8 @@ export function useBackupImport() {
       progress("restoring");
       const receipt = await value.review.apply(
         {
-          rowRevision: value.model.decisions.revision,
           files: value.model.fileChoices,
-          programs: value.model.programChoices,
+          programs: Object.fromEntries(choices),
           credentials: value.model.credentialChoices,
           programResults,
         },
@@ -344,11 +206,6 @@ export function useBackupImport() {
       current.running = false;
     }
   };
-  const catalogPage = (kind: "files" | "programs" | "credentials", page: number) => {
-    const value = currentView.current;
-    if (value?.step === "review" && !value.busy)
-      publish({ ...value, catalogPages: { ...value.catalogPages, [kind]: page } });
-  };
   const cancel = () => {
     if (view?.step === "result" || (view?.step === "failure" && view.restart)) {
       window.location.reload();
@@ -363,14 +220,6 @@ export function useBackupImport() {
     edit,
     submit,
     cancel,
-    bulk,
-    selectTable,
-    chooseRow,
-    inspectRow,
-    fieldChunk,
-    editChoices,
-    catalogPage,
-    check,
     restore,
     reload: () => window.location.reload(),
   };

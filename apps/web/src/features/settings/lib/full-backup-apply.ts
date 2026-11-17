@@ -11,7 +11,6 @@ import { withBackupCapture } from "./backup-capture";
 
 export type BackupCredentialChoice = "sourceLocal" | "sourceRoaming" | "targetLocal" | "targetRoaming";
 export type FullBackupRestoreRequest = {
-  rowRevision: string;
   files: Record<string, "source" | "target">;
   programs: Record<string, BackupProgramChoice>;
   programResults: Record<string, BackupProgramResult>;

@@ -66,7 +66,7 @@ if (process.env.BACKUP_ISOLATION_PROOF === "1") {
   const { applyFullBackup } = await import("./full-backup-apply");
   const password = "a synthetic backup password";
   const gate = () => Promise.withResolvers<void>();
-  const request = { rowRevision: "rows", files: {}, programs: {}, programResults: {}, credentials: {} };
+  const request = { files: {}, programs: {}, programResults: {}, credentials: {} };
   const entries = () => [
     () => exportFullBackup(password),
     () => prepareFullBackupImport(password),

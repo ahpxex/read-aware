@@ -41,7 +41,7 @@ if (scenario) {
     const controller = new AbortController();
     const result = applyFullBackup(
       "owned-task",
-      { rowRevision: "revision", files: {}, programs: {}, programResults: {}, credentials: {} },
+      { files: {}, programs: {}, programResults: {}, credentials: {} },
       () => {},
       controller.signal,
     );

@@ -81,7 +81,7 @@ fn backup_event_plan_distinguishes_duplicate_id_clock_and_double_conflicts_witho
     let source_path = source.archive().directory().to_owned();
     let plan = backup_archive::plan_events_fixture(source, &mut target, staging.path(), || Ok(()))
         .unwrap();
-    let plan_path = plan.directory.path().to_owned();
+    let plan_path = plan._directory.path().to_owned();
     assert_eq!(
         (
             plan.report.new_events,

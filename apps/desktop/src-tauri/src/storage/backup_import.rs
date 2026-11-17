@@ -57,8 +57,6 @@ pub struct ComparisonCounts {
 pub struct TableSummary {
     source_rows: u64,
     target_rows: u64,
-    comparisons: Option<ComparisonCounts>,
-    generated_only: u64,
 }
 #[derive(serde::Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -245,17 +243,6 @@ fn summarize(
                 TableSummary {
                     source_rows: table.source_rows,
                     target_rows: table.target_rows,
-                    comparisons: table.comparisons.as_ref().map(|counts| ComparisonCounts {
-                        source_only: counts.source_only,
-                        target_only: counts.target_only,
-                        same: counts.same,
-                        different: counts.different,
-                        unavailable: 0,
-                    }),
-                    generated_only: table
-                        .comparisons
-                        .as_ref()
-                        .map_or(0, |counts| counts.generated_only),
                 },
             )
         })
@@ -419,37 +406,3 @@ pub async fn backup_import_review(
 #[cfg(test)]
 #[path = "backup_import_tests.rs"]
 mod tests;
-
-#[tauri::command]
-pub async fn backup_import_choose_rows(
-    app: tauri::AppHandle,
-    window: tauri::WebviewWindow,
-    task_id: String,
-    request: backup_archive::RowChoiceRequest,
-) -> Result<backup_archive::RowChoiceReceipt, CommandError> {
-    let tasks = app.state::<BackupTasks>().inner().clone();
-    let owner = window.label().to_owned();
-    super::blocking("backup_import_choose_rows", move || {
-        tasks.with_plan(&owner, &task_id, |plan, lease| {
-            plan.choose_rows(request, || lease.check())
-        })
-    })
-    .await
-}
-
-#[tauri::command]
-pub async fn backup_import_check_rows(
-    app: tauri::AppHandle,
-    window: tauri::WebviewWindow,
-    task_id: String,
-    expected_revision: String,
-) -> Result<backup_archive::RowStructureReceipt, CommandError> {
-    let tasks = app.state::<BackupTasks>().inner().clone();
-    let owner = window.label().to_owned();
-    super::blocking("backup_import_check_rows", move || {
-        tasks.with_plan(&owner, &task_id, |plan, lease| {
-            plan.check_rows(expected_revision, || lease.check())
-        })
-    })
-    .await
-}

@@ -2,8 +2,7 @@
 //! future migration cannot be silently left out of full restore planning.
 use crate::{error::CommandError, storage::apply::DERIVED_TABLES};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
-#[serde(rename_all = "kebab-case")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum RowPolicy {
     DomainState,
     ConversationState,
@@ -23,62 +22,6 @@ pub(crate) enum RowPolicy {
     PluginJournal,
     BlobFiles,
 }
-impl RowPolicy {
-    pub(super) fn name(self) -> &'static str {
-        match self {
-            Self::DomainState => "domain-state",
-            Self::ConversationState => "conversation-state",
-            Self::PluginData => "plugin-data",
-            Self::LegacyData => "legacy-data",
-            Self::ReviewSettings => "review-settings",
-            Self::VirtualBindings => "virtual-bindings",
-            Self::RoamingPreferences => "roaming-preferences",
-            Self::ResealCredential => "reseal-credential",
-            Self::TranslateRoamingSecret => "translate-roaming-secret",
-            Self::PreserveDevice => "preserve-device",
-            Self::RecoverReading => "recover-reading",
-            Self::ReviewRuntimeHistory => "review-runtime-history",
-            Self::Rebuild => "rebuild",
-            Self::Schema => "schema",
-            Self::EventIdentity => "event-identity",
-            Self::PluginJournal => "plugin-journal",
-            Self::BlobFiles => "blob-files",
-        }
-    }
-    pub(super) fn from_name(value: &str) -> Result<Self, CommandError> {
-        for policy in [
-            Self::DomainState,
-            Self::ConversationState,
-            Self::PluginData,
-            Self::LegacyData,
-            Self::ReviewSettings,
-            Self::VirtualBindings,
-            Self::RoamingPreferences,
-            Self::ResealCredential,
-            Self::TranslateRoamingSecret,
-            Self::PreserveDevice,
-            Self::RecoverReading,
-            Self::ReviewRuntimeHistory,
-            Self::Rebuild,
-            Self::Schema,
-            Self::EventIdentity,
-            Self::PluginJournal,
-            Self::BlobFiles,
-        ] {
-            if policy.name() == value {
-                return Ok(policy);
-            }
-        }
-        Err(CommandError::internal("unknown backup row policy"))
-    }
-    pub(super) fn compare_rows(self) -> bool {
-        !matches!(
-            self,
-            Self::Rebuild | Self::Schema | Self::EventIdentity | Self::PluginJournal
-        )
-    }
-}
-
 pub(super) fn table(name: &str) -> Result<RowPolicy, CommandError> {
     use RowPolicy::*;
     Ok(match name {

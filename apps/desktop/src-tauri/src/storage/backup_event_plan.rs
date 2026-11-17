@@ -12,10 +12,7 @@ mod revision;
 mod rows;
 #[path = "backup_target_snapshot.rs"]
 mod target_snapshot;
-pub(crate) use rows::{
-    FileMatchKind, FilePlan, ReviewPage, ReviewQuery, RowChoiceReceipt, RowChoiceRequest, RowPlan,
-    RowStructureReceipt,
-};
+pub(crate) use rows::{FileMatchKind, FilePlan, ReviewPage, ReviewQuery, RowPlan};
 pub(crate) use rows::{RestoreReceipt, RestoreRequest};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
@@ -83,7 +80,8 @@ pub(crate) struct EventPlan {
     entries: Connection,
     target_snapshot: Connection,
     source: PreflightedBackup,
-    directory: crate::storage::backup_staging::BackupDirectory,
+    /// Owns the plan's private staging directory for the plan's lifetime.
+    _directory: crate::storage::backup_staging::BackupDirectory,
     target_revision: String,
     pub report: EventPlanReport,
 }
@@ -195,7 +193,7 @@ pub(crate) fn plan_events(
         entries,
         target_snapshot,
         source,
-        directory,
+        _directory: directory,
         target_revision,
         report,
     })

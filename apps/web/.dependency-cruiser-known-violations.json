@@ -3179,21 +3179,6 @@
   },
   {
     "type": "dependency",
-    "from": "src/features/settings/components/BackupImportChoices.tsx",
-    "to": "src/features/plugins/runtime/backup-program-review.ts",
-    "unresolvedTo": "../../plugins/runtime/backup-program-review",
-    "dependencyTypes": [
-      "local",
-      "type-only",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
     "from": "src/features/settings/hooks/useAIConnectionTest.ts",
     "to": "src/features/ai/lib/ai-config.ts",
     "unresolvedTo": "../../ai/lib/ai-config",
@@ -3271,21 +3256,6 @@
     "unresolvedTo": "../../library/state/library-store",
     "dependencyTypes": [
       "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/settings/hooks/useBackupImport.ts",
-    "to": "src/features/plugins/runtime/backup-program-review.ts",
-    "unresolvedTo": "../../plugins/runtime/backup-program-review",
-    "dependencyTypes": [
-      "local",
-      "type-only",
       "import"
     ],
     "rule": {
@@ -9172,108 +9142,6 @@
         "name": "src/features/library/lib/content-version.ts",
         "dependencyTypes": [
           "local",
-          "import"
-        ]
-      }
-    ]
-  },
-  {
-    "type": "cycle",
-    "from": "src/features/settings/components/BackupImportChoices.tsx",
-    "to": "src/features/settings/components/BackupImportDialog.tsx",
-    "unresolvedTo": "./BackupImportDialog",
-    "dependencyTypes": [
-      "local",
-      "type-only",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "no-circular"
-    },
-    "cycle": [
-      {
-        "name": "src/features/settings/components/BackupImportDialog.tsx",
-        "dependencyTypes": [
-          "local",
-          "type-only",
-          "import"
-        ]
-      },
-      {
-        "name": "src/features/settings/components/BackupImportReview.tsx",
-        "dependencyTypes": [
-          "local",
-          "import"
-        ]
-      },
-      {
-        "name": "src/features/settings/components/BackupImportChoices.tsx",
-        "dependencyTypes": [
-          "local",
-          "import"
-        ]
-      }
-    ]
-  },
-  {
-    "type": "cycle",
-    "from": "src/features/settings/components/BackupImportChoices.tsx",
-    "to": "src/features/settings/components/BackupImportReview.tsx",
-    "unresolvedTo": "./BackupImportReview",
-    "dependencyTypes": [
-      "local",
-      "type-only",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "no-circular"
-    },
-    "cycle": [
-      {
-        "name": "src/features/settings/components/BackupImportReview.tsx",
-        "dependencyTypes": [
-          "local",
-          "type-only",
-          "import"
-        ]
-      },
-      {
-        "name": "src/features/settings/components/BackupImportChoices.tsx",
-        "dependencyTypes": [
-          "local",
-          "import"
-        ]
-      }
-    ]
-  },
-  {
-    "type": "cycle",
-    "from": "src/features/settings/components/BackupImportDialog.tsx",
-    "to": "src/features/settings/components/BackupImportReview.tsx",
-    "unresolvedTo": "./BackupImportReview",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "no-circular"
-    },
-    "cycle": [
-      {
-        "name": "src/features/settings/components/BackupImportReview.tsx",
-        "dependencyTypes": [
-          "local",
-          "import"
-        ]
-      },
-      {
-        "name": "src/features/settings/components/BackupImportDialog.tsx",
-        "dependencyTypes": [
-          "local",
-          "type-only",
           "import"
         ]
       }

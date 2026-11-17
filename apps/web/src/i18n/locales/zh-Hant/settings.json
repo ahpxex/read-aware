@@ -592,6 +592,31 @@
         "verifyingPrograms": "正在檢查外掛…",
         "encrypting": "正在加密並儲存…"
       }
+    },
+    "importDialog": {
+      "title": "還原備份",
+      "description": "開啟加密完整備份，並將它合併進目前的資料庫。本機裝置身分和帳戶工作階段將保留。",
+      "open": "選擇備份檔案",
+      "close": "關閉",
+      "summary": "備份將新增 {{events}} 筆歷史紀錄、{{files}} 個檔案、{{plugins}} 個外掛和 {{credentials}} 項憑證。",
+      "mergeNotice": "還原會把備份合併進目前的資料庫：它的歷史與你的歷史合在一起，只有備份裡才有的內容會補進來，資料庫已有的內容一律保留不覆蓋。只在備份裡有的外掛，執行程式碼前會先徵得你的同意；若你拒絕，只還原它的資料並保持停用。",
+      "eventConflict": "存在 {{count}} 個事件身分衝突，無法還原此備份。",
+      "restore": "合併進目前的資料庫",
+      "success": "已合併 {{rows}} 筆歷史紀錄、{{files}} 個檔案、{{plugins}} 個外掛資料空間和 {{credentials}} 項憑證。",
+      "cleanupPending": "還原已提交，啟動時將清理暫時的還原檔案。",
+      "reloadNotice": "重新載入前暫停寫入，避免舊畫面覆蓋還原後的資料。",
+      "reload": "重新載入資料庫",
+      "phases": {
+        "choosing": "正在選擇備份…",
+        "decrypting": "正在解密備份…",
+        "checkingSource": "正在檢查備份完整性…",
+        "comparingEvents": "正在比較歷史…",
+        "comparingRows": "正在比較紀錄…",
+        "comparingFiles": "正在比較檔案…",
+        "preparingReview": "正在彙整…",
+        "migrating": "正在檢查並遷移外掛…",
+        "restoring": "正在合併備份…"
+      }
     }
   },
   "about": {

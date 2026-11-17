@@ -86,7 +86,6 @@ if (process.env.BACKUP_HOOK_CASE === "1") {
         fileChoices: {},
         programChoices: {},
         credentialChoices: {},
-        decisions: { kind: "rowDecisions", revision: "rows", unresolved: 0, source: 1, target: 0 },
       }),
       spyOn(programReview, "reviewFullBackupPrograms").mockResolvedValue([]),
       spyOn(programMigration, "migrateFullBackupPrograms").mockResolvedValue({}),
@@ -398,10 +397,6 @@ if (process.env.BACKUP_HOOK_CASE === "1") {
       });
       await importFull();
       expect(flow.importDialog.view?.step).toBe("review");
-      await act(async () => {
-        await flow.importDialog.check();
-        await tick();
-      });
       await act(async () => {
         await flow.importDialog.restore();
         await tick();

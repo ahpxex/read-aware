@@ -89,19 +89,6 @@ if (process.env.FULL_IMPORT_PROOF === "1") {
       nextAfter: null,
     });
     expect(calls.filter((command) => command === "backup_close_reading_sessions")).toHaveLength(before);
-    await expect(
-      review.chooseRows({
-        expectedRevision: "fixed-revision",
-        edits: [{ table: "memories", entryId: 1, choice: "source" }],
-      }),
-    ).resolves.toEqual({ revision: "updated-revision", changed: 1 });
-    expect(calls.filter((command) => command === "backup_close_reading_sessions")).toHaveLength(before);
-    const checking = review.checkRows("updated-revision");
-    await checkingRows.promise;
-    await localKV.setItemAsync("import-proof", "during-constraint-check");
-    releaseCheck.resolve();
-    await expect(checking).resolves.toMatchObject({ constraintsPassed: true });
-    expect(calls.filter((command) => command === "backup_close_reading_sessions")).toHaveLength(before);
     await localKV.setItemAsync("import-proof", "during-review");
     await review.dispose();
     expect(calls.at(-1)).toBe("backup_import_cancel");

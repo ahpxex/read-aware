@@ -1,7 +1,7 @@
 import { Body, Button, Dialog, Progress, Stack, TextField } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import type { useBackupImport } from "../hooks/useBackupImport";
-import { BackupImportReview } from "./BackupImportReview";
+import { BackupImportSummary } from "./BackupImportSummary";
 
 export type BackupImportFlow = ReturnType<typeof useBackupImport>;
 export function BackupImportDialog({ flow }: { flow: BackupImportFlow }) {
@@ -12,7 +12,7 @@ export function BackupImportDialog({ flow }: { flow: BackupImportFlow }) {
       open={view !== null && view.step !== "consent"}
       onClose={flow.cancel}
       title={t("dataSync.importDialog.title")}
-      className="w-full max-w-4xl max-h-[calc(100dvh-3rem)] overflow-y-auto"
+      className="w-full max-w-lg max-h-[calc(100dvh-3rem)] overflow-y-auto"
     >
       {view?.step === "form" ? (
         <form
@@ -60,7 +60,7 @@ export function BackupImportDialog({ flow }: { flow: BackupImportFlow }) {
           </Button>
         </Stack>
       ) : view?.step === "review" ? (
-        <BackupImportReview flow={flow} view={view} />
+        <BackupImportSummary flow={flow} view={view} />
       ) : view?.step === "result" ? (
         <Stack gap="md">
           <Body>

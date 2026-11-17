@@ -1,7 +1,6 @@
 //! Bounded, immutable review evidence in the plan's private database. These
 //! pages never authorize installation or apply source rows. Credential slots
 //! retain their dedicated facts-only route; ordinary user content is host-only.
-use super::super::{RowDecisionState, RowFieldPage, RowFieldsPage, RowIssuePage, RowSide};
 use super::FilePlan;
 use crate::error::CommandError;
 use rusqlite::{params, Transaction};
@@ -16,49 +15,10 @@ fn invalid() -> CommandError {
 #[derive(Deserialize)]
 #[serde(tag = "kind", rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) enum ReviewQuery {
-    RowDecisions {},
-    #[serde(rename_all = "camelCase")]
-    RowIssues {
-        expected_revision: String,
-        after: Option<i64>,
-        limit: usize,
-    },
-    Events {
-        after: Option<String>,
-        limit: usize,
-    },
-    Rows {
-        table: String,
-        after: Option<i64>,
-        limit: usize,
-    },
-    #[serde(rename_all = "camelCase")]
-    RowFields {
-        table: String,
-        entry_id: i64,
-        after: Option<usize>,
-        limit: usize,
-    },
-    #[serde(rename_all = "camelCase")]
-    RowField {
-        table: String,
-        entry_id: i64,
-        column: String,
-        side: RowSide,
-        offset: usize,
-    },
-    Files {
-        after: Option<String>,
-        limit: usize,
-    },
-    Programs {
-        after: Option<String>,
-        limit: usize,
-    },
-    Credentials {
-        after: Option<String>,
-        limit: usize,
-    },
+    Events { after: Option<String>, limit: usize },
+    Files { after: Option<String>, limit: usize },
+    Programs { after: Option<String>, limit: usize },
+    Credentials { after: Option<String>, limit: usize },
 }
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -69,12 +29,7 @@ pub(crate) struct JsonPage {
 #[derive(Serialize)]
 #[serde(tag = "kind", rename_all = "camelCase")]
 pub(crate) enum ReviewPage {
-    RowDecisions(RowDecisionState),
-    RowIssues(RowIssuePage),
     Events(super::super::super::EventMatchPage),
-    Rows(super::super::RowPage),
-    RowFields(RowFieldsPage),
-    RowField(RowFieldPage),
     Files(JsonPage),
     Programs(JsonPage),
     Credentials(JsonPage),
@@ -134,51 +89,9 @@ impl FilePlan {
     ) -> Result<ReviewPage, CommandError> {
         check()?;
         let result = match query {
-            ReviewQuery::RowDecisions {} => {
-                ReviewPage::RowDecisions(self.rows.row_decisions(&mut check)?)
-            }
-            ReviewQuery::RowIssues {
-                expected_revision,
-                after,
-                limit,
-            } => ReviewPage::RowIssues(self.rows.row_issues(
-                expected_revision,
-                after.unwrap_or(0),
-                limit,
-                &mut check,
-            )?),
             ReviewQuery::Events { after, limit } => {
                 ReviewPage::Events(self.rows.events().page(after.as_deref(), limit)?)
             }
-            ReviewQuery::Rows {
-                table,
-                after,
-                limit,
-            } => {
-                if table.len() > 256 || after.is_some_and(|after| after > 9_007_199_254_740_991) {
-                    return Err(invalid());
-                }
-                ReviewPage::Rows(self.rows.page(&table, after.unwrap_or(0), limit)?)
-            }
-            ReviewQuery::RowFields {
-                table,
-                entry_id,
-                after,
-                limit,
-            } => ReviewPage::RowFields(
-                self.rows
-                    .review_fields(table, entry_id, after, limit, &mut check)?,
-            ),
-            ReviewQuery::RowField {
-                table,
-                entry_id,
-                column,
-                side,
-                offset,
-            } => ReviewPage::RowField(
-                self.rows
-                    .review_field(table, entry_id, column, side, offset, &mut check)?,
-            ),
             ReviewQuery::Files { after, limit } => {
                 let page = self.page(after.as_deref().unwrap_or(""), limit)?;
                 let mut entries = Vec::new();

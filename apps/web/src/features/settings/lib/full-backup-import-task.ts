@@ -1,13 +1,7 @@
 import { causalActor, stampEventCause, type DomainActor } from "../../../platform/domain-actor";
 import { AppError } from "@read-aware/core";
 import { validBackupPassword } from "./backup-password";
-import type {
-  BackupReviewPage,
-  BackupReviewQuery,
-  BackupRowChoiceRequest,
-  BackupRowChoiceReceipt,
-  BackupRowStructureReceipt,
-} from "./backup-review-types";
+import type { BackupReviewPage, BackupReviewQuery } from "./backup-review-types";
 
 import type { BackupProgramChoice } from "../../plugins/runtime/backup-program-review";
 import type { BackupProgramStageQuery, BackupProgramStageReceipt } from "../../plugins/runtime/backup-program-storage";
@@ -72,8 +66,6 @@ type Dependencies = {
     signal?: AbortSignal,
   ): Promise<BackupPlanReceipt>;
   read(taskId: string, query: BackupReviewQuery): Promise<BackupReviewPage>;
-  checkRows(taskId: string, expectedRevision: string): Promise<BackupRowStructureReceipt>;
-  chooseRows(taskId: string, request: BackupRowChoiceRequest): Promise<BackupRowChoiceReceipt>;
   stageProgram(taskId: string, request: BackupProgramStageRequest): Promise<BackupProgramStageReceipt>;
   stageStorage<T>(taskId: string, token: string, query: BackupProgramStageQuery): Promise<T>;
   apply(
@@ -92,10 +84,6 @@ export type FullBackupReview = {
   /** Admission has closed; await dispose() for the physical cleanup receipt. */
   readonly disposed: boolean;
   read(query: BackupReviewQuery, signal?: AbortSignal): Promise<BackupReviewPage>;
-  /** A version-bound draft edit, never an application or approval receipt. */
-  chooseRows(request: BackupRowChoiceRequest): Promise<BackupRowChoiceReceipt>;
-  /** Checks row constraints only, not whole-restore readiness. */
-  checkRows(expectedRevision: string): Promise<BackupRowStructureReceipt>;
   stageProgram(request: BackupProgramStageRequest): Promise<BackupProgramStageReceipt>;
   stageStorage<T>(token: string, query: BackupProgramStageQuery): Promise<T>;
   apply(request: FullBackupRestoreRequest, origin?: DomainActor): Promise<FullBackupRestoreReceipt>;
@@ -199,11 +187,7 @@ export function createFullBackupImport(deps: Dependencies) {
       const read = (query: BackupReviewQuery, readSignal?: AbortSignal): Promise<BackupReviewPage> => {
         readSignal?.throwIfAborted();
         const candidate = structuredClone(query);
-        if (
-          candidate.kind !== "rowField" &&
-          candidate.kind !== "rowDecisions" &&
-          (!Number.isSafeInteger(candidate.limit) || candidate.limit < 1 || candidate.limit > 100)
-        ) {
+        if (!Number.isSafeInteger(candidate.limit) || candidate.limit < 1 || candidate.limit > 100) {
           return Promise.reject(new AppError("backup/invalid-archive", "Invalid backup review page limit"));
         }
         return enqueue(async () => {
@@ -212,14 +196,6 @@ export function createFullBackupImport(deps: Dependencies) {
           return page;
         }, readSignal);
       };
-      const chooseRows = (request: BackupRowChoiceRequest): Promise<BackupRowChoiceReceipt> => {
-        const candidate = structuredClone(request);
-        if (candidate.edits.length < 1 || candidate.edits.length > 100)
-          return Promise.reject(new AppError("backup/invalid-archive", "Invalid backup row decision batch"));
-        return enqueue(() => deps.chooseRows(taskId, candidate));
-      };
-      const checkRows = (expectedRevision: string): Promise<BackupRowStructureReceipt> =>
-        enqueue(() => deps.checkRows(taskId, expectedRevision));
       const stageProgram = (request: BackupProgramStageRequest) => {
         const candidate = structuredClone(request);
         return enqueue(() => deps.stageProgram(taskId, candidate));
@@ -262,8 +238,6 @@ export function createFullBackupImport(deps: Dependencies) {
           return disposed;
         },
         read,
-        chooseRows,
-        checkRows,
         stageProgram,
         stageStorage,
         apply,

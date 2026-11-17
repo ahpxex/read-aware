@@ -67,13 +67,11 @@ fn backup_import_apply_consumes_the_owned_plan_and_returns_only_a_committed_rece
         |_| Ok(()),
     )
     .unwrap();
-    let request=tasks.with_plan("main",&id,|plan,lease|{
-        let page=plan.rows().page("app_kv",0,100)?;
-        let edits=page.entries.iter().filter(|r|r.selectable).map(|r|serde_json::json!({"table":"app_kv","entryId":r.entry_id,"choice":"source"})).collect::<Vec<_>>();
-        let revision=plan.choose_rows(serde_json::from_value(serde_json::json!({"expectedRevision":page.decision_revision,"edits":edits})).unwrap(),||lease.check())?.revision;
-        let file=format!("blobs/{}",crate::storage::blob_file_name("booktext:synthetic"));
-        Ok(serde_json::json!({"rowRevision":revision,"files":{file:"source"},"programs":{},"programResults":{},"credentials":{}}))
-    }).unwrap();
+    let file = format!(
+        "blobs/{}",
+        crate::storage::blob_file_name("booktext:synthetic")
+    );
+    let request = serde_json::json!({"files":{file:"source"},"programs":{},"programResults":{},"credentials":{}});
     assert!(execute_plan(
         &tasks,
         "foreign",
@@ -167,14 +165,7 @@ fn backup_import_real_archive_to_private_plan_preserves_target_and_rejects_wrong
     )
     .unwrap();
     assert_eq!(receipt.files.source_only, 1);
-    assert!(
-        receipt.tables["app_kv"]
-            .comparisons
-            .as_ref()
-            .unwrap()
-            .source_only
-            > 0
-    );
+    assert!(receipt.tables["app_kv"].source_rows > 0);
     assert!(!serde_json::to_string(&receipt).unwrap().contains("PRIVATE"));
     assert_eq!(
         conn.query_row("SELECT COUNT(*) FROM app_kv WHERE key='private'", [], |r| r
@@ -412,12 +403,6 @@ fn backup_import_review_pages_are_stable_private_evidence_and_invalid_queries_ke
             plan.review_page(query, || lease.check())
         })
     };
-    assert!(read(ReviewQuery::Rows {
-        table: "unknown".into(),
-        after: None,
-        limit: 1
-    })
-    .is_err());
     assert!(read(ReviewQuery::Programs {
         after: None,
         limit: 101
@@ -444,108 +429,6 @@ fn backup_import_review_pages_are_stable_private_evidence_and_invalid_queries_ke
     .unwrap();
     assert_eq!(events["entries"][0]["sourceId"], "b");
     assert!(events["nextAfter"].is_null());
-    let rows = serde_json::to_value(
-        read(ReviewQuery::Rows {
-            table: "app_kv".into(),
-            after: None,
-            limit: 100,
-        })
-        .unwrap(),
-    )
-    .unwrap();
-    assert!(!rows.to_string().contains("PRIVATE"));
-    assert!(rows["entries"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .all(|row| row["policy"].is_string()));
-    for row in rows["entries"].as_array().unwrap() {
-        let entry = row["entryId"].as_i64().unwrap();
-        let query: ReviewQuery = serde_json::from_value(
-            serde_json::json!({"kind":"rowFields","table":"app_kv","entryId":entry,"limit":100}),
-        )
-        .unwrap();
-        let fields = serde_json::to_value(read(query).unwrap()).unwrap();
-        assert_eq!(fields["kind"], "rowFields");
-        if row["policy"] == "reseal-credential" {
-            assert_eq!(row["selectable"], false);
-            let denied = serde_json::json!({"expectedRevision":rows["decisionRevision"],"edits":[{"table":"app_kv","entryId":entry,"choice":"source"}]});
-            assert!(tasks
-                .with_plan("main", &id, |plan, lease| plan
-                    .choose_rows(serde_json::from_value(denied).unwrap(), || lease
-                        .check()))
-                .is_err());
-            assert_eq!(fields["restricted"], true);
-            assert_eq!(fields["entries"], serde_json::json!([]));
-            assert!(read(serde_json::from_value(serde_json::json!({"kind":"rowField","table":"app_kv","entryId":entry,"column":"value_json","side":"source","offset":0})).unwrap()).is_err());
-        } else if row["policy"] == "plugin-data" {
-            assert!(fields.to_string().contains("PRIVATE NOTE"));
-            let field = serde_json::to_value(read(serde_json::from_value(serde_json::json!({"kind":"rowField","table":"app_kv","entryId":entry,"column":"value_json","side":"source","offset":0})).unwrap()).unwrap()).unwrap();
-            assert_eq!(field["kind"], "rowField");
-            assert_eq!(field["value"]["text"], "\"PRIVATE NOTE\"");
-        }
-    }
-    let editable = rows["entries"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .find(|row| row["policy"] == "review-settings")
-        .unwrap();
-    assert_eq!(editable["selectable"], true);
-    let request = serde_json::json!({"expectedRevision": rows["decisionRevision"], "edits":[{"table":"app_kv","entryId":editable["entryId"],"choice":"source"}]});
-    assert!(tasks
-        .with_plan("foreign", &id, |plan, lease| plan.choose_rows(
-            serde_json::from_value(request.clone()).unwrap(),
-            || lease.check()
-        ))
-        .is_err());
-    let saved = tasks
-        .with_plan("main", &id, |plan, lease| {
-            plan.choose_rows(serde_json::from_value(request.clone()).unwrap(), || {
-                lease.check()
-            })
-        })
-        .unwrap();
-    assert_eq!(saved.changed, 1);
-    assert_eq!(
-        tasks
-            .with_plan("main", &id, |plan, lease| plan.choose_rows(
-                serde_json::from_value(request.clone()).unwrap(),
-                || lease.check()
-            ))
-            .err()
-            .unwrap()
-            .code,
-        "backup/changed"
-    );
-    let state = serde_json::to_value(
-        read(serde_json::from_value(serde_json::json!({"kind":"rowDecisions"})).unwrap()).unwrap(),
-    )
-    .unwrap();
-    assert_eq!(state["revision"], saved.revision);
-    assert_eq!(state["source"], 1);
-    assert!(tasks
-        .with_plan("foreign", &id, |plan, lease| plan
-            .check_rows(saved.revision.clone(), || lease.check()))
-        .is_err());
-    assert_eq!(
-        tasks
-            .with_plan("main", &id, |plan, lease| plan
-                .check_rows("stale".into(), || lease.check()))
-            .err()
-            .unwrap()
-            .code,
-        "backup/changed"
-    );
-    let structure = tasks
-        .with_plan("main", &id, |plan, lease| {
-            plan.check_rows(saved.revision.clone(), || lease.check())
-        })
-        .unwrap();
-    assert!(structure.constraints_passed);
-    let problems = serde_json::to_value(read(serde_json::from_value(serde_json::json!({"kind":"rowIssues","expectedRevision":saved.revision,"limit":100})).unwrap()).unwrap()).unwrap();
-    assert_eq!(problems["kind"], "rowIssues");
-    assert_eq!(problems["entries"], serde_json::json!([]));
 
     assert_eq!(
         conn.query_row(
@@ -628,15 +511,6 @@ fn backup_import_review_pages_are_stable_private_evidence_and_invalid_queries_ke
         .is_err());
     let cancelled_read = tasks.with_plan("main", &id, |plan, lease| {
         tasks.cancel("main", Some(&id))?;
-        // The retained source shares the native owner cancellation flag, even
-        // when the observer itself does not check the lease.
-        assert_eq!(
-            plan.check_rows(saved.revision.clone(), || Ok(()))
-                .err()
-                .unwrap()
-                .code,
-            "backup/cancelled"
-        );
         assert!(tasks
             .begin("main", &uuid::Uuid::new_v4().to_string())
             .is_err());

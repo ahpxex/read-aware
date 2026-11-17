@@ -1,13 +1,20 @@
 import { AppError } from "@read-aware/core";
-import type { BackupProgramChoice, BackupProgramFacts, BackupSide } from "../../plugins/runtime/backup-program-review";
+import type {
+  BackupProgramChoice,
+  BackupProgramDataFacts,
+  BackupProgramFacts,
+  BackupSide,
+} from "../../plugins/runtime/backup-program-review";
 import type { BackupCredentialChoice } from "./full-backup-apply";
 import type { FullBackupReview } from "./full-backup-import-task";
-import type { BackupCredentialFacts, BackupReviewCell, BackupReviewPage } from "./backup-review-types";
+import type { BackupCredentialFacts, BackupReviewPage } from "./backup-review-types";
 
 export type BackupFileFact = Extract<BackupReviewPage, { kind: "files" }>["entries"][number];
-export type BackupRowsPage = Extract<BackupReviewPage, { kind: "rows" }>;
-export type BackupFieldsPage = Extract<BackupReviewPage, { kind: "rowFields" }>;
-export type BackupDecisions = Extract<BackupReviewPage, { kind: "rowDecisions" }>;
+/**
+ * What a restore will do, decided by the one merge rule: keep what this
+ * library has, add what only the backup has. The domain history merges
+ * natively; files, plugins and credentials follow the same rule here.
+ */
 export type BackupReviewModel = {
   files: BackupFileFact[];
   programs: BackupProgramFacts[];
@@ -15,95 +22,78 @@ export type BackupReviewModel = {
   fileChoices: Record<string, BackupSide>;
   programChoices: Record<string, BackupProgramChoice>;
   credentialChoices: Record<string, BackupCredentialChoice>;
-  decisions: BackupDecisions;
 };
-export async function readBackupDecisions(review: FullBackupReview): Promise<BackupDecisions> {
-  const page = await review.read({ kind: "rowDecisions" });
-  if (page.kind !== "rowDecisions") throw new AppError("backup/changed", "Unexpected row decisions");
-  return page;
-}
+
 export async function loadBackupReviewModel(review: FullBackupReview): Promise<BackupReviewModel> {
-  const model: BackupReviewModel = {
-    files: [],
-    programs: [],
-    credentials: [],
-    fileChoices: {},
-    programChoices: {},
-    credentialChoices: {},
-    decisions: await readBackupDecisions(review),
+  const facts = {
+    files: [] as BackupFileFact[],
+    programs: [] as BackupProgramFacts[],
+    credentials: [] as BackupCredentialFacts[],
   };
   for (const kind of ["files", "programs", "credentials"] as const) {
     let after: string | null = null;
     do {
       const page = await review.read({ kind, after, limit: 100 });
       if (page.kind === "files")
-        model.files.push(
+        facts.files.push(
           ...page.entries.filter((file) => file.policy === "blob" && file.source !== null && file.kind !== "same"),
         );
-      else if (page.kind === "programs") model.programs.push(...page.entries);
-      else if (page.kind === "credentials") model.credentials.push(...page.entries);
+      else if (page.kind === "programs") facts.programs.push(...page.entries);
+      else if (page.kind === "credentials") facts.credentials.push(...page.entries);
       else throw new AppError("backup/changed", "Unexpected backup catalog");
       after = page.nextAfter;
     } while (after !== null);
   }
-  return model;
+  return { ...facts, ...mergeChoices(facts) };
 }
-/** Explicit bulk action only. It does not run when the review opens. */
-export async function chooseBackupRows(
-  review: FullBackupReview,
-  side: BackupSide,
-  onlyTable?: string,
-): Promise<BackupDecisions> {
-  let decisions = await readBackupDecisions(review);
-  for (const table of onlyTable ? [onlyTable] : Object.keys(review.plan.tables)) {
-    let after: number | null = null;
-    do {
-      const page = await review.read({ kind: "rows", table, after, limit: 100 });
-      if (page.kind !== "rows") throw new AppError("backup/changed", "Unexpected row review");
-      const edits = page.entries
-        .filter((row) => row.selectable && row.selection !== side)
-        .map((row) => ({ table, entryId: row.entryId, choice: side }));
-      if (edits.length) {
-        const receipt = await review.chooseRows({ expectedRevision: decisions.revision, edits });
-        decisions = { ...decisions, revision: receipt.revision };
-      }
-      after = page.nextAfter;
-    } while (after !== null);
-  }
-  return readBackupDecisions(review);
-}
-/** Bulk data choice keeps current executable code. Source-only programs remain
- * data-only until the user explicitly selects their code and approves it. */
-export function chooseBackupData(model: BackupReviewModel, side: BackupSide): BackupReviewModel {
+
+const hasData = (data: BackupProgramDataFacts) => data.kvRows > 0 || data.documents > 0 || data.schema !== null;
+
+/** Keep what this library has; take from the backup only what is missing here. */
+export function mergeChoices(facts: Pick<BackupReviewModel, "files" | "programs" | "credentials">) {
   return {
-    ...model,
-    fileChoices: Object.fromEntries(model.files.map((file) => [file.path, side])),
+    // A file only the backup holds is added; one both hold stays as it is here.
+    fileChoices: Object.fromEntries(
+      facts.files.map((file) => [file.path, file.kind === "sourceOnly" ? "source" : "target"] as const),
+    ),
     credentialChoices: Object.fromEntries(
-      model.credentials.map((fact) => [fact.slot, side === "source" ? "sourceLocal" : "targetLocal"]),
+      facts.credentials.map((fact) => {
+        const choice: BackupCredentialChoice = fact.targetLocal
+          ? "targetLocal"
+          : fact.sourceLocal
+            ? "sourceLocal"
+            : fact.targetRoaming === "value"
+              ? "targetRoaming"
+              : fact.sourceRoaming === "value"
+                ? "sourceRoaming"
+                : "targetLocal";
+        return [fact.slot, choice] as const;
+      }),
     ),
     programChoices: Object.fromEntries(
-      model.programs.map((fact) => {
-        const target = fact.candidates.find((candidate) => candidate.side === "target");
-        return [
-          fact.id,
-          { program: target ? { side: target.side, root: target.root, sha256: target.sha256 } : null, data: side },
-        ];
+      facts.programs.map((fact) => {
+        // Installed code stays; a plugin only the backup has brings its code,
+        // which runs only after the reader approves it.
+        const code =
+          fact.candidates.find((candidate) => candidate.side === "target") ??
+          fact.candidates.find((candidate) => candidate.side === "source" && candidate.mainPresent);
+        const choice: BackupProgramChoice = {
+          program: code ? { side: code.side, root: code.root, sha256: code.sha256 } : null,
+          data: hasData(fact.targetData) || !hasData(fact.sourceData) ? "target" : "source",
+        };
+        return [fact.id, choice] as const;
       }),
     ),
   };
 }
-export function backupChoicesComplete(model: BackupReviewModel): boolean {
-  return (
-    model.decisions.unresolved === 0 &&
-    model.files.every((file) => model.fileChoices[file.path]) &&
-    model.programs.every((program) => model.programChoices[program.id]) &&
-    model.credentials.every((fact) => model.credentialChoices[fact.slot])
-  );
-}
 
-export function backupCellText(cell: BackupReviewCell | null, absent: string, nullText: string): string {
-  if (!cell) return absent;
-  if (cell.type === "null") return nullText;
-  if (cell.type === "integer" || cell.type === "real") return cell.decimal;
-  return cell.type === "text" && cell.text !== null ? cell.text : `base64: ${cell.base64}`;
+/** What the merge adds, for the confirmation the reader gives once. */
+export function backupMergeSummary(model: BackupReviewModel) {
+  return {
+    files: Object.values(model.fileChoices).filter((side) => side === "source").length,
+    plugins: Object.values(model.programChoices).filter(
+      (choice) => choice.data === "source" || choice.program?.side === "source",
+    ).length,
+    credentials: Object.values(model.credentialChoices).filter((choice) => choice.startsWith("source")).length,
+  };
 }

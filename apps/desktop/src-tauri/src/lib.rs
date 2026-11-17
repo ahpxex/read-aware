@@ -1354,8 +1354,6 @@ pub fn run() {
             storage::backup_import::backup_import_plan,
             storage::backup_import::backup_import_cancel,
             storage::backup_import::backup_import_review,
-            storage::backup_import::backup_import_choose_rows,
-            storage::backup_import::backup_import_check_rows,
             storage::backup_import::backup_import_apply,
             storage::backup_import::backup_import_stage_program,
             storage::backup_import::backup_import_stage_storage,

@@ -592,6 +592,31 @@
         "verifyingPrograms": "Plugins werden geprüft…",
         "encrypting": "Verschlüsselung und Speicherung…"
       }
+    },
+    "importDialog": {
+      "title": "Sicherung wiederherstellen",
+      "description": "Öffne eine verschlüsselte Vollsicherung und führe sie mit dieser Bibliothek zusammen. Gerätekennung und Kontositzung bleiben auf diesem Gerät.",
+      "open": "Sicherungsdatei auswählen",
+      "close": "Schließen",
+      "summary": "Die Sicherung fügt {{events}} Verlaufseinträge, {{files}} Dateien, {{plugins}} Plugins und {{credentials}} Zugangsdaten hinzu.",
+      "mergeNotice": "Beim Wiederherstellen wird die Sicherung mit dieser Bibliothek zusammengeführt: Ihr Verlauf verbindet sich mit deinem, nur was ausschließlich in der Sicherung steht, kommt hinzu, und nichts, was diese Bibliothek schon hat, wird ersetzt. Plugins, die nur in der Sicherung stehen, fragen um Erlaubnis, bevor ihr Code läuft; lehnst du ab, werden nur ihre Daten wiederhergestellt und sie bleiben inaktiv.",
+      "eventConflict": "{{count}} widersprüchliche Ereigniskennungen verhindern die Wiederherstellung dieser Sicherung.",
+      "restore": "Mit dieser Bibliothek zusammenführen",
+      "success": "{{rows}} Verlaufseinträge, {{files}} Dateien, {{plugins}} Plugin-Datenbereiche und {{credentials}} Zugangsdaten zusammengeführt.",
+      "cleanupPending": "Die Wiederherstellung ist abgeschlossen. Temporäre Wiederherstellungsdateien werden beim Start entfernt.",
+      "reloadNotice": "Schreibvorgänge pausieren bis zum Neuladen, damit ältere Ansichten die wiederhergestellten Daten nicht überschreiben.",
+      "reload": "Wiederhergestellte Bibliothek neu laden",
+      "phases": {
+        "choosing": "Sicherung wird ausgewählt…",
+        "decrypting": "Sicherung wird entschlüsselt…",
+        "checkingSource": "Integrität der Sicherung wird geprüft…",
+        "comparingEvents": "Verlauf wird verglichen…",
+        "comparingRows": "Datensätze werden verglichen…",
+        "comparingFiles": "Dateien werden verglichen…",
+        "preparingReview": "Zusammenfassung wird erstellt…",
+        "migrating": "Plugins werden geprüft und migriert…",
+        "restoring": "Sicherung wird zusammengeführt…"
+      }
     }
   },
   "about": {

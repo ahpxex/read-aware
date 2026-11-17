@@ -27,7 +27,6 @@ pub use commands::*;
 pub(crate) mod backup_archive;
 pub(crate) mod backup_export;
 pub(crate) mod backup_import;
-mod backup_restore_events;
 pub(crate) mod backup_snapshot;
 pub(crate) mod backup_staging;
 pub(crate) mod backup_tasks;

@@ -1,4 +1,4 @@
-use super::super::super::{identity::BoundCell, scan};
+use super::super::super::scan::{self, BoundCell};
 use super::*;
 use rusqlite::{params, params_from_iter, OptionalExtension, Transaction};
 use std::collections::BTreeSet;

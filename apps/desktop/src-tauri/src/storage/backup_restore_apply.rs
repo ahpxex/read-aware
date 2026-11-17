@@ -58,7 +58,6 @@ pub(crate) struct ProgramResult {
 #[derive(serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct RestoreRequest {
-    pub row_revision: String,
     /// Exactly the source-present blob file differences. Same bytes need no
     /// file decision, but source registry identities are still recovered.
     pub files: BTreeMap<String, Side>,
@@ -115,11 +114,7 @@ impl FilePlan {
             let files_count = changes.len();
             let files = FileRestore::prepare(&tx, root, changes, &mut check)?;
             // No live DB/file mutation precedes the fully prepared file baseline.
-            let facts =
-                credentials
-                    .plan
-                    .rows
-                    .restore_rows(&tx, &request.row_revision, &mut check)?;
+            let facts = credentials.plan.rows.restore_rows(&tx, &mut check)?;
             private::blobs(&credentials.plan, &tx, &selected_blobs, &mut check)?;
             private::programs(
                 &credentials.plan,

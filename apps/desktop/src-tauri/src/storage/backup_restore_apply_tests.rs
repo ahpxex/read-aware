@@ -1,4 +1,3 @@
-use super::super::super::choices::{RowChoice, RowChoiceEdit, RowChoiceRequest};
 use super::super::tests::{db, rows, source};
 use super::*;
 use rusqlite::params;
@@ -22,8 +21,18 @@ fn secret(conn: &Connection, root: &Path, value: &str) {
         &crate::secrets::encrypt(root, value).unwrap(),
     );
 }
-fn book(conn: &Connection, root: &Path, title: &str, bytes: &[u8]) {
-    conn.execute("INSERT INTO books(id,title,author,format,file_name,file_size,created_at,updated_at) VALUES ('book',?1,'Author','epub','book.epub',?2,'old','old')",params![title,bytes.len() as i64]).unwrap();
+/// A book as the app makes one: its import event at `when` (ms), projected by
+/// the shared rules. In a merge, the later import is the book's state.
+fn book(conn: &Connection, root: &Path, title: &str, bytes: &[u8], when: i64) {
+    let payload = serde_json::json!({"bookId":"book","title":title,"author":"Author","format":"epub","fileName":"book.epub","fileSize":bytes.len()});
+    conn.execute(
+        "INSERT INTO domain_events(id,type,hlc_wall_ms,hlc_counter,hlc_device,aggregate_type,aggregate_id,payload_json,created_at) VALUES (?1,'book.imported',?3,0,?1,'book','book',?2,'old')",
+        params![format!("import-{title}"), payload.to_string(), when],
+    )
+    .unwrap();
+    let tx = conn.unchecked_transaction().unwrap();
+    storage::events::replay_into(&tx).unwrap();
+    tx.commit().unwrap();
     storage::put_blob_inner(
         conn,
         root,
@@ -60,40 +69,6 @@ fn plugin(conn: &Connection, root: &Path, side: &str) {
     conn.execute("INSERT INTO plugin_documents(plugin_id,collection,id,json,updated_at) VALUES ('proof','notes','one',?1,'old')",[serde_json::json!({"side":side}).to_string()]).unwrap();
 }
 fn request(plan: &FilePlan, conn: &mut Connection, root: &Path) -> RestoreRequest {
-    let mut revision = plan.rows.row_decisions(|| Ok(())).unwrap().revision;
-    for table in plan.rows.tables.keys() {
-        let mut after = 0;
-        loop {
-            let page = plan.rows.page(table, after, 100).unwrap();
-            let edits = page
-                .entries
-                .iter()
-                .filter(|r| r.selectable)
-                .map(|r| RowChoiceEdit {
-                    table: table.clone(),
-                    entry_id: r.entry_id,
-                    choice: RowChoice::Source,
-                })
-                .collect::<Vec<_>>();
-            if !edits.is_empty() {
-                revision = plan
-                    .rows
-                    .choose_rows(
-                        RowChoiceRequest {
-                            expected_revision: revision,
-                            edits,
-                        },
-                        || Ok(()),
-                    )
-                    .unwrap()
-                    .revision;
-            }
-            match page.next_after {
-                Some(next) => after = next,
-                None => break,
-            }
-        }
-    }
     let tx = conn.transaction().unwrap();
     let facts = plan.program_facts(&tx, root, || Ok(())).unwrap();
     let mut programs = BTreeMap::new();
@@ -153,7 +128,6 @@ fn request(plan: &FilePlan, conn: &mut Connection, root: &Path) -> RestoreReques
         .map(|f| (f.path.clone(), Side::Source))
         .collect();
     RestoreRequest {
-        row_revision: revision,
         files,
         programs,
         program_results: results,
@@ -206,7 +180,13 @@ fn backup_restore_apply_encrypted_archive_restores_books_files_plugins_credentia
     let stage = tempfile::tempdir().unwrap();
     let root = tempfile::tempdir().unwrap();
     let mut src = db(incoming.path());
-    book(&src, incoming.path(), "Restored book", b"source epub bytes");
+    book(
+        &src,
+        incoming.path(),
+        "Restored book",
+        b"source epub bytes",
+        2000,
+    );
     plugin(&src, incoming.path(), "source");
     secret(&src, incoming.path(), "source API key");
     kv(&src, "read-aware-theme", "\"dark\"");
@@ -230,7 +210,7 @@ fn backup_restore_apply_encrypted_archive_restores_books_files_plugins_credentia
         .unwrap();
     let src = backup_archive::preflight(archive, Arc::new(AtomicBool::new(false))).unwrap();
     let mut target = db(root.path());
-    book(&target, root.path(), "Target book", b"old epub");
+    book(&target, root.path(), "Target book", b"old epub", 1000);
     plugin(&target, root.path(), "target");
     secret(&target, root.path(), "target API key");
     fs::write(
@@ -345,10 +325,10 @@ fn backup_restore_apply_cancellation_after_file_install_rolls_back_every_data_ca
     let root = tempfile::tempdir().unwrap();
     let stage = tempfile::tempdir().unwrap();
     let mut target = db(root.path());
-    book(&target, root.path(), "Before", b"before");
+    book(&target, root.path(), "Before", b"before", 1000);
     plugin(&target, root.path(), "target");
     let src = source(|conn, dir| {
-        book(conn, dir, "After", b"after");
+        book(conn, dir, "After", b"after", 2000);
         plugin(conn, dir, "source");
         secret(conn, dir, "new key");
     });
@@ -372,12 +352,15 @@ fn backup_restore_apply_cancellation_after_file_install_rolls_back_every_data_ca
     assert_eq!(title(&target), "Before");
     assert_eq!(fs::read(original(root.path())).unwrap(), b"before");
     assert!(!root.path().join("secret.key").exists());
+    // Only this device's own history remains; no archive event survived.
     assert_eq!(
         target
-            .query_row("SELECT count(*) FROM domain_events", [], |r| r
-                .get::<_, i64>(0))
+            .query_row("SELECT group_concat(id) FROM domain_events", [], |r| r
+                .get::<_, String>(
+                0
+            ))
             .unwrap(),
-        0
+        "import-Before"
     );
     assert_eq!(
         target
@@ -406,7 +389,7 @@ fn backup_restore_apply_rejects_skipped_required_blob_and_unapproved_program() {
         let stage = tempfile::tempdir().unwrap();
         let mut target = db(root.path());
         let src = source(|conn, dir| {
-            book(conn, dir, "Source", b"book");
+            book(conn, dir, "Source", b"book", 2000);
             plugin(conn, dir, "source");
         });
         let plan = rows(src, &mut target, stage.path())

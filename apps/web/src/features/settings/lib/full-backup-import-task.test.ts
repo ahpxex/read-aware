@@ -42,26 +42,8 @@ function fixture() {
     },
     read: async (_id: string, query: BackupReviewQuery): Promise<BackupReviewPage> => {
       calls.push("read");
-      if (query.kind === "rowIssues")
-        return { kind: "rowIssues", revision: query.expectedRevision, entries: [], nextAfter: null };
-      if (query.kind === "rowDecisions")
-        return { kind: "rowDecisions", revision: "revision", unresolved: 0, source: 0, target: 0 };
-      if (query.kind === "rows") return { kind: "rows", decisionRevision: "revision", entries: [], nextAfter: null };
-      if (query.kind === "rowField") return { ...query, value: null };
-      if (query.kind === "rowFields")
-        return { ...query, policy: "domain-state", restricted: false, entries: [], nextAfter: null };
-      return { kind: query.kind, entries: [], nextAfter: null };
+      return { kind: query.kind, entries: [], nextAfter: null } as BackupReviewPage;
     },
-    checkRows: async (_id: string, expectedRevision: string) => ({
-      revision: expectedRevision,
-      selectedSourceRows: 0,
-      issues: 0,
-      constraintsPassed: true,
-    }),
-    chooseRows: async (_id: string, request: import("./backup-review-types").BackupRowChoiceRequest) => ({
-      revision: "updated",
-      changed: request.edits.length,
-    }),
     stageProgram: async () => ({ token: "stage", storage: {} }),
     stageStorage: async <T>() => null as T,
     apply: async (..._args: Parameters<typeof applyFullBackup>) => ({
@@ -179,27 +161,27 @@ test("review reads serialize snapshots of page requests; an individual cancellat
       entered.resolve();
       return first.promise;
     }
-    return { kind: "rows", decisionRevision: "revision", entries: [], nextAfter: null };
+    return { kind: "files", entries: [], nextAfter: null };
   };
   const review = (await run("a test password"))!;
   const owner = new AbortController();
   const one = review.read({ kind: "events", limit: 1 }, owner.signal).catch((error) => error);
   await entered.promise;
-  const candidate: BackupReviewQuery = { kind: "rows", table: "books", limit: 1 };
+  const candidate: BackupReviewQuery = { kind: "files", after: "books", limit: 1 };
   const two = review.read(candidate);
-  candidate.table = "memories";
+  candidate.after = "memories";
   owner.abort();
   await Bun.sleep(0);
   expect(seen).toHaveLength(1);
   first.resolve({ kind: "events", entries: [], nextAfter: null });
   expect((await one).name).toBe("AbortError");
-  expect((await two).kind).toBe("rows");
-  expect(seen[1]).toMatchObject({ table: "books" });
+  expect((await two).kind).toBe("files");
+  expect(seen[1]).toMatchObject({ after: "books" });
   expect(calls).not.toContain("cancel");
   deps.read = async () => {
     throw new Error("bad page");
   };
-  await expect(review.read({ kind: "rows", table: "missing", limit: 1 })).rejects.toThrow("bad page");
+  await expect(review.read({ kind: "files", after: "missing", limit: 1 })).rejects.toThrow("bad page");
   deps.read = async () => ({ kind: "programs", entries: [], nextAfter: null });
   expect((await review.read({ kind: "programs", limit: 1 })).kind).toBe("programs");
   await review.dispose();
@@ -233,167 +215,6 @@ test("review disposal waits for the native read, discards queued reads, and boun
   await expect(review.read({ kind: "files", limit: 1 })).rejects.toMatchObject({ code: "backup/changed" });
 });
 
-test("record fields and continuation reads use the same owned serial review without losing typed values", async () => {
-  const { deps, run, calls } = fixture();
-  const seen: BackupReviewQuery[] = [];
-  deps.read = async (_id, query) => {
-    seen.push(query);
-    if (query.kind === "rowFields")
-      return {
-        ...query,
-        policy: "domain-state",
-        restricted: false,
-        entries: [
-          {
-            name: "id",
-            primary: 1,
-            source: { type: "integer", decimal: "9223372036854775807" },
-            target: { type: "null" },
-          },
-        ],
-        nextAfter: 0,
-      };
-    if (query.kind === "rowField")
-      return {
-        ...query,
-        value: { type: "text", base64: "5rGJ", text: "汉", byteLength: 4098, offset: 4095, nextOffset: null },
-      };
-    throw new Error("Unexpected request");
-  };
-  const review = (await run("a test password"))!;
-  const page = await review.read({ kind: "rowFields", table: "memories", entryId: 1, limit: 1 });
-  expect(page).toMatchObject({ entries: [{ source: { decimal: "9223372036854775807" }, target: { type: "null" } }] });
-  const query: BackupReviewQuery = {
-    kind: "rowField",
-    table: "memories",
-    entryId: 1,
-    column: "content",
-    side: "source",
-    offset: 4095,
-  };
-  const next = review.read(query);
-  query.offset = 0;
-  expect(await next).toMatchObject({ value: { text: "汉", offset: 4095, nextOffset: null } });
-  expect(seen[1]).toMatchObject({ offset: 4095 });
-  expect(calls).not.toContain("cancel");
-  await review.dispose();
-});
-
-test("row choices snapshot submissions and share the read queue and physical disposal", async () => {
-  const { deps, run } = fixture();
-  const entered = Promise.withResolvers<void>(),
-    release = Promise.withResolvers<{ revision: string; changed: number }>();
-  const seen: import("./backup-review-types").BackupRowChoiceRequest[] = [];
-  let reads = 0;
-  deps.chooseRows = async (_id, request) => {
-    seen.push(request);
-    entered.resolve();
-    return release.promise;
-  };
-  deps.read = async () => {
-    reads++;
-    return { kind: "rowDecisions", revision: "new", unresolved: 0, source: 1, target: 0 };
-  };
-  const review = (await run("a test password"))!;
-  const request: import("./backup-review-types").BackupRowChoiceRequest = {
-    expectedRevision: "old",
-    edits: [{ table: "memories", entryId: 1, choice: "source" }],
-  };
-  const saving = review.chooseRows(request);
-  request.edits[0]!.choice = "target";
-  await entered.promise;
-  const read = review.read({ kind: "rowDecisions" });
-  await Bun.sleep(0);
-  expect(reads).toBe(0);
-  expect(seen[0]!.edits[0]!.choice).toBe("source");
-  release.resolve({ revision: "new", changed: 1 });
-  expect(await saving).toEqual({ revision: "new", changed: 1 });
-  expect(await read).toMatchObject({ revision: "new" });
-  deps.chooseRows = async () => {
-    throw Object.assign(new Error("stale"), { code: "backup/changed" });
-  };
-  await expect(review.chooseRows(request)).rejects.toMatchObject({ code: "backup/changed" });
-  expect((await review.read({ kind: "rowDecisions" })).kind).toBe("rowDecisions");
-  const active = Promise.withResolvers<void>(),
-    receipt = Promise.withResolvers<{ revision: string; changed: number }>();
-  deps.chooseRows = async () => {
-    active.resolve();
-    return receipt.promise;
-  };
-  const pending = review.chooseRows(request).catch((error) => error);
-  await active.promise;
-  let done = false;
-  const closing = review.dispose().then(() => {
-    done = true;
-  });
-  await Bun.sleep(0);
-  expect(done).toBe(false);
-  receipt.resolve({ revision: "newer", changed: 1 });
-  await closing;
-  expect((await pending).code).toBe("backup/changed");
-  await expect(review.chooseRows(request)).rejects.toMatchObject({ code: "backup/changed" });
-});
-
-test("row constraint checks keep their submitted revision and share physical review ownership", async () => {
-  const { deps, run } = fixture();
-  const entered = Promise.withResolvers<void>(),
-    release = Promise.withResolvers<{
-      revision: string;
-      selectedSourceRows: number;
-      issues: number;
-      constraintsPassed: boolean;
-    }>();
-  const seen: string[] = [];
-  deps.checkRows = async (_id, revision) => {
-    seen.push(revision);
-    entered.resolve();
-    return release.promise;
-  };
-  let readCount = 0;
-  deps.read = async (queryId) => {
-    expect(queryId).toBe("task");
-    readCount++;
-    return { kind: "rowIssues", revision: "fixed", entries: [], nextAfter: null };
-  };
-  const review = (await run("a test password"))!;
-  const checking = review.checkRows("fixed");
-  await entered.promise;
-  const reading = review.read({ kind: "rowIssues", expectedRevision: "fixed", limit: 100 });
-  await Bun.sleep(0);
-  expect(readCount).toBe(0);
-  expect(seen).toEqual(["fixed"]);
-  release.resolve({ revision: "fixed", selectedSourceRows: 2, issues: 0, constraintsPassed: true });
-  expect(await checking).toMatchObject({ constraintsPassed: true });
-  await reading;
-  deps.checkRows = async () => {
-    throw Object.assign(new Error("stale"), { code: "backup/changed" });
-  };
-  await expect(review.checkRows("old")).rejects.toMatchObject({ code: "backup/changed" });
-  await review.read({ kind: "rowIssues", expectedRevision: "fixed", limit: 100 });
-  const active = Promise.withResolvers<void>(),
-    finish = Promise.withResolvers<{
-      revision: string;
-      selectedSourceRows: number;
-      issues: number;
-      constraintsPassed: boolean;
-    }>();
-  deps.checkRows = async () => {
-    active.resolve();
-    return finish.promise;
-  };
-  const pending = review.checkRows("fixed").catch((error) => error);
-  await active.promise;
-  let closed = false;
-  const closing = review.dispose().then(() => {
-    closed = true;
-  });
-  await Bun.sleep(0);
-  expect(closed).toBe(false);
-  finish.resolve({ revision: "fixed", selectedSourceRows: 2, issues: 1, constraintsPassed: false });
-  await closing;
-  expect((await pending).code).toBe("backup/changed");
-});
-
 test("restore consumes review once and retains the committed receipt through late cancellation", async () => {
   const { deps, run } = fixture();
   const entered = Promise.withResolvers<void>();
@@ -405,11 +226,11 @@ test("restore consumes review once and retains the committed receipt through lat
     return decision.promise;
   };
   const review = (await run("a test password"))!;
-  const request = { rowRevision: "fixed", files: {}, programs: {}, programResults: {}, credentials: {} };
+  const request = { files: {}, programs: {}, programResults: {}, credentials: {} };
   const applied = review.apply(request, origin);
   await entered.promise;
   await expect(review.apply(request)).rejects.toMatchObject({ code: "backup/changed" });
-  await expect(review.read({ kind: "rowDecisions" })).rejects.toMatchObject({ code: "backup/changed" });
+  await expect(review.read({ kind: "files", limit: 1 })).rejects.toMatchObject({ code: "backup/changed" });
   let closed = false;
   const disposing = review.dispose().then(() => {
     closed = true;

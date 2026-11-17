@@ -592,6 +592,31 @@
         "verifyingPrograms": "Comprobando complementos…",
         "encrypting": "Cifrando y guardando…"
       }
+    },
+    "importDialog": {
+      "title": "Restaurar una copia de seguridad",
+      "description": "Abre una copia de seguridad completa cifrada y fusiónala con esta biblioteca. La identidad del dispositivo y la sesión de la cuenta se mantienen en este dispositivo.",
+      "open": "Elegir archivo de copia",
+      "close": "Cerrar",
+      "summary": "La copia añade {{events}} entradas de historial, {{files}} archivos, {{plugins}} complementos y {{credentials}} credenciales.",
+      "mergeNotice": "Restaurar fusiona la copia con esta biblioteca: su historial se une al tuyo, solo se añade lo que únicamente tiene la copia y no se reemplaza nada de lo que esta biblioteca ya tiene. Los complementos que solo están en la copia piden tu permiso antes de ejecutar su código; si lo rechazas, solo se restauran sus datos y quedan inactivos.",
+      "eventConflict": "{{count}} identidades de evento en conflicto impiden restaurar esta copia.",
+      "restore": "Fusionar con esta biblioteca",
+      "success": "Se fusionaron {{rows}} entradas de historial, {{files}} archivos, {{plugins}} espacios de datos de complementos y {{credentials}} credenciales.",
+      "cleanupPending": "La restauración se confirmó. Los archivos temporales de recuperación se limpiarán al iniciar.",
+      "reloadNotice": "Las escrituras quedan en pausa hasta recargar para que pantallas antiguas no sobrescriban los datos restaurados.",
+      "reload": "Recargar la biblioteca restaurada",
+      "phases": {
+        "choosing": "Eligiendo la copia…",
+        "decrypting": "Descifrando la copia…",
+        "checkingSource": "Comprobando la integridad…",
+        "comparingEvents": "Comparando el historial…",
+        "comparingRows": "Comparando registros…",
+        "comparingFiles": "Comparando archivos…",
+        "preparingReview": "Preparando el resumen…",
+        "migrating": "Comprobando y migrando complementos…",
+        "restoring": "Fusionando la copia…"
+      }
     }
   },
   "about": {

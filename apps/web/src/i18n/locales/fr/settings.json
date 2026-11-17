@@ -592,6 +592,31 @@
         "verifyingPrograms": "Vérification des extensions…",
         "encrypting": "Chiffrement et enregistrement…"
       }
+    },
+    "importDialog": {
+      "title": "Restaurer une sauvegarde",
+      "description": "Ouvrez une sauvegarde complète chiffrée et fusionnez-la avec cette bibliothèque. L’identité de l’appareil et la session du compte restent sur cet appareil.",
+      "open": "Choisir le fichier de sauvegarde",
+      "close": "Fermer",
+      "summary": "La sauvegarde ajoute {{events}} entrées d’historique, {{files}} fichiers, {{plugins}} extensions et {{credentials}} identifiants.",
+      "mergeNotice": "La restauration fusionne la sauvegarde avec cette bibliothèque : son historique rejoint le vôtre, seul ce que la sauvegarde est seule à contenir est ajouté, et rien de ce que cette bibliothèque possède déjà n’est remplacé. Les extensions présentes uniquement dans la sauvegarde demandent votre autorisation avant d’exécuter leur code ; si vous refusez, seules leurs données sont restaurées et elles restent inactives.",
+      "eventConflict": "{{count}} identités d’événement en conflit empêchent la restauration de cette sauvegarde.",
+      "restore": "Fusionner avec cette bibliothèque",
+      "success": "{{rows}} entrées d’historique, {{files}} fichiers, {{plugins}} espaces de données d’extensions et {{credentials}} identifiants fusionnés.",
+      "cleanupPending": "La restauration est validée. Les fichiers de récupération temporaires seront supprimés au démarrage.",
+      "reloadNotice": "Les écritures sont suspendues jusqu’au rechargement pour que d’anciens écrans n’écrasent pas les données restaurées.",
+      "reload": "Recharger la bibliothèque restaurée",
+      "phases": {
+        "choosing": "Choix de la sauvegarde…",
+        "decrypting": "Déchiffrement de la sauvegarde…",
+        "checkingSource": "Vérification de l’intégrité…",
+        "comparingEvents": "Comparaison de l’historique…",
+        "comparingRows": "Comparaison des enregistrements…",
+        "comparingFiles": "Comparaison des fichiers…",
+        "preparingReview": "Préparation du résumé…",
+        "migrating": "Vérification et migration des extensions…",
+        "restoring": "Fusion de la sauvegarde…"
+      }
     }
   },
   "about": {

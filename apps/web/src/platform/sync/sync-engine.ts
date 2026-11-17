@@ -327,6 +327,9 @@ export type SyncEngine = {
   /** Lazy download: fetch, decrypt, store locally, mark synced.
    *  "absent" = the relay has no such blob; errors throw. */
   fetchBlob(key: string): Promise<"fetched" | "absent">;
+  /** Whether the backend holds each blob, without downloading any. "unsupported"
+   *  = this backend cannot answer short of a download; errors throw. */
+  hasBlobs(keys: readonly string[]): Promise<Record<string, boolean> | "unsupported">;
 };
 
 const maxStamp = (stamps: HlcStamp[]): HlcStamp | null => {
@@ -861,6 +864,20 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
     return "fetched";
   }
 
+  async function hasBlobs(keys: readonly string[]): Promise<Record<string, boolean> | "unsupported"> {
+    if (!relay.headBlob) return "unsupported";
+    const held: Record<string, boolean> = {};
+    for (const key of keys) {
+      try {
+        held[key] = (await relay.headBlob(key)) !== null;
+      } catch (error) {
+        if (isUnsupportedByRelay(error, 405)) return "unsupported";
+        throw error;
+      }
+    }
+    return held;
+  }
+
   return {
     pushOnce,
     pullOnce,
@@ -870,6 +887,7 @@ export function createSyncEngine(options: SyncEngineOptions): SyncEngine {
     backfillOnce,
     checkpointOnce,
     fetchBlob,
+    hasBlobs,
     async syncOnce() {
       progress = freshProgress();
       report({});

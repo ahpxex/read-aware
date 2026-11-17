@@ -12,3 +12,5 @@ export type { BookContent, BookContentLease } from "./lib/book-content-source";
 export type { BookMetadataPatch, LibraryBook } from "./lib/library-types";
 // A reader standing by with a book lets go of it when its content is invalidated.
 export { contentInvalidationRevision, observeContentInvalidation } from "./lib/content-invalidation";
+// The assistant asks whether books can still be opened before proposing to remove shelf entries.
+export { checkBookFiles } from "./lib/book-file-check";

@@ -406,6 +406,41 @@ async function fetchAcceptedRemoteBlob(
   }
 }
 
+/**
+ * Whether the sync backend holds each blob, asked without downloading. The
+ * answer separates "can still be fetched" from "nothing left to fetch", which
+ * a missing local file alone does not tell apart.
+ *
+ * - `held`        — per key, whether the backend has it.
+ * - `unavailable` — this device cannot ask at all (no sync / signed out).
+ * - `unknown`     — the ask could not be answered: dead session, wrong server,
+ *                   network, or a backend that only answers by downloading.
+ *
+ * Not queued behind a running cycle: it reads the backend and writes nothing.
+ */
+export type RemoteBlobPresence =
+  | { outcome: "held"; held: Record<string, boolean> }
+  | { outcome: "unavailable"; reason: "not-tauri" | "sync-off" | "not-connected" }
+  | { outcome: "unknown"; reason: "unauthenticated" | "misdirected" | "unreachable" | "unsupported" };
+
+export async function probeRemoteBlobs(keys: readonly string[], signal?: AbortSignal): Promise<RemoteBlobPresence> {
+  signal?.throwIfAborted();
+  const admission = await remoteBlobAdmission();
+  signal?.throwIfAborted();
+  if (admission.reason) return { outcome: "unavailable", reason: admission.reason };
+  try {
+    const held = await (await resolveEngine()).hasBlobs(keys);
+    signal?.throwIfAborted();
+    return held === "unsupported" ? { outcome: "unknown", reason: "unsupported" } : { outcome: "held", held };
+  } catch (error) {
+    signal?.throwIfAborted();
+    log.warn("remote blob presence check failed", error);
+    if (isAuthRejection(error)) return { outcome: "unknown", reason: "unauthenticated" };
+    if (error instanceof RelayMisdirectedError) return { outcome: "unknown", reason: "misdirected" };
+    return { outcome: "unknown", reason: "unreachable" };
+  }
+}
+
 /** Host-only backup admission. Acquire BEFORE plugin-data exclusion: an
  * accepted cycle may still need to finish its roaming preference overlay.
  * The supplied fetcher is valid only within this operation, allowing the v1

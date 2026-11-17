@@ -46,9 +46,9 @@ import {
   validPluginCallId,
   type WorkerMessage,
 } from "./plugin-worker-protocol";
-import { parsePluginHostMessage, type ContextShape, type HostMessage } from "./plugin-host-protocol";
+import type { ContextShape, HostMessage } from "./plugin-host-protocol";
 export type { ContextShape } from "./plugin-host-protocol";
-import { PLUGIN_WIRE_LIMITS } from "./plugin-wire-budget";
+import { assertPluginWireBudget, PLUGIN_WIRE_LIMITS } from "./plugin-wire-budget";
 import { PluginCallbackBudget } from "./plugin-callback-budget";
 import { pluginHostBudget, pluginTrafficBudget, type BudgetLease } from "./plugin-host-budget";
 
@@ -283,7 +283,7 @@ export function startPluginWorker(
   let invalidMessageReported = false;
   let acknowledgeQuiescence: ((error?: string) => void) | undefined;
   let acknowledgeDeactivation: (() => void) | undefined;
-  const traffic = pluginTrafficBudget.open();
+  const traffic = pluginTrafficBudget.open(manifest.id);
   let retireForTraffic: (error: unknown) => void;
   const accountTraffic = (usage?: { bytes: number; entries: number }) => {
     try {
@@ -298,7 +298,9 @@ export function startPluginWorker(
     if (terminated) return;
     accountTraffic();
     const message = "error" in input ? { ...input, error: input.error.slice(0, 4096) } : input;
-    worker.postMessage(parsePluginHostMessage(message, accountTraffic));
+    // Our own message needs no schema check, but its size counts against the plugin.
+    assertPluginWireBudget(message, PLUGIN_WIRE_LIMITS, accountTraffic);
+    worker.postMessage(message);
   };
 
   const pendingInvokes = new PluginRpcPending();
@@ -565,11 +567,17 @@ export function startPluginWorker(
                 }
                 const id = nextMigrationId++;
                 const source = activationActor ?? options.serviceExecution?.origin ?? causalActor("system");
-                try {
-                  parsePluginHostMessage({ t: "migrate", id, migration });
-                } catch (error) {
-                  return Promise.reject(error);
-                }
+                // The plan comes from the update flow; refuse one that does not move the version.
+                const { fromVersion, toVersion, direction } = migration ?? {};
+                if (
+                  !Number.isSafeInteger(fromVersion) ||
+                  fromVersion < 0 ||
+                  !validPluginCallId(toVersion) ||
+                  !(direction === "upgrade"
+                    ? toVersion > fromVersion
+                    : direction === "downgrade" && toVersion < fromVersion)
+                )
+                  return Promise.reject(new AppError("plugin/invalid-input", "Invalid plugin migration"));
                 runtime.lifecycle.beginMigration();
                 try {
                   post({ t: "sync", patch: { phase: "migrating", storage: storageSnapshot() } });

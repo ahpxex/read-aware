@@ -42,13 +42,9 @@ import { flattenPluginRequest, restorePluginResponse, type PluginNetworkResponse
 import { pluginNetworkAbort, pluginNetworkError } from "./plugin-network-error";
 import { PluginRpcPending } from "./plugin-rpc-pending";
 import { PluginCallbackRegistry } from "./plugin-callback-wire";
-import {
-  parsePluginWorkerMessage,
-  PLUGIN_PROTOCOL_VERSION,
-  validPluginCallId,
-  type WorkerMessage,
-} from "./plugin-worker-protocol";
-import { parsePluginHostMessage, type HostMessage, type ContextShape } from "./plugin-host-protocol";
+import { PLUGIN_PROTOCOL_VERSION, type WorkerMessage } from "./plugin-worker-protocol";
+import { assertPluginWireBudget, PLUGIN_WIRE_LIMITS } from "./plugin-wire-budget";
+import type { HostMessage, ContextShape } from "./plugin-host-protocol";
 
 // ─── Wire protocol ───────────────────────────────────────────────────────────
 
@@ -56,7 +52,10 @@ const post = (input: WorkerMessage) => {
   if (stopped && input.t !== "failed") throw codedError("Plugin runtime stopped", "plugin/unavailable");
   const message =
     "error" in input && typeof input.error === "string" ? { ...input, error: input.error.slice(0, 4096) } : input;
-  self.postMessage(parsePluginWorkerMessage(message));
+  // Meter the size before the clone crosses to the host; the host validates
+  // the shape of what it receives.
+  assertPluginWireBudget(message, PLUGIN_WIRE_LIMITS);
+  self.postMessage(message);
 };
 
 /**
@@ -415,24 +414,15 @@ self.onmessageerror = () => {
 
 self.onmessage = async (event: MessageEvent<unknown>) => {
   if (stopped) return;
-  let message: HostMessage;
-  try {
-    message = parsePluginHostMessage(event.data);
-    if ((!booted && message.t !== "boot") || (booted && message.t === "boot")) {
-      throw codedError("Invalid plugin bootstrap sequence", "plugin/invalid-input");
-    }
-  } catch (error) {
-    const raw = event.data as { t?: unknown; id?: unknown; disposable?: unknown } | null;
-    if (booted && raw && validPluginCallId(raw.id) && raw.t === "invoke") {
-      post({ t: "result", id: raw.id, ok: false, code: codeOf(error), error: "Host message rejected" });
-    } else if (booted && raw && validPluginCallId(raw.id) && raw.t === "result") {
-      pendingCalls.settle(raw.id, false, error);
-      // Rejected results must not strand a registration on the authoritative host.
-      if (typeof raw.disposable === "string" && raw.disposable.length > 0 && raw.disposable.length <= 128)
-        post({ t: "dispose", handle: raw.disposable });
-    } else {
-      failProtocol();
-    }
+  // Host messages are trusted (see plugin-host-protocol.ts). The Worker still
+  // refuses a boot out of sequence or from another protocol version.
+  const message = event.data as HostMessage;
+  if (
+    (!booted && message?.t !== "boot") ||
+    (booted && message.t === "boot") ||
+    (message.t === "boot" && message.protocolVersion !== PLUGIN_PROTOCOL_VERSION)
+  ) {
+    failProtocol();
     return;
   }
 

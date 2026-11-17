@@ -52,37 +52,36 @@ const rates = (messages: number, bytes = 100, entries = 10) => ({
   burst: { messages, bytes, entries },
   perSecond: { messages: 1, bytes: 10, entries: 1 },
 });
-test("traffic uses both realm and host budgets without refunds or a restart reset", () => {
+test("traffic is metered per plugin, survives a restart, and one plugin cannot spend another's", () => {
   let now = 0;
-  const budget = new PluginTrafficBudget({ realm: rates(2), host: rates(3) }, () => now);
-  const first = budget.open(),
-    second = budget.open();
-  first.message();
-  first.message();
-  expect(() => first.message()).toThrow();
-  second.message();
-  expect(() => budget.open().message()).toThrow();
+  const budget = new PluginTrafficBudget(rates(2), () => now);
+  const busy = budget.open("busy");
+  busy.message();
+  busy.message();
+  expect(() => busy.message()).toThrow();
+  // Restarting the plugin's Worker does not refill its bucket.
+  expect(() => budget.open("busy").message()).toThrow();
+  // Another plugin keeps its whole budget.
+  const quiet = budget.open("quiet");
+  quiet.message();
+  quiet.message();
   now = 1000;
-  budget.open().message();
-  expect(() => second.message()).toThrow();
-  now = 500;
-  expect(() => budget.open().message()).toThrow();
-  now = 2000;
-  budget.open().message();
+  budget.open("busy").message();
+  expect(() => budget.open("busy").message()).toThrow();
 });
 
 test("bytes and traversal entries are independently metered across both directions and refill is burst bounded", () => {
   let now = 0;
-  const budget = new PluginTrafficBudget({ realm: rates(100), host: rates(100, 150, 15) }, () => now);
-  const first = budget.open(),
-    second = budget.open();
+  const budget = new PluginTrafficBudget(rates(100, 150, 15), () => now);
+  const first = budget.open("plugin"),
+    second = budget.open("plugin");
   first.graph({ bytes: 100, entries: 5 });
   second.graph({ bytes: 50, entries: 10 });
-  expect(() => budget.open().graph({ bytes: 1, entries: 0 })).toThrow();
-  expect(() => budget.open().graph({ bytes: 0, entries: 1 })).toThrow();
+  expect(() => budget.open("plugin").graph({ bytes: 1, entries: 0 })).toThrow();
+  expect(() => budget.open("plugin").graph({ bytes: 0, entries: 1 })).toThrow();
   now = 1e9;
-  expect(() => first.graph({ bytes: 101, entries: 0 })).toThrow();
-  first.graph({ bytes: 100, entries: 10 });
+  expect(() => first.graph({ bytes: 151, entries: 0 })).toThrow();
+  first.graph({ bytes: 150, entries: 15 });
 });
 
 test("rejected oversized graphs report consumed traversal and bytes rather than escaping the traffic meter", () => {

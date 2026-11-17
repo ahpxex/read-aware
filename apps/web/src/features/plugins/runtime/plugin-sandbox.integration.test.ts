@@ -432,50 +432,16 @@ test("real Worker receives a frozen explicit book grant and cannot widen it", as
   });
 });
 
-test("real Worker rejects malformed host invocations and results without losing the next call", async () => {
-  const s = sandbox("durable-storage");
-  expect(await s.next((message) => message.t === "hello")).toMatchObject({ protocolVersion: 1 });
-  const registration = await s.next((message) => message.method === "contributions.commands.register");
-  const handle = (data(registration.args!) as { run: () => string }[])[0]!.run();
-  s.worker.postMessage({ t: "result", id: registration.id, ok: true, value: null, disposable: "d1" });
-  await s.next((message) => message.t === "ready");
-  s.worker.postMessage({ t: "sync", patch: { phase: "active" } });
-  s.worker.postMessage({ t: "invoke", id: 910, handle, args: new Array(1_000_001) });
-  expect(await s.next((message) => message.t === "result" && message.id === 910)).toMatchObject({
-    ok: false,
-    code: "plugin/quota-exceeded",
-  });
-  expect(s.messages.some((message) => message.method === "services.storage.getDurable")).toBe(false);
-  s.worker.postMessage({ t: "invoke", id: 911, handle, args: [] });
+// Host messages are trusted and not re-validated in the Worker (the host
+// meters its own sends); only the boot sequence is still enforced here.
+test("real Worker fails closed on a second boot rather than reactivating", async () => {
+  const s = await command("durable-storage");
   const call = await s.next((message) => message.method === "services.storage.getDurable");
-  s.worker.postMessage({ t: "result", id: call.id, ok: true, value: new Array(1_000_001), disposable: "d2" });
-  expect(await s.next((message) => message.t === "dispose")).toMatchObject({ handle: "d2" });
-  expect(await s.next((message) => message.t === "result" && message.id === 911)).toMatchObject({
-    ok: false,
-    code: "plugin/quota-exceeded",
-  });
-  s.worker.postMessage({ t: "invoke", id: 912, handle, args: [] });
-  const retry = await s.next((message) => message.method === "services.storage.getDurable");
-  s.worker.postMessage({ t: "result", id: retry.id, ok: true, value: "recovered" });
-  expect(resultData(await s.next((message) => message.t === "result" && message.id === 912))).toMatchObject({
-    ok: true,
-    value: { toast: "recovered" },
-  });
+  s.worker.postMessage({ t: "boot", protocolVersion: 1 });
+  await s.next((message) => message.t === "failed");
+  expect(s.messages.some((message) => message.t === "ready")).toBe(false);
+  expect(call.id).toBeGreaterThan(0);
 });
-
-test.each(["sync", "boot"])(
-  "real Worker fails closed on an invalid %s rather than serving a stale mirror or reactivating",
-  async (kind) => {
-    const s = await command("durable-storage");
-    const call = await s.next((message) => message.method === "services.storage.getDurable");
-    s.worker.postMessage(
-      kind === "sync" ? { t: "sync", patch: { storage: { x: false } } } : { t: "boot", protocolVersion: 1 },
-    );
-    await s.next((message) => message.t === "failed");
-    expect(s.messages.some((message) => message.t === "ready")).toBe(false);
-    expect(call.id).toBeGreaterThan(0);
-  },
-);
 
 test("real Worker rejects oversized results before transport and remains callable with bounded errors", async () => {
   const s = sandbox("wire-budget", "wire-budget-probe.ts");

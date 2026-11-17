@@ -38,15 +38,10 @@ export class PluginHostBudget {
 type Usage = { messages: number; bytes: number; entries: number };
 type Rates = { burst: Usage; perSecond: Usage };
 const fields = ["messages", "bytes", "entries"] as const;
+/** One plugin's Worker traffic, both directions. */
 export const PLUGIN_TRAFFIC_LIMITS = Object.freeze({
-  realm: {
-    burst: { messages: 16_384, bytes: 256 * 1024 * 1024, entries: 4_000_000 },
-    perSecond: { messages: 4096, bytes: 64 * 1024 * 1024, entries: 1_000_000 },
-  },
-  host: {
-    burst: { messages: 65_536, bytes: 512 * 1024 * 1024, entries: 16_000_000 },
-    perSecond: { messages: 16_384, bytes: 128 * 1024 * 1024, entries: 4_000_000 },
-  },
+  burst: { messages: 16_384, bytes: 256 * 1024 * 1024, entries: 4_000_000 },
+  perSecond: { messages: 4096, bytes: 64 * 1024 * 1024, entries: 1_000_000 },
 });
 
 class TrafficBucket {
@@ -77,21 +72,21 @@ class TrafficBucket {
   }
 }
 
-/** Bidirectional, host-wide token buckets; retiring/restarting a realm cannot reset the host budget. */
+/**
+ * Bidirectional token buckets, one per plugin. A busy plugin spends only its
+ * own budget, so it can never push another plugin's replies over a limit; the
+ * bucket outlives a Worker, so restarting the plugin does not refill it.
+ */
 export class PluginTrafficBudget {
-  private readonly host: TrafficBucket;
+  private readonly buckets = new Map<string, TrafficBucket>();
   constructor(
-    private readonly limits = PLUGIN_TRAFFIC_LIMITS,
+    private readonly limits: Rates = PLUGIN_TRAFFIC_LIMITS,
     private readonly now = () => performance.now(),
-  ) {
-    this.host = new TrafficBucket(limits.host, now);
-  }
-  open() {
-    const realm = new TrafficBucket(this.limits.realm, this.now);
-    const charge = (usage: Usage) => {
-      realm.admit(usage);
-      this.host.admit(usage);
-    };
+  ) {}
+  open(pluginId: string) {
+    let bucket = this.buckets.get(pluginId);
+    if (!bucket) this.buckets.set(pluginId, (bucket = new TrafficBucket(this.limits, this.now)));
+    const charge = (usage: Usage) => bucket.admit(usage);
     return {
       // Count before graph traversal, including malformed and oversized envelopes.
       message: () => charge({ messages: 1, bytes: 0, entries: 0 }),

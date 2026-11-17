@@ -198,8 +198,8 @@ test("global outgoing invoke quota does not dispatch a callback and releases aft
 test("flood admission retires the offender before parsing another graph and drains existing cleanup", async () => {
   let now = 0;
   const rates = { burst: { messages: 8, bytes: 1e8, entries: 1e6 }, perSecond: { messages: 1, bytes: 1, entries: 1 } };
-  const meter = new PluginTrafficBudget({ realm: rates, host: rates }, () => now);
-  const open = spyOn(pluginTrafficBudget, "open").mockImplementation(() => meter.open());
+  const meter = new PluginTrafficBudget(rates, () => now);
+  const open = spyOn(pluginTrafficBudget, "open").mockImplementation((pluginId) => meter.open(pluginId));
   const gate = deferred();
   const drain = spyOn(PluginLifecycleController.prototype, "drainStorageWrites").mockImplementation(() => gate.promise);
   const { worker, runtime, close } = await hostFixture();
@@ -224,9 +224,9 @@ test("flood admission retires the offender before parsing another graph and drai
     gate.resolve();
     await stopping;
     expect(drain).toHaveBeenCalledTimes(1);
-    expect(() => meter.open().message()).toThrow();
+    expect(() => meter.open("callback-host-test").message()).toThrow();
     now = 1000;
-    expect(() => meter.open().message()).not.toThrow();
+    expect(() => meter.open("callback-host-test").message()).not.toThrow();
   } finally {
     gate.resolve();
     await close();

@@ -75,6 +75,17 @@ fn build_field(env: &mut jni::JNIEnv, field: &str) -> String {
 #[cfg(target_os = "android")]
 #[tauri::command]
 pub(crate) async fn display_profile() -> Option<DisplayProfile> {
+    // A JNI attach and a `getprop` child process: blocking work, off the async executor.
+    crate::storage::blocking("display_profile", || Ok(read_display_profile()))
+        .await
+        .unwrap_or_else(|error| {
+            log::warn!("display_profile: {error:?}");
+            None
+        })
+}
+
+#[cfg(target_os = "android")]
+fn read_display_profile() -> Option<DisplayProfile> {
     use tao::platform::android::prelude::main_android_context;
     let Some(ctx) = main_android_context() else {
         log::warn!("display_profile: no android context yet");

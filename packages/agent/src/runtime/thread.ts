@@ -301,6 +301,7 @@ export class AgentThread {
       conversationSummary,
       // 全局线程首次使用且画像为空 → 访谈模式（onboarding 的对话半场，doc §9）
       onboardingInterview: this.scope.kind === "global" && !profile.curated && !hasConversation(agent.state.messages),
+      web: this.deps.web?.configured("search") ?? false,
     });
     agent.state.messages = withSystemPrompt(
       agent.state.messages,
@@ -529,6 +530,7 @@ export class AgentThread {
           status: currentBook?.status ?? null,
           chapterIndex: cursor?.chapterIndex ?? null,
           policy: chapterMemoryPolicy(currentBook, cursor?.chapterIndex),
+          web: this.deps.web?.configured("search") ?? false,
         });
         const newSession = !this.sessionStarted || crossedChapter;
         if (newSession || policyKey !== this.sessionMemoryPolicy) {

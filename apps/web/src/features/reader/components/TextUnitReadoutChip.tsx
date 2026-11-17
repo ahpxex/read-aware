@@ -5,6 +5,7 @@ import { useLocale, useTranslation } from "../../../i18n";
 import { useDraggableFloat } from "../hooks/useDraggableFloat";
 import { useSessionTimer } from "../hooks/useSessionTimer";
 import type { TextUnitProgress } from "../hooks/useTextUnitNavigator";
+import type { ActiveReadingClock } from "../lib/reading-session-policy";
 
 type TextUnitReadoutChipProps = {
   visible: boolean;
@@ -15,7 +16,8 @@ type TextUnitReadoutChipProps = {
   /** Plugin-settings readout toggles. Both off → the chip never renders. */
   showProgress: boolean;
   sessionTimer: boolean;
-  activityRef?: RefObject<(() => void) | null>;
+  /** The open book's reading clock; the session timer counts on it. */
+  readingClock: ActiveReadingClock | null;
 };
 
 /**
@@ -31,12 +33,12 @@ export function TextUnitReadoutChip({
   progress,
   showProgress,
   sessionTimer,
-  activityRef,
+  readingClock,
 }: TextUnitReadoutChipProps) {
   const { t } = useTranslation("reader");
   const locale = useLocale();
   // The clock runs per mode entry (chip visibility) and is never persisted.
-  const timer = useSessionTimer(visible && sessionTimer, activityRef);
+  const timer = useSessionTimer(visible && sessionTimer, readingClock);
   const sessionElapsed = timer.elapsed;
   const timeText = timer.showClock
     ? timer.now.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })

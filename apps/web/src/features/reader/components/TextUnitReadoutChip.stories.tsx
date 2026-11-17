@@ -1,15 +1,18 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type { ComponentProps } from "react";
+import { ActiveReadingClock } from "../lib/reading-session-policy";
 import { TextUnitReadoutChip } from "./TextUnitReadoutChip";
 
-// useDraggableFloat clamps drags against a live container element, so the
-// frame owns the ref and overrides the placeholder ref passed through args.
+// useDraggableFloat clamps drags against a live container element, and the
+// timer needs a live reading clock, so the frame owns both and overrides the
+// placeholders passed through args.
 function FramedReadoutChip(props: ComponentProps<typeof TextUnitReadoutChip>) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const [readingClock] = useState(() => new ActiveReadingClock(performance.now(), true));
   return (
     <div ref={containerRef} className="relative h-[16rem] overflow-hidden rounded-surface border border-border">
-      <TextUnitReadoutChip {...props} containerRef={containerRef} />
+      <TextUnitReadoutChip {...props} containerRef={containerRef} readingClock={readingClock} />
     </div>
   );
 }
@@ -25,6 +28,8 @@ const meta = {
     progress: { ordinal: 11, total: 87 },
     showProgress: true,
     sessionTimer: true,
+    // Placeholder only — FramedReadoutChip substitutes a live clock.
+    readingClock: null,
   },
   render: (args) => <FramedReadoutChip {...args} />,
 } satisfies Meta<typeof TextUnitReadoutChip>;

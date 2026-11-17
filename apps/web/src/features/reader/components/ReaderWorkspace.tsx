@@ -185,7 +185,7 @@ export function ReaderWorkspace({
 
   // Track active reading time once the book is rendered. Reader relocate/page
   // callbacks bump activity so in-iframe reading isn't mistaken for idle.
-  const { recordActivity } = useReadingTimeTracker(selectedBook.id, !standby && !!readerSource);
+  const { recordActivity, readingClock } = useReadingTimeTracker(selectedBook.id, !standby && !!readerSource);
   const handlePageChange = useCallback(
     (current: number, total: number) => {
       recordActivity();
@@ -224,6 +224,7 @@ export function ReaderWorkspace({
           onContentClick={onToggleShell}
           onContentScroll={onHideShell}
           onReadingActivity={recordActivity}
+          readingClock={readingClock}
           onPageChange={handlePageChange}
           onProgressChange={handleProgressChange}
           onFractionChange={onReaderFractionChange}

@@ -138,6 +138,7 @@ import { resolvePageTurnTap, type PageTurnTap } from "../lib/page-turn-tap";
 import { READER_STRIP_HEIGHT_PX } from "../lib/header-footer-layout";
 import { useVolumeKeySteps } from "../hooks/useVolumeKeySteps";
 import type { ReaderEngineSession } from "../lib/reader-engine-session";
+import type { ActiveReadingClock } from "../lib/reading-session-policy";
 import { useReaderEngineSession } from "../hooks/useReaderEngineSession";
 import { INLINE_FOOTNOTE_SELECTOR, inlineFootnoteText } from "../lib/inline-footnote";
 
@@ -162,6 +163,8 @@ type FoliateReaderViewProps = {
   /** Any interaction inside the book (pointer/keys/scroll) — used to keep the
    *  reading-time tracker awake, since iframe events don't reach the window. */
   onReadingActivity?: () => void;
+  /** The open book's active-reading clock, shared with the reading stats. */
+  readingClock?: ActiveReadingClock | null;
   onPageChange?: (current: number, total: number) => void;
   onProgressChange?: (progress: ReaderProgress) => void;
   /** The engine's exact reading fraction (0..1). Reported separately from
@@ -351,6 +354,7 @@ export function FoliateReaderView({
   onContentClick,
   onContentScroll,
   onReadingActivity,
+  readingClock,
   onPageChange,
   onProgressChange,
   onFractionChange,
@@ -514,12 +518,8 @@ export function FoliateReaderView({
     reportedProgressRef.current = { bookId: reported.bookId, progress };
     onProgressChangeRef.current?.(progress);
   }, []);
-  const sessionTimerActivityRef = useRef<(() => void) | null>(null);
   const emitContentClick = useEffectEvent(() => onContentClick?.());
-  const emitReadingActivity = useEffectEvent(() => {
-    onReadingActivity?.();
-    sessionTimerActivityRef.current?.();
-  });
+  const emitReadingActivity = useEffectEvent(() => onReadingActivity?.());
   const emitLocation = useEffectEvent(
     (location: {
       current: number;
@@ -1299,7 +1299,8 @@ export function FoliateReaderView({
     previousTextUnitTargetKeyRef.current = textUnitTargetKey;
     // Losing the unit (deactivation, section unload) is not a step.
     if (textUnitTargetKey == null) return;
-    sessionTimerActivityRef.current?.();
+    // A step through the text is reading activity like a page turn.
+    emitReadingActivity();
     setFootnote(null);
     setActiveAnnotation(null);
     setUnitMenuAnchor(null);
@@ -3069,7 +3070,7 @@ export function FoliateReaderView({
           progress={textUnitNavigator.progress}
           showProgress={textUnitModeSettings.showProgress}
           sessionTimer={textUnitModeSettings.sessionTimer}
-          activityRef={sessionTimerActivityRef}
+          readingClock={readingClock ?? null}
         />
       )}
       {/* Off-screen stage where the engine loads + extracts a footnote fragment. */}

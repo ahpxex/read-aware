@@ -1,13 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import {
+  ActiveReadingClock,
   bucketKeyAt,
   IDLE_LIMIT_MS,
-  MAX_TICK_MS,
-  MIN_TICK_MS,
+  MAX_SAMPLE_GAP_MS,
   PAUSE_MS,
   pausedLongEnough,
   sameBucket,
-  tickDelta,
 } from "./reading-session-policy";
 
 describe("reading session policy", () => {
@@ -20,22 +19,50 @@ describe("reading session policy", () => {
     expect(sameBucket(key, bucketKeyAt("b2", t))).toBe(false);
   });
 
-  test("a tick banks time only while genuinely reading, and never a sleep gap", () => {
-    const base = { now: 100_000, lastTickAt: 80_000, lastActivityAt: 95_000, active: true, foreground: true };
-    expect(tickDelta(base)).toBe(20_000);
-    expect(tickDelta({ ...base, active: false })).toBe(0);
-    expect(tickDelta({ ...base, foreground: false })).toBe(0);
-    expect(tickDelta({ ...base, lastActivityAt: base.now - IDLE_LIMIT_MS - 1 })).toBe(0);
-    expect(tickDelta({ ...base, lastTickAt: base.now - 10 * 60_000 })).toBe(MAX_TICK_MS);
-    expect(tickDelta({ ...base, lastTickAt: base.now + 5 })).toBe(0);
-    // A remount fires cleanup a millisecond after the clocks reset: not reading.
-    expect(tickDelta({ ...base, lastTickAt: base.now - 1 })).toBe(0);
-    expect(tickDelta({ ...base, lastTickAt: base.now - MIN_TICK_MS })).toBe(MIN_TICK_MS);
+  test("the clock counts foreground time within the idle limit and never an unobserved gap", () => {
+    const clock = new ActiveReadingClock(0, true);
+    clock.sample(20_000);
+    expect(clock.totalMs).toBe(20_000);
+    // Idle: counting stops exactly at the limit, even mid-sample.
+    for (let at = 40_000; at <= IDLE_LIMIT_MS + 30_000; at += 20_000) clock.sample(at);
+    expect(clock.totalMs).toBe(IDLE_LIMIT_MS);
+    expect(clock.idleMs(IDLE_LIMIT_MS + 30_000)).toBe(IDLE_LIMIT_MS + 30_000);
+    // Acting again resumes it.
+    clock.activity(IDLE_LIMIT_MS + 30_000, true);
+    clock.sample(IDLE_LIMIT_MS + 40_000);
+    expect(clock.totalMs).toBe(IDLE_LIMIT_MS + 10_000);
+  });
+
+  test("background time and a suspended webview's gap count for nothing", () => {
+    const clock = new ActiveReadingClock(0, true);
+    clock.setForeground(5_000, false);
+    clock.sample(15_000);
+    expect(clock.totalMs).toBe(5_000);
+    // Returning to the foreground counts as acting, so a long absence resumes at once.
+    clock.setForeground(15 * 60_000, true);
+    clock.sample(15 * 60_000 + 1_000);
+    expect(clock.totalMs).toBe(6_000);
+    clock.sample(15 * 60_000 + 1_000 + MAX_SAMPLE_GAP_MS + 1);
+    expect(clock.totalMs).toBe(6_000);
+    clock.sample(15 * 60_000 + 2_000 + MAX_SAMPLE_GAP_MS);
+    expect(clock.totalMs).toBe(6_999);
+    // Out-of-order samples never subtract.
+    clock.sample(10);
+    expect(clock.totalMs).toBe(6_999);
+  });
+
+  test("two readers of one clock see the same seconds from their own marks", () => {
+    const clock = new ActiveReadingClock(0, true);
+    clock.sample(30_000);
+    const timerMark = clock.totalMs;
+    for (let at = 31_000; at <= 90_000; at += 1_000) clock.sample(at);
+    expect(clock.totalMs - timerMark).toBe(60_000);
+    expect(clock.totalMs).toBe(90_000);
   });
 
   test("a pause closes the session before the idle limit stops counting", () => {
     expect(PAUSE_MS).toBeLessThan(IDLE_LIMIT_MS);
-    expect(pausedLongEnough(100_000, 100_000 - PAUSE_MS + 1)).toBe(false);
-    expect(pausedLongEnough(100_000, 100_000 - PAUSE_MS)).toBe(true);
+    expect(pausedLongEnough(PAUSE_MS - 1)).toBe(false);
+    expect(pausedLongEnough(PAUSE_MS)).toBe(true);
   });
 });

@@ -28,11 +28,12 @@ export const TICK_MS = 20_000;
 export const IDLE_LIMIT_MS = 8 * 60_000;
 /** A pause this long closes the open session (position freshness elsewhere). */
 export const PAUSE_MS = 2 * 60_000;
-/** Cap a single tick so a sleep/wake gap can't be counted as reading. */
-export const MAX_TICK_MS = TICK_MS * 2;
-/** Below this a "tick" is a remount artefact (cleanup firing a millisecond
- *  after the clocks reset), not reading; it never opens a bucket. */
-export const MIN_TICK_MS = 1_000;
+/** Two samples further apart than this mean the webview was suspended
+ *  (sleep, occlusion) without telling us; that stretch is never reading. */
+export const MAX_SAMPLE_GAP_MS = TICK_MS * 2;
+/** Below this, banking waits for more: a sub-second span is a remount
+ *  artefact, not reading, and never opens a bucket. */
+export const MIN_BANK_MS = 1_000;
 export type BucketKey = { bookId: string; localDay: string; localHour: number };
 
 export function bucketKeyAt(bookId: string, epochMs: number): BucketKey {
@@ -44,25 +45,60 @@ export function sameBucket(a: BucketKey, b: BucketKey): boolean {
 }
 
 /**
- * Active reading time to bank for a tick at `now`: zero unless the reader is
- * genuinely reading (book rendered, window foreground, activity within the
- * idle limit), capped so a sleep/wake gap never counts.
+ * The reader's active reading time, under the one rule every reading number
+ * uses (the statistics and the floating session timer alike): time counts
+ * while the window is in the foreground and the reader acted within
+ * `IDLE_LIMIT_MS`, and an unobserved gap counts for nothing. Times are
+ * monotonic (`performance.now()`); `totalMs` only grows, so each consumer
+ * keeps its own mark instead of resetting the clock.
  */
-export function tickDelta(input: {
-  now: number;
-  lastTickAt: number;
-  lastActivityAt: number;
-  active: boolean;
-  foreground: boolean;
-}): number {
-  const { now, lastTickAt, lastActivityAt, active, foreground } = input;
-  if (!active || !foreground) return 0;
-  if (now - lastActivityAt > IDLE_LIMIT_MS) return 0;
-  const delta = Math.min(now - lastTickAt, MAX_TICK_MS);
-  return delta < MIN_TICK_MS ? 0 : delta;
+export class ActiveReadingClock {
+  #totalMs = 0;
+  #lastSampleAt: number;
+  #lastActivityAt: number;
+  #foreground: boolean;
+
+  constructor(at: number, foreground: boolean) {
+    this.#lastSampleAt = at;
+    this.#lastActivityAt = at;
+    this.#foreground = foreground;
+  }
+
+  get totalMs(): number {
+    return this.#totalMs;
+  }
+
+  /** How long the reader has gone without acting. */
+  idleMs(at: number): number {
+    return Math.max(0, at - this.#lastActivityAt);
+  }
+
+  /** Counts the time since the last sample under the state that held during it. */
+  sample(at: number): void {
+    const from = this.#lastSampleAt;
+    if (at <= from) return;
+    this.#lastSampleAt = at;
+    if (!this.#foreground || at - from > MAX_SAMPLE_GAP_MS) return;
+    const until = Math.min(at, this.#lastActivityAt + IDLE_LIMIT_MS);
+    if (until > from) this.#totalMs += until - from;
+  }
+
+  /** The reader acted (page turn, pointer, key, a step inside the book). */
+  activity(at: number, foreground: boolean): void {
+    this.sample(at);
+    this.#foreground = foreground;
+    if (foreground) this.#lastActivityAt = at;
+  }
+
+  /** The window gained or lost the foreground; returning counts as acting. */
+  setForeground(at: number, foreground: boolean): void {
+    this.sample(at);
+    if (foreground && !this.#foreground) this.#lastActivityAt = at;
+    this.#foreground = foreground;
+  }
 }
 
 /** A pause long enough to close the open session. */
-export function pausedLongEnough(now: number, lastActivityAt: number): boolean {
-  return now - lastActivityAt >= PAUSE_MS;
+export function pausedLongEnough(idleMs: number): boolean {
+  return idleMs >= PAUSE_MS;
 }

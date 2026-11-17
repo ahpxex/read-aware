@@ -33,7 +33,7 @@ import { contributionText } from "../../features/plugins/lib/plugin-i18n";
 import { isTimeOfDay } from "../../features/plugins/lib/time-of-day";
 import { toPluginRef } from "../../features/plugins/lib/plugin-theme";
 import type { RegisteredPluginFont, RegisteredPluginTheme } from "../../features/plugins/lib/plugin-types";
-import { DEFAULT_THINKING_LEVEL, type AIConfig } from "../../features/ai/lib/ai-config";
+import { DEFAULT_THINKING_LEVEL, THINKING_LEVELS, type AIConfig } from "../../features/ai/lib/ai-config";
 import {
   knownSurfaceItems,
   menuCatalog,
@@ -265,7 +265,7 @@ function writeReading(
 }
 
 function assertThinkingLevel(value: SettingValue): ThinkingLevel {
-  const levels: ThinkingLevel[] = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
+  const levels = THINKING_LEVELS;
   if (typeof value !== "string" || !levels.includes(value as ThinkingLevel)) {
     throw new Error(`unsupported thinking level: ${String(value)}`);
   }
@@ -958,7 +958,7 @@ export function buildSettingDefinitions(draft: SettingsDraft): SettingDefinition
 
   if (!draft.aiConfig) return definitions;
 
-  const thinkingOptions = enumOptions(["off", "minimal", "low", "medium", "high", "xhigh", "max"]);
+  const thinkingOptions = enumOptions([...THINKING_LEVELS]);
   const separateFastModel = Boolean(draft.aiConfig.fastModel && draft.aiConfig.fastModel !== draft.aiConfig.model);
   definitions.push(
     globalDefinition({

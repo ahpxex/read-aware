@@ -332,7 +332,7 @@ export const DEFAULT_MODELS: Record<AIProvider, string> = {
 
 export type { ThinkingLevel };
 
-export const THINKING_LEVELS: ThinkingLevel[] = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
+export { THINKING_LEVELS } from "@read-aware/agent";
 
 // A first-party service contract, not a BYO discovery list.
 export const SUBSCRIPTION_MODELS = READAWARE_MODEL_IDS.map((id) => ({

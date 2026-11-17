@@ -11,6 +11,9 @@ export type ModelRole = "smart" | "fast";
 
 export type { ThinkingLevel };
 
+/** Every thinking level, weakest first: the one list settings, the UI and the eval CLI offer. */
+export const THINKING_LEVELS: readonly ThinkingLevel[] = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
+
 /**
  * 每个档位的 thinking effort。"off" 不发任何 thinking 参数（历史行为）；
  * 其余档位由 pi 按 provider 的 thinkingFormat / thinkingLevelMap 映射，

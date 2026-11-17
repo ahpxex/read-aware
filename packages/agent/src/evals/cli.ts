@@ -1,7 +1,7 @@
 import { qualityGatePassed, qualitySummaryText } from "./reviews";
 import { parseArgs } from "node:util";
 import { resolve } from "node:path";
-import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
+import { THINKING_LEVELS, type ThinkingLevel } from "../models/roles";
 import { accountCredential } from "../models/accounts";
 import { evalProviderRegistry } from "./model-config";
 import { createAgentEvalVariant } from "./agent-harness";
@@ -23,8 +23,6 @@ import { compareTrends, loadTrend, saveTrend, trendFromSummary, trendPath } from
 import type { EvalRunRecord, EvalVariant, JsonObject } from "./types";
 import type { AgentEvalObservation } from "./types";
 import type { AgentEvalScenario } from "./agent-harness";
-
-const THINKING_LEVELS: ThinkingLevel[] = ["off", "minimal", "low", "medium", "high", "xhigh", "max"];
 
 interface CandidateSpec {
   id: string;

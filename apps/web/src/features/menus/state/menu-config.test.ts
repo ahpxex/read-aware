@@ -1,9 +1,15 @@
 import { describe, expect, test } from "bun:test";
 import {
+  canMoveMenuItem,
   clampPrimaryNavVisible,
+  CORE_DESTINATION_IDS,
   CORE_MENU_DEFAULTS,
   CORE_OVERFLOW_DEFAULTS,
+  moveMenuItem,
+  resolveMenuLayouts,
   resolveSurfaceLayout,
+  type MenuCatalog,
+  type MenuConfig,
 } from "./menu-config";
 
 describe("shelf menu placement", () => {
@@ -26,7 +32,7 @@ describe("shelf menu placement", () => {
     const known = [...CORE_MENU_DEFAULTS.shelfHeader, ...CORE_OVERFLOW_DEFAULTS.shelfHeader];
     const layout = resolveSurfaceLayout(saved, known, { defaultOverflowIds: CORE_OVERFLOW_DEFAULTS.shelfHeader });
     expect(layout.visible).toEqual(["core:search", "core:import", "core:settings", "core:viewControl"]);
-    expect(layout.overflow).toEqual(["core:stats", "core:importFolder", "core:annotations"]);
+    expect(layout.overflow).toEqual(["core:stats", "core:importFolder"]);
     // Once the user places it, their choice stands.
     const promoted = resolveSurfaceLayout(
       { visible: [...saved.visible, "core:importFolder"], overflow: ["core:stats"] },
@@ -111,5 +117,191 @@ describe("phone reader toolbar", () => {
     ]);
     expect(layout.visible).toEqual(["core:toc", "core:chat", "core:find", "core:navigator", "core:appearance"]);
     expect(layout.overflow).toEqual(["core:notes", "plugin:tts:speak"]);
+  });
+});
+
+/** The catalog with no plugins beyond two shelf pages — what menuCatalog builds. */
+const PAGES = ["plugin:dictionary:vocabulary", "plugin:rss-reader:feeds"];
+const catalog: MenuCatalog = {
+  known: {
+    primaryNav: [...CORE_DESTINATION_IDS, ...PAGES],
+    shelfHeader: [
+      "core:search",
+      "core:import",
+      "core:importFolder",
+      "core:viewControl",
+      "core:settings",
+      ...CORE_DESTINATION_IDS,
+      ...PAGES,
+    ],
+    readerHeader: CORE_MENU_DEFAULTS.readerHeader,
+    readerToolbar: [...CORE_MENU_DEFAULTS.readerToolbar, ...CORE_OVERFLOW_DEFAULTS.readerToolbar],
+    selection: CORE_MENU_DEFAULTS.selection,
+  },
+  destinations: [...CORE_DESTINATION_IDS, ...PAGES],
+  defaultVisible: {},
+};
+
+const defaults = (): MenuConfig => ({
+  primaryNav: { visible: [...CORE_MENU_DEFAULTS.primaryNav], overflow: [] },
+  shelfHeader: { visible: [...CORE_MENU_DEFAULTS.shelfHeader], overflow: [...CORE_OVERFLOW_DEFAULTS.shelfHeader] },
+  readerHeader: { visible: [...CORE_MENU_DEFAULTS.readerHeader], overflow: [] },
+  readerToolbar: {
+    visible: [...CORE_MENU_DEFAULTS.readerToolbar],
+    overflow: [...CORE_OVERFLOW_DEFAULTS.readerToolbar],
+  },
+  selection: { visible: [...CORE_MENU_DEFAULTS.selection], overflow: [] },
+});
+
+/** Every destination is in exactly one place across the two shared surfaces. */
+function expectEachDestinationOnce(layouts: MenuConfig) {
+  for (const id of catalog.destinations) {
+    const places = [
+      layouts.primaryNav.visible.includes(id),
+      layouts.shelfHeader.visible.includes(id),
+      layouts.shelfHeader.overflow.includes(id),
+    ].filter(Boolean);
+    expect({ id, places: places.length }).toEqual({ id, places: 1 });
+  }
+}
+
+describe("destinations live in one place", () => {
+  test("defaults: Library, Agent and Notes in the navigation; Stats and plugin pages in the shelf header", () => {
+    const layouts = resolveMenuLayouts(defaults(), catalog);
+    expect(layouts.primaryNav.visible).toEqual(["core:library", "core:agent", "core:annotations"]);
+    expect(layouts.shelfHeader.visible).toEqual([
+      "core:search",
+      "core:import",
+      "core:viewControl",
+      "core:stats",
+      "core:settings",
+    ]);
+    expect(layouts.shelfHeader.overflow).toEqual(["core:importFolder", ...PAGES]);
+    // The navigation's second zone is derived: what the shelf header holds.
+    expect(layouts.primaryNav.overflow).toEqual(["core:stats", ...PAGES]);
+    expectEachDestinationOnce(layouts);
+  });
+
+  test("a layout saved with Notes in the old hidden zone shows Notes in More (stored dev config)", () => {
+    const saved: MenuConfig = {
+      ...defaults(),
+      primaryNav: { visible: ["core:library", "core:agent"], overflow: ["core:annotations", "core:stats", ...PAGES] },
+      shelfHeader: {
+        visible: ["core:search", "core:import", "core:viewControl", "core:stats", "core:settings"],
+        overflow: [],
+      },
+    };
+    const layouts = resolveMenuLayouts(saved, catalog);
+    expect(layouts.primaryNav.visible).toEqual(["core:library", "core:agent"]);
+    expect(layouts.shelfHeader.overflow).toEqual(["core:importFolder", "core:annotations", ...PAGES]);
+    expectEachDestinationOnce(layouts);
+  });
+
+  test("a stored layout listing a destination on both surfaces resolves with the navigation winning", () => {
+    const saved: MenuConfig = {
+      ...defaults(),
+      primaryNav: { visible: ["core:library", "core:stats"], overflow: [] },
+      shelfHeader: { visible: ["core:search", "core:stats", "core:library"], overflow: [] },
+    };
+    const layouts = resolveMenuLayouts(saved, catalog);
+    expect(layouts.primaryNav.visible).toEqual(["core:library", "core:stats"]);
+    expect(layouts.shelfHeader.visible).not.toContain("core:stats");
+    expect(layouts.shelfHeader.visible).not.toContain("core:library");
+    expectEachDestinationOnce(layouts);
+  });
+
+  test("dragging Notes from the navigation into More moves it, and back again", () => {
+    const out = moveMenuItem(
+      defaults(),
+      catalog,
+      { surface: "primaryNav", id: "core:annotations" },
+      { surface: "shelfHeader", zone: "overflow", beforeId: null },
+    );
+    if (!out?.ok) throw new Error("expected the move to apply");
+    const moved = resolveMenuLayouts(out.config, catalog);
+    expect(moved.primaryNav.visible).toEqual(["core:library", "core:agent"]);
+    expect(moved.shelfHeader.overflow.at(-1)).toBe("core:annotations");
+    expectEachDestinationOnce(moved);
+
+    const back = moveMenuItem(
+      out.config,
+      catalog,
+      { surface: "shelfHeader", id: "core:annotations" },
+      { surface: "primaryNav", zone: "visible", beforeId: "core:agent" },
+    );
+    if (!back?.ok) throw new Error("expected the move to apply");
+    const restored = resolveMenuLayouts(back.config, catalog);
+    expect(restored.primaryNav.visible).toEqual(["core:library", "core:annotations", "core:agent"]);
+    expect([...restored.shelfHeader.visible, ...restored.shelfHeader.overflow]).not.toContain("core:annotations");
+    // The stored shelf layout no longer carries it either.
+    expect([...back.config.shelfHeader.visible, ...back.config.shelfHeader.overflow]).not.toContain("core:annotations");
+    expectEachDestinationOnce(restored);
+  });
+
+  test("promoting the shelf's inline Stats icon into the navigation removes the icon", () => {
+    const out = moveMenuItem(
+      defaults(),
+      catalog,
+      { surface: "shelfHeader", id: "core:stats" },
+      { surface: "primaryNav", zone: "visible", beforeId: null },
+    );
+    if (!out?.ok) throw new Error("expected the move to apply");
+    const layouts = resolveMenuLayouts(out.config, catalog);
+    expect(layouts.primaryNav.visible.at(-1)).toBe("core:stats");
+    expect(layouts.shelfHeader.visible).not.toContain("core:stats");
+    expectEachDestinationOnce(layouts);
+  });
+
+  test("the navigation's limits hold whichever side the move comes from", () => {
+    const full: MenuConfig = {
+      ...defaults(),
+      primaryNav: { visible: ["core:library", "core:agent", "core:annotations", PAGES[0]], overflow: [] },
+    };
+    const fifth = moveMenuItem(
+      full,
+      catalog,
+      { surface: "shelfHeader", id: "core:stats" },
+      { surface: "primaryNav", zone: "visible", beforeId: null },
+    );
+    expect(fifth).toEqual({ ok: false, error: { surface: "primaryNav", rule: "maxVisible", limit: 4 } });
+
+    const lone: MenuConfig = { ...defaults(), primaryNav: { visible: ["core:library"], overflow: [] } };
+    const empty = moveMenuItem(
+      lone,
+      catalog,
+      { surface: "primaryNav", id: "core:library" },
+      { surface: "shelfHeader", zone: "visible", beforeId: null },
+    );
+    expect(empty).toEqual({ ok: false, error: { surface: "primaryNav", rule: "minVisible", limit: 1 } });
+  });
+
+  test("only destinations cross surfaces, and the navigation has no hidden zone to drop into", () => {
+    expect(
+      canMoveMenuItem(
+        catalog,
+        { surface: "shelfHeader", id: "core:search" },
+        { surface: "primaryNav", zone: "visible", beforeId: null },
+      ),
+    ).toBe(false);
+    expect(
+      canMoveMenuItem(
+        catalog,
+        { surface: "readerHeader", id: "core:find" },
+        { surface: "readerToolbar", zone: "visible", beforeId: null },
+      ),
+    ).toBe(false);
+    expect(
+      canMoveMenuItem(
+        catalog,
+        { surface: "primaryNav", id: "core:agent" },
+        { surface: "primaryNav", zone: "overflow", beforeId: null },
+      ),
+    ).toBe(false);
+  });
+
+  test("items shared by the reader header and toolbar are not destinations and stay on both", () => {
+    const layouts = resolveMenuLayouts(defaults(), catalog);
+    expect(layouts.readerHeader.visible).toContain("core:find");
+    expect(layouts.readerToolbar.visible).toContain("core:find");
   });
 });

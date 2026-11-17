@@ -2,9 +2,9 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { useTranslation } from "../../../i18n";
 import type { MenuSurface } from "../state/menu-config";
 import { CORE_MENU_DEFAULTS, CORE_OVERFLOW_DEFAULTS } from "../state/menu-config";
-import { CORE_MENU_ITEMS, coreMenuMeta } from "./menu-registry";
+import { CORE_DESTINATIONS, CORE_MENU_ITEMS, coreMenuMeta } from "./menu-registry";
 
-const SURFACES: MenuSurface[] = ["primaryNav", "shelfHeader", "readerHeader", "selection"];
+const SURFACES: MenuSurface[] = ["shelfHeader", "readerHeader", "readerToolbar", "selection"];
 
 /**
  * The core menu registry — every built-in item a customizable surface can
@@ -21,6 +21,34 @@ const meta = {
 
 export default meta;
 type Story = StoryObj<typeof meta>;
+
+/** The built-in destinations and where each starts: the primary navigation
+ *  or the shelf header — one place, never both. */
+function DestinationTable() {
+  const { t } = useTranslation("nav");
+  const { t: tSettings } = useTranslation("settings");
+  return (
+    <div>
+      <h3 className="font-serif text-lg text-fg">{tSettings("menus.surface.primaryNav")}</h3>
+      <div className="mt-3 flex flex-col">
+        {CORE_DESTINATIONS.map((destination) => (
+          <div key={destination.id} className="flex items-center gap-3 border-t border-border py-2 first:border-t-0">
+            <span className="text-fg-muted">
+              <destination.Icon size={16} weight="regular" aria-hidden="true" />
+            </span>
+            <span className="min-w-0 flex-1 text-sm text-fg">{t(`header.${destination.labelKey}`)}</span>
+            <code className="text-[11px] text-fg-subtle">{destination.id}</code>
+            <span className="w-28 text-right text-xs text-fg-subtle">
+              {CORE_MENU_DEFAULTS.primaryNav.includes(destination.id)
+                ? tSettings("menus.surface.primaryNav")
+                : tSettings("menus.surface.shelfHeader")}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function SurfaceTable({ surface }: { surface: MenuSurface }) {
   const { t } = useTranslation("settings");
@@ -54,6 +82,7 @@ function SurfaceTable({ surface }: { surface: MenuSurface }) {
 export const AllSurfaces: Story = {
   render: () => (
     <div className="mx-auto flex max-w-2xl flex-col gap-8">
+      <DestinationTable />
       {SURFACES.map((surface) => (
         <SurfaceTable key={surface} surface={surface} />
       ))}
@@ -61,11 +90,11 @@ export const AllSurfaces: Story = {
   ),
 };
 
-/** The primary navigation on its own — destinations only, never actions. */
-export const PrimaryNav: Story = {
+/** The destinations on their own — pages, never actions. */
+export const Destinations: Story = {
   render: () => (
     <div className="mx-auto max-w-2xl">
-      <SurfaceTable surface="primaryNav" />
+      <DestinationTable />
     </div>
   ),
 };
@@ -87,9 +116,10 @@ export const Selection: Story = {
 export const LookupMisses: Story = {
   render: () => {
     const probes: [MenuSurface, string][] = [
-      ["primaryNav", "core:library"],
-      ["primaryNav", "core:search"],
       ["shelfHeader", "core:search"],
+      ["readerHeader", "core:search"],
+      // Destinations are not per-surface actions: see CORE_DESTINATIONS.
+      ["shelfHeader", "core:stats"],
       ["shelfHeader", "core:removed-long-ago"],
     ];
     return (

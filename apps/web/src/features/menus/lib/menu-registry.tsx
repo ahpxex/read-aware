@@ -4,8 +4,9 @@
  * rendering (tooltips, active states, popovers); this registry is how the
  * editor and overflow name them.
  *
- * Labels live under settings:menus.items.<name> so the editor is
- * self-contained instead of hunting keys across namespaces.
+ * Action labels live under settings:menus.items.<name>. Destinations are
+ * named once, by the navigation (nav:header.<name>), wherever they appear —
+ * the bar, the shelf header, its "More" menu and the editor.
  */
 import {
   BookmarkSimple,
@@ -28,7 +29,8 @@ import {
   TextUnderline,
   type Icon,
 } from "@phosphor-icons/react";
-import type { MenuSurface } from "../state/menu-config";
+import type { TopNav } from "../../../state/ui";
+import { CORE_DESTINATION_IDS, type MenuSurface } from "../state/menu-config";
 
 export type CoreMenuItemMeta = {
   id: string;
@@ -37,14 +39,31 @@ export type CoreMenuItemMeta = {
   Icon: Icon;
 };
 
+export type CoreDestinationMeta = {
+  id: (typeof CORE_DESTINATION_IDS)[number];
+  topNav: TopNav;
+  /** nav:header.<labelKey> */
+  labelKey: "library" | "agent" | "annotations" | "stats";
+  Icon: Icon;
+};
+
+/** The built-in destinations, in CORE_DESTINATION_IDS order. Each is placed
+ *  in the primary navigation or the shelf header, never both. */
+export const CORE_DESTINATIONS: CoreDestinationMeta[] = [
+  { id: "core:library", topNav: "shelf", labelKey: "library", Icon: Books },
+  { id: "core:agent", topNav: "agent", labelKey: "agent", Icon: ChatCircleDots },
+  { id: "core:annotations", topNav: "annotations", labelKey: "annotations", Icon: Notebook },
+  { id: "core:stats", topNav: "stats", labelKey: "stats", Icon: ChartLineUp },
+];
+
+export function coreDestination(id: string): CoreDestinationMeta | undefined {
+  return CORE_DESTINATIONS.find((destination) => destination.id === id);
+}
+
+/** The built-in ACTIONS per surface. Destinations are listed once, above;
+ *  the catalog offers them to the primary navigation and the shelf header. */
 export const CORE_MENU_ITEMS: Record<MenuSurface, CoreMenuItemMeta[]> = {
-  // Destinations only (pages the app can land on) — actions never belong here.
-  primaryNav: [
-    { id: "core:library", labelKey: "library", Icon: Books },
-    { id: "core:agent", labelKey: "agent", Icon: ChatCircleDots },
-    { id: "core:annotations", labelKey: "annotations", Icon: Notebook },
-    { id: "core:stats", labelKey: "stats", Icon: ChartLineUp },
-  ],
+  primaryNav: [],
   shelfHeader: [
     { id: "core:search", labelKey: "search", Icon: MagnifyingGlass },
     { id: "core:import", labelKey: "import", Icon: Plus },
@@ -54,8 +73,6 @@ export const CORE_MENU_ITEMS: Record<MenuSurface, CoreMenuItemMeta[]> = {
       labelKey: "viewControl",
       Icon: SlidersHorizontal,
     },
-    { id: "core:stats", labelKey: "stats", Icon: ChartLineUp },
-    { id: "core:annotations", labelKey: "annotations", Icon: Notebook },
     { id: "core:settings", labelKey: "settings", Icon: GearSix },
   ],
   readerHeader: [

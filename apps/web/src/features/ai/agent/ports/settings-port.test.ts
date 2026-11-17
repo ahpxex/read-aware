@@ -470,10 +470,11 @@ describe("agent menu settings", () => {
     ]);
 
     expect(result.changed).toHaveLength(1);
-    const layout = store.get(menuConfigAtom).primaryNav;
-    expect(layout.visible).toEqual(["core:library", "core:agent"]);
-    // The hidden destination lands in overflow instead of limbo.
-    expect(layout.overflow).toContain("plugin:dictionary:vocabulary");
+    expect(store.get(menuConfigAtom).primaryNav.visible).toEqual(["core:library", "core:agent"]);
+    // The hidden destination moves to the shelf header's More menu instead of limbo.
+    const snapshot = await port.getSettings({ section: "menus" });
+    expect(setting(snapshot.settings, "menus.shelfHeader.overflow").value).toContain("plugin:dictionary:vocabulary");
+    expect(setting(snapshot.settings, "menus.primaryNav.overflow").value).toContain("plugin:dictionary:vocabulary");
   });
 
   test("enforces the primary navigation surface rules", async () => {
@@ -496,6 +497,33 @@ describe("agent menu settings", () => {
         },
       ]),
     ).rejects.toThrow(/fewer than 1/);
+  });
+
+  test("placing a destination in the shelf header takes it out of the primary navigation", async () => {
+    const store = getDefaultStore();
+    const port = createSettingsPort();
+    const before = await port.getSettings({ section: "menus" });
+    const shelfOverflow = setting(before.settings, "menus.shelfHeader.overflow").value as string[];
+
+    await port.updateSettings([{ path: "menus.shelfHeader.overflow", value: [...shelfOverflow, "core:annotations"] }]);
+
+    expect(store.get(menuConfigAtom).primaryNav.visible).toEqual(["core:library", "core:agent"]);
+    const after = await port.getSettings({ section: "menus" });
+    expect(setting(after.settings, "menus.primaryNav.visible").value).toEqual(["core:library", "core:agent"]);
+    expect(setting(after.settings, "menus.shelfHeader.overflow").value).toContain("core:annotations");
+  });
+
+  test("refuses a shelf placement that would empty the primary navigation", async () => {
+    const store = getDefaultStore();
+    store.set(menuConfigAtom, {
+      ...store.get(menuConfigAtom),
+      primaryNav: { visible: ["core:library"], overflow: [] },
+    });
+    const port = createSettingsPort();
+    await expect(
+      port.updateSettings([{ path: "menus.shelfHeader.overflow", value: ["core:importFolder", "core:library"] }]),
+    ).rejects.toThrow(/fewer than 1 visible item\(s\) in the primary navigation/);
+    expect(store.get(menuConfigAtom).primaryNav.visible).toEqual(["core:library"]);
   });
 });
 

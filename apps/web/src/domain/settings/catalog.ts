@@ -36,10 +36,17 @@ import type { RegisteredPluginFont, RegisteredPluginTheme } from "../../features
 import { DEFAULT_THINKING_LEVEL, type AIConfig } from "../../features/ai/lib/ai-config";
 import {
   knownSurfaceItems,
+  menuCatalog,
   resolvedSurfaceLayout,
   type MenuPluginState,
-} from "../../features/menus/lib/agent-menu-items";
-import { SURFACE_RULES, type MenuConfig, type MenuSurface } from "../../features/menus/state/menu-config";
+} from "../../features/menus/lib/menu-catalog";
+import {
+  arrangeSurface,
+  SURFACE_RULES,
+  type MenuArrangementError,
+  type MenuConfig,
+  type MenuSurface,
+} from "../../features/menus/state/menu-config";
 import type { AgentPluginSettings } from "../../features/plugins/lib/plugin-settings";
 import type { ContentTypographySettings } from "../../features/settings/lib/content-typography";
 import type { UpdateChannel } from "../../features/update/lib/update-channel";
@@ -475,13 +482,21 @@ const MENU_SURFACES: Array<{
   surface: MenuSurface;
   label: string;
   description?: string;
+  overflowDescription?: string;
 }> = [
   {
     surface: "primaryNav",
     label: "Primary navigation",
-    description: "The centered destination switcher; 1–4 visible destinations, in order",
+    description:
+      "The centered destination switcher; 1–4 visible destinations, in order. Each destination (page) is in the primary navigation or in the shelf header, never both",
+    overflowDescription:
+      "The destinations not in the primary navigation — they live in the shelf header. Listing one here moves it there (to its overflow menu unless already placed)",
   },
-  { surface: "shelfHeader", label: "Shelf header" },
+  {
+    surface: "shelfHeader",
+    label: "Shelf header",
+    description: "Placing a destination (page) here takes it out of the primary navigation",
+  },
   { surface: "readerHeader", label: "Reader header" },
   {
     surface: "readerToolbar",
@@ -502,6 +517,13 @@ function menuListValue(path: string, value: SettingValue): string[] {
   return value;
 }
 
+function describeArrangementError(path: string, error: MenuArrangementError): string {
+  const surface = error.surface === "primaryNav" ? "the primary navigation" : `menus.${error.surface}`;
+  return error.rule === "minVisible"
+    ? `${path} would leave fewer than ${error.limit} visible item(s) in ${surface}`
+    : `${path} would exceed ${error.limit} visible items in ${surface}`;
+}
+
 function menuListDefinition(
   surface: MenuSurface,
   zone: "visible" | "overflow",
@@ -512,7 +534,12 @@ function menuListDefinition(
   return {
     path,
     section: "menus",
-    label: zone === "visible" ? `${surfaceLabel} — shown` : `${surfaceLabel} — overflow menu`,
+    label:
+      zone === "visible"
+        ? `${surfaceLabel} — shown`
+        : surface === "primaryNav"
+          ? `${surfaceLabel} — not shown (in the shelf header)`
+          : `${surfaceLabel} — overflow menu`,
     ...(description ? { description } : {}),
     kind: "id-list",
     options: (draft) =>
@@ -556,20 +583,17 @@ function menuListDefinition(
         ...current[sibling].filter((id) => !ids.includes(id)),
         ...evicted.filter((id) => !current[sibling].includes(id)),
       ];
-      // The move can reshape BOTH zones — re-check the surface invariants on
-      // the resulting visible list, whichever zone was written.
-      const nextVisible = zone === "visible" ? ids : siblingIds;
-      const rules = SURFACE_RULES[surface];
-      if (nextVisible.length < rules.minVisible) {
-        throw new Error(`${path} would leave fewer than ${rules.minVisible} visible item(s)`);
-      }
-      if (rules.maxVisible !== null && nextVisible.length > rules.maxVisible) {
-        throw new Error(`${path} would exceed ${rules.maxVisible} visible items`);
-      }
-      draft.menus.config = {
-        ...draft.menus.config,
-        [surface]: zone === "visible" ? { visible: ids, overflow: siblingIds } : { visible: siblingIds, overflow: ids },
-      };
+      // The move can reshape BOTH zones, and a destination placed on one
+      // shared surface leaves the other — arrangeSurface re-checks the rules
+      // of every surface it touches.
+      const arrangement = arrangeSurface(
+        draft.menus.config,
+        menuCatalog(draft.menus.plugins),
+        surface,
+        zone === "visible" ? { visible: ids, overflow: siblingIds } : { visible: siblingIds, overflow: ids },
+      );
+      if (!arrangement.ok) throw new Error(describeArrangementError(path, arrangement.error));
+      draft.menus.config = arrangement.config;
     },
   };
 }
@@ -918,10 +942,10 @@ export function buildSettingDefinitions(draft: SettingsDraft): SettingDefinition
     }),
   ];
 
-  for (const { surface, label, description } of MENU_SURFACES) {
+  for (const { surface, label, description, overflowDescription } of MENU_SURFACES) {
     definitions.push(
       menuListDefinition(surface, "visible", label, description),
-      menuListDefinition(surface, "overflow", label),
+      menuListDefinition(surface, "overflow", label, overflowDescription),
     );
   }
 

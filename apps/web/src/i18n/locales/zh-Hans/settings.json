@@ -786,6 +786,7 @@
     "shown": "显示",
     "overflow": "更多菜单",
     "reset": "恢复默认",
+    "primaryNavHint": "每个页面只出现在一处：这里或书架顶栏。把页面拖到书架顶栏，它就会从主导航移出。",
     "dragHint": "拖动可排序或在区域间移动。挂件类条目固定内联显示。",
     "surface": {
       "primaryNav": "主导航",
@@ -795,13 +796,9 @@
       "selection": "选区菜单"
     },
     "items": {
-      "library": "书架",
-      "agent": "智能助理",
-      "annotations": "笔记",
       "search": "搜索",
       "import": "导入书籍",
       "viewControl": "书架视图",
-      "stats": "阅读统计",
       "settings": "设置",
       "toc": "目录",
       "notes": "笔记",

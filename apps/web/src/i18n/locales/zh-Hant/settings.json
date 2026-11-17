@@ -695,6 +695,7 @@
     "shown": "顯示",
     "overflow": "更多選單",
     "reset": "恢復預設",
+    "primaryNavHint": "每個頁面只出現在一處：這裡或書架頂欄。把頁面拖到書架頂欄，它就會從主導覽移出。",
     "dragHint": "拖曳可排序或在區域間移動。小工具類項目固定內聯顯示。",
     "surface": {
       "primaryNav": "主導覽",
@@ -704,13 +705,9 @@
       "selection": "選取選單"
     },
     "items": {
-      "library": "書架",
-      "agent": "智慧助理",
-      "annotations": "筆記",
       "search": "搜尋",
       "import": "匯入書籍",
       "viewControl": "書架檢視",
-      "stats": "閱讀統計",
       "settings": "設定",
       "toc": "目錄",
       "notes": "筆記",

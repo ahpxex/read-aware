@@ -695,6 +695,7 @@
     "shown": "表示",
     "overflow": "オーバーフローメニュー",
     "reset": "デフォルトに戻す",
+    "primaryNavHint": "各ページは一か所にだけ表示されます（ここか本棚ヘッダー）。ページを本棚ヘッダーへドラッグすると、メインナビゲーションから外れます。",
     "dragHint": "ドラッグで並べ替え・移動。ウィジェット項目はインライン固定です。",
     "surface": {
       "primaryNav": "メインナビゲーション",
@@ -704,13 +705,9 @@
       "selection": "選択メニュー"
     },
     "items": {
-      "library": "ライブラリ",
-      "agent": "エージェント",
-      "annotations": "メモ",
       "search": "検索",
       "import": "書籍を追加",
       "viewControl": "本棚ビュー",
-      "stats": "読書統計",
       "settings": "設定",
       "toc": "目次",
       "notes": "ノート",

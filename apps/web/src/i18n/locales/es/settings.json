@@ -695,6 +695,7 @@
     "shown": "Mostrados",
     "overflow": "Menú de desbordamiento",
     "reset": "Restablecer",
+    "primaryNavHint": "Cada página aparece en un solo lugar: aquí o en la barra de la estantería. Arrastra una página a la barra de la estantería para quitarla de la navegación.",
     "dragHint": "Arrastra para reordenar o mover. Los widgets quedan en línea.",
     "surface": {
       "primaryNav": "Navegación principal",
@@ -704,13 +705,9 @@
       "selection": "Menú de selección"
     },
     "items": {
-      "library": "Biblioteca",
-      "agent": "Agente",
-      "annotations": "Notas",
       "search": "Buscar",
       "import": "Importar",
       "viewControl": "Vista",
-      "stats": "Estadísticas",
       "settings": "Ajustes",
       "toc": "Índice",
       "notes": "Notas",

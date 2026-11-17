@@ -10,3 +10,11 @@ export { HeaderFooterEditor, HeaderFooterEnabledToggle } from "./components/Head
 // Settings → Menus offers, and the phone reader follows, the toolbar's placement.
 export { ReaderToolbarPlacementChoice } from "./components/ReaderToolbarPlacementChoice";
 export { readerToolbarPlacementAtom, type ReaderToolbarPlacement } from "./state/reader-toolbar-placement";
+
+// The app header renders the primary navigation and the shelf header from
+// the resolved layouts, and shares the generic dots menu.
+export { MenuOverflow, type MenuOverflowEntry } from "./components/MenuOverflow";
+export { useMenuCatalog, useMenuLayouts } from "./hooks/useMenuLayouts";
+export { isPluginPage } from "./lib/menu-catalog";
+export { CORE_DESTINATIONS, coreDestination, type CoreDestinationMeta } from "./lib/menu-registry";
+export { pluginMenuId } from "./state/menu-config";

@@ -786,6 +786,7 @@
     "shown": "Shown",
     "overflow": "Overflow menu",
     "reset": "Reset to defaults",
+    "primaryNavHint": "Each page appears in one place: here or in the shelf header. Drag a page into the shelf header to take it out of the navigation.",
     "dragHint": "Drag to reorder or move between zones. Widget items stay inline.",
     "surface": {
       "primaryNav": "Primary navigation",
@@ -795,13 +796,9 @@
       "selection": "Selection menu"
     },
     "items": {
-      "library": "Library",
-      "agent": "Agent",
-      "annotations": "Notes",
       "search": "Search",
       "import": "Import book",
       "viewControl": "Shelf view",
-      "stats": "Reading stats",
       "settings": "Settings",
       "toc": "Table of contents",
       "notes": "Notes",

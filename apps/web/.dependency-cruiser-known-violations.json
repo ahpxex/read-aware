@@ -1053,7 +1053,7 @@
   },
   {
     "type": "dependency",
-    "from": "src/features/menus/components/MenuSurfaceEditor.tsx",
+    "from": "src/features/menus/lib/menu-catalog.ts",
     "to": "src/features/plugins/lib/plugin-i18n.ts",
     "unresolvedTo": "../../plugins/lib/plugin-i18n",
     "dependencyTypes": [
@@ -1067,222 +1067,12 @@
   },
   {
     "type": "dependency",
-    "from": "src/features/menus/components/MenuSurfaceEditor.tsx",
-    "to": "src/features/plugins/lib/plugin-icons.tsx",
-    "unresolvedTo": "../../plugins/lib/plugin-icons",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/menus/components/MenuSurfaceEditor.tsx",
-    "to": "src/features/plugins/state/plugin-store.ts",
-    "unresolvedTo": "../../plugins/state/plugin-store",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/menus/lib/agent-menu-items.ts",
-    "to": "src/features/plugins/lib/plugin-i18n.ts",
-    "unresolvedTo": "../../plugins/lib/plugin-i18n",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/menus/lib/agent-menu-items.ts",
+    "from": "src/features/menus/lib/menu-catalog.ts",
     "to": "src/features/plugins/lib/plugin-types.ts",
     "unresolvedTo": "../../plugins/lib/plugin-types",
     "dependencyTypes": [
       "local",
       "type-only",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/navigation/components/AppHeader.tsx",
-    "to": "src/features/menus/components/MenuOverflow.tsx",
-    "unresolvedTo": "../../menus/components/MenuOverflow",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/navigation/components/AppHeader.tsx",
-    "to": "src/features/menus/lib/menu-registry.tsx",
-    "unresolvedTo": "../../menus/lib/menu-registry",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/navigation/components/AppHeader.tsx",
-    "to": "src/features/menus/state/menu-config.ts",
-    "unresolvedTo": "../../menus/state/menu-config",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/navigation/components/AppHeader.tsx",
-    "to": "src/features/plugins/components/PluginHeaderCluster.tsx",
-    "unresolvedTo": "../../plugins/components/PluginHeaderCluster",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/navigation/components/AppHeader.tsx",
-    "to": "src/features/plugins/lib/open-header-action.ts",
-    "unresolvedTo": "../../plugins/lib/open-header-action",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/navigation/components/AppHeader.tsx",
-    "to": "src/features/plugins/lib/plugin-i18n.ts",
-    "unresolvedTo": "../../plugins/lib/plugin-i18n",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/navigation/components/AppHeader.tsx",
-    "to": "src/features/plugins/lib/plugin-icons.tsx",
-    "unresolvedTo": "../../plugins/lib/plugin-icons",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/navigation/components/AppHeader.tsx",
-    "to": "src/features/plugins/state/plugin-store.ts",
-    "unresolvedTo": "../../plugins/state/plugin-store",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/navigation/hooks/usePrimaryDestinations.ts",
-    "to": "src/features/menus/lib/menu-registry.tsx",
-    "unresolvedTo": "../../menus/lib/menu-registry",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/navigation/hooks/usePrimaryDestinations.ts",
-    "to": "src/features/menus/state/menu-config.ts",
-    "unresolvedTo": "../../menus/state/menu-config",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/navigation/hooks/usePrimaryDestinations.ts",
-    "to": "src/features/plugins/lib/plugin-i18n.ts",
-    "unresolvedTo": "../../plugins/lib/plugin-i18n",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "features-via-public-index"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/navigation/hooks/usePrimaryDestinations.ts",
-    "to": "src/features/plugins/state/plugin-store.ts",
-    "unresolvedTo": "../../plugins/state/plugin-store",
-    "dependencyTypes": [
-      "local",
       "import"
     ],
     "rule": {
@@ -6037,8 +5827,8 @@
   {
     "type": "dependency",
     "from": "src/domain/settings/catalog.ts",
-    "to": "src/features/menus/lib/agent-menu-items.ts",
-    "unresolvedTo": "../../features/menus/lib/agent-menu-items",
+    "to": "src/features/menus/lib/menu-catalog.ts",
+    "unresolvedTo": "../../features/menus/lib/menu-catalog",
     "dependencyTypes": [
       "local",
       "import"

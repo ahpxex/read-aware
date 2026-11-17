@@ -695,6 +695,7 @@
     "shown": "Affichés",
     "overflow": "Menu de dépassement",
     "reset": "Rétablir",
+    "primaryNavHint": "Chaque page n’apparaît qu’à un seul endroit : ici ou dans la barre de la bibliothèque. Faites glisser une page dans la barre de la bibliothèque pour la retirer de la navigation.",
     "dragHint": "Glissez pour réordonner ou déplacer. Les widgets restent en ligne.",
     "surface": {
       "primaryNav": "Navigation principale",
@@ -704,13 +705,9 @@
       "selection": "Menu de sélection"
     },
     "items": {
-      "library": "Bibliothèque",
-      "agent": "Agent",
-      "annotations": "Notes",
       "search": "Rechercher",
       "import": "Importer",
       "viewControl": "Vue",
-      "stats": "Statistiques",
       "settings": "Réglages",
       "toc": "Sommaire",
       "notes": "Notes",

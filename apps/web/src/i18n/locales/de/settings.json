@@ -695,6 +695,7 @@
     "shown": "Sichtbar",
     "overflow": "Überlaufmenü",
     "reset": "Zurücksetzen",
+    "primaryNavHint": "Jede Seite erscheint nur an einer Stelle: hier oder in der Regal-Kopfleiste. Zieh eine Seite in die Regal-Kopfleiste, um sie aus der Hauptnavigation zu nehmen.",
     "dragHint": "Ziehen zum Ordnen oder Verschieben. Widgets bleiben inline.",
     "surface": {
       "primaryNav": "Hauptnavigation",
@@ -704,13 +705,9 @@
       "selection": "Auswahlmenü"
     },
     "items": {
-      "library": "Bibliothek",
-      "agent": "Agent",
-      "annotations": "Notizen",
       "search": "Suche",
       "import": "Importieren",
       "viewControl": "Ansicht",
-      "stats": "Statistik",
       "settings": "Einstellungen",
       "toc": "Inhalt",
       "notes": "Notizen",

@@ -1,65 +1,18 @@
 /**
- * Resolves the user-arranged `primaryNav` layout into renderable destinations:
- * built-in surfaces (Library, Agent, Highlights & notes, Reading stats) plus shelf plugin page
- * contributions. The centered switcher renders exactly this list, and the
- * header's back-button reachability guard keys off it.
+ * The primary navigation's destinations, in the user's order, as the
+ * centered switcher renders them. The header's back-button reachability
+ * guard keys off this list too.
  */
-import { useAtomValue } from "jotai";
-import { useTranslation } from "../../../i18n";
-import type { TopNav } from "../../../state/ui";
-import { CORE_MENU_ITEMS } from "../../menus/lib/menu-registry";
-import {
-  clampPrimaryNavVisible,
-  CORE_OVERFLOW_DEFAULTS,
-  menuConfigAtom,
-  pluginMenuId,
-  resolveSurfaceLayout,
-} from "../../menus/state/menu-config";
-import { contributionText } from "../../plugins/lib/plugin-i18n";
-import { headerActionsAtom } from "../../plugins/state/plugin-store";
+import { useMenuLayouts } from "../../menus";
+import { useDestination, type Destination } from "./useDestination";
 
-export type PrimaryDestination = {
-  id: string;
-  topNav: TopNav;
-  label: string;
-};
-
-const CORE_TOP_NAV: Record<string, TopNav> = {
-  "core:library": "shelf",
-  "core:agent": "agent",
-  "core:annotations": "annotations",
-  "core:stats": "stats",
-};
+export type PrimaryDestination = Pick<Destination, "id" | "topNav" | "label">;
 
 export function usePrimaryDestinations(): PrimaryDestination[] {
-  const { t } = useTranslation("nav");
-  const menuConfig = useAtomValue(menuConfigAtom);
-  const pageActions = useAtomValue(headerActionsAtom).filter(
-    (action) => action.surface === "shelf" && action.presentation === "page",
-  );
-
-  const layout = resolveSurfaceLayout(
-    menuConfig.primaryNav,
-    [...CORE_MENU_ITEMS.primaryNav.map((item) => item.id), ...pageActions.map((action) => pluginMenuId(action.key))],
-    { defaultOverflowIds: CORE_OVERFLOW_DEFAULTS.primaryNav },
-  );
-  const coreLabels: Record<string, string> = {
-    "core:library": t("header.library"),
-    "core:agent": t("header.agent"),
-    "core:annotations": t("header.annotations"),
-    "core:stats": t("header.stats"),
-  };
-
-  return clampPrimaryNavVisible(layout.visible)
-    .map((id): PrimaryDestination | null => {
-      if (id.startsWith("plugin:")) {
-        const action = pageActions.find((entry) => pluginMenuId(entry.key) === id);
-        // pluginMenuId(key) and the plugin TopNav share the `plugin:<key>` shape.
-        if (!action) return null;
-        return { id, topNav: id as TopNav, label: contributionText(action.title) };
-      }
-      const topNav = CORE_TOP_NAV[id];
-      return topNav ? { id, topNav, label: coreLabels[id] } : null;
-    })
-    .filter((destination): destination is PrimaryDestination => destination !== null);
+  const layouts = useMenuLayouts();
+  const describe = useDestination();
+  return layouts.primaryNav.visible
+    .map(describe)
+    .filter((destination): destination is Destination => destination !== null)
+    .map(({ id, topNav, label }) => ({ id, topNav, label }));
 }

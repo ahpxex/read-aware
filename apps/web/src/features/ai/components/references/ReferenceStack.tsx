@@ -74,7 +74,7 @@ function useStackCollapse(total: number): { visible: number; expander: ReactNode
     <button
       type="button"
       onClick={() => setExpanded((value) => !value)}
-      className="flex items-center gap-1.5 self-start rounded-sm px-1 py-0.5 text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
+      className="flex items-center gap-1.5 self-start rounded-control px-1 py-0.5 text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
     >
       {expanded ? <CaretUp size={11} aria-hidden="true" /> : <CaretDown size={11} aria-hidden="true" />}
       <Caption>{expanded ? t("chat.references.showFewer") : t("chat.references.showAll", { count: total })}</Caption>

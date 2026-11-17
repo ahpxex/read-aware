@@ -70,7 +70,7 @@ export function DictionaryEntryBody({ entry }: { entry: DictionaryEntrySnapshot 
       ))}
 
       {entry.contextualMeaning && (
-        <div className="flex flex-col gap-1 rounded-md bg-fill p-3">
+        <div className="flex flex-col gap-1 rounded-control bg-fill p-3">
           <Eyebrow className="text-fg-subtle">{t("dictionary.contextLabel")}</Eyebrow>
           <Body className="text-sm leading-relaxed text-fg">{inlineEmphasis(entry.contextualMeaning)}</Body>
         </div>

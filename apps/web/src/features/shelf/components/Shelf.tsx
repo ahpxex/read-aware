@@ -35,8 +35,8 @@ type SectionBodyProps = {
 function PendingBookPlaceholder({ layout }: { layout: ShelfLayout }) {
   if (layout === "list") {
     return (
-      <div aria-hidden="true" className="flex items-center gap-4 rounded-sm px-2 py-2">
-        <Skeleton variant="rectangular" className="h-16 w-11 shrink-0 rounded-sm" />
+      <div aria-hidden="true" className="flex items-center gap-4 rounded-control px-2 py-2">
+        <Skeleton variant="rectangular" className="h-16 w-11 shrink-0 rounded-mark" />
         <div className="min-w-0 flex-1 space-y-2">
           <Skeleton variant="text" className="w-1/3" />
           <Skeleton variant="text" className="w-1/5" />
@@ -47,7 +47,7 @@ function PendingBookPlaceholder({ layout }: { layout: ShelfLayout }) {
 
   return (
     <div aria-hidden="true" className="w-full max-w-32 justify-self-start space-y-2.5 sm:max-w-36 lg:max-w-44">
-      <Skeleton variant="rectangular" className="aspect-[2/3] w-full rounded-sm" />
+      <Skeleton variant="rectangular" className="aspect-[2/3] w-full rounded-mark" />
       <Skeleton variant="text" className="w-3/4" />
     </div>
   );

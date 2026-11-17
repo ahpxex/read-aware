@@ -75,7 +75,7 @@ export function ReaderFootnotePopover({
         role="dialog"
         tabIndex={foreground ? -1 : undefined}
         aria-label={label}
-        className="absolute flex max-h-[min(45vh,22rem)] w-[min(24rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-lg border border-border bg-[var(--ra-main-surface-color)] shadow-[0_8px_28px_-8px_rgba(28,25,23,0.32)]"
+        className="absolute flex max-h-[min(45vh,22rem)] w-[min(24rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-surface border border-border bg-[var(--ra-main-surface-color)] shadow-[0_8px_28px_-8px_rgba(28,25,23,0.32)]"
         style={position}
       >
         <div className="min-h-0 overflow-y-auto py-3 pl-3.5 pr-9">

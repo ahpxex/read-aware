@@ -285,7 +285,7 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
         <div className="mt-4 space-y-4">
           {/* The identity gate is its own user action. No passphrase input is
               mounted until the user explicitly continues from this account. */}
-          <div className="rounded-md border border-border bg-paper-warm px-3 py-2.5">
+          <div className="rounded-control border border-border bg-paper-warm px-3 py-2.5">
             <Caption className="text-fg-muted">{t("dataSync.connect.signedInAs")}</Caption>
             <p className="mt-0.5 font-medium break-all">{verification?.email}</p>
           </div>
@@ -303,7 +303,7 @@ export function SyncConnectDialog({ open, onClose, sync }: SyncConnectDialogProp
         </div>
       ) : (
         <div className="mt-4 space-y-4">
-          <div className="rounded-md border border-border bg-paper-warm px-3 py-2.5">
+          <div className="rounded-control border border-border bg-paper-warm px-3 py-2.5">
             <Caption className="text-fg-muted">{t("dataSync.connect.signedInAs")}</Caption>
             <p className="mt-0.5 font-medium break-all">{verification?.email}</p>
           </div>

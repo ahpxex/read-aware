@@ -210,7 +210,7 @@ export const LibraryWorkspace = memo(function LibraryWorkspace({
         <div className="grid grid-cols-3 gap-x-4 gap-y-8 sm:grid-cols-4 sm:gap-x-5 md:grid-cols-5 md:gap-x-6 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-[repeat(auto-fill,minmax(10rem,1fr))]">
           {Array.from({ length: 12 }).map((_, index) => (
             <div key={index} className="space-y-2.5">
-              <Skeleton variant="rectangular" className="aspect-[2/3] w-full rounded-sm" />
+              <Skeleton variant="rectangular" className="aspect-[2/3] w-full rounded-mark" />
               <Skeleton variant="text" className="w-3/4" />
             </div>
           ))}

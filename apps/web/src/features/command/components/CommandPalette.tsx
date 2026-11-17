@@ -123,7 +123,7 @@ export function CommandPalette({
                       void run(item);
                     }}
                   >
-                    <span className="flex h-9 w-7 shrink-0 items-center justify-center overflow-hidden rounded-sm">
+                    <span className="flex h-9 w-7 shrink-0 items-center justify-center overflow-hidden rounded-mark">
                       {item.kind === "book" && item.coverUrl ? (
                         <img src={item.coverUrl} alt="" className="h-full w-full object-cover" />
                       ) : (

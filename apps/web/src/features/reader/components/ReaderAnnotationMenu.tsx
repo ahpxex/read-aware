@@ -70,7 +70,7 @@ export function ReaderAnnotationMenu({
 
   if (!anchorRect) return null;
 
-  const actionButtonClass = "rounded-md text-fg-muted hover:bg-fg/5 hover:text-fg focus-visible:ring-fg";
+  const actionButtonClass = "rounded-control text-fg-muted hover:bg-fg/5 hover:text-fg focus-visible:ring-fg";
 
   async function handleCopy() {
     await onCopy();
@@ -88,7 +88,7 @@ export function ReaderAnnotationMenu({
     <div ref={containerRef} aria-hidden="true" className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
       <div
         ref={menuRef}
-        className="ra-motion-overlay-pop pointer-events-auto absolute flex items-center gap-0.5 rounded-lg border border-border bg-[var(--ra-main-surface-color)] p-1 shadow-[0_4px_16px_-6px_rgba(28,25,23,0.25)]"
+        className="ra-motion-overlay-pop pointer-events-auto absolute flex items-center gap-0.5 rounded-surface border border-border bg-[var(--ra-main-surface-color)] p-1 shadow-[0_4px_16px_-6px_rgba(28,25,23,0.25)]"
         style={position}
       >
         {COLOR_OPTIONS.map((color) => (
@@ -98,7 +98,7 @@ export function ReaderAnnotationMenu({
               type="button"
               aria-label={t("recolor", { color: t(`colors.${color}`) })}
               onClick={() => onRecolor(color)}
-              className="flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-fg/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
+              className="flex h-7 w-7 items-center justify-center rounded-control transition-colors hover:bg-fg/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
             >
               <span
                 className={cn(

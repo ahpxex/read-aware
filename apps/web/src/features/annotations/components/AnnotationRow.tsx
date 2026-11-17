@@ -43,7 +43,7 @@ export function AnnotationRow({
   const rule = annotation.type === "highlight" ? UNDERLINE_STROKE[annotation.color] : undefined;
 
   return (
-    <div ref={rowRef} className="relative overflow-hidden rounded-md">
+    <div ref={rowRef} className="relative overflow-hidden rounded-control">
       {reveal.offset < 0 && (
         // oxlint-disable-next-line react/forbid-elements -- swipe-revealed delete surface sized by the drag offset
         <button
@@ -60,7 +60,7 @@ export function AnnotationRow({
       <div
         style={{ transform: reveal.offset ? `translateX(${reveal.offset}px)` : undefined }}
         className={cn(
-          "group relative rounded-md transition-colors hover:bg-fg/5",
+          "group relative rounded-control transition-colors hover:bg-fg/5",
           !reveal.dragging && "transition-[transform,background-color] duration-200 ease-out",
         )}
       >
@@ -72,7 +72,7 @@ export function AnnotationRow({
             if (reveal.offset) reveal.close();
             else if (annotation.cfiRange) onNavigate(annotation.cfiRange);
           }}
-          className="flex w-full min-w-0 gap-3 rounded-md px-2 py-2 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
+          className="flex w-full min-w-0 gap-3 rounded-control px-2 py-2 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
         >
           <span
             aria-hidden="true"

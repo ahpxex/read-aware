@@ -40,7 +40,7 @@ export function AgentWelcome({ greeting, suggestions, onSuggest, searchKeys, new
                   <button
                     type="button"
                     onClick={() => onSuggest(prompt)}
-                    className="flex h-full w-full items-start rounded-md border border-border px-3 py-2.5 text-left font-sans text-sm text-fg-muted transition-colors hover:bg-fg/5 hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
+                    className="flex h-full w-full items-start rounded-control border border-border px-3 py-2.5 text-left font-sans text-sm text-fg-muted transition-colors hover:bg-fg/5 hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
                   >
                     {prompt}
                   </button>

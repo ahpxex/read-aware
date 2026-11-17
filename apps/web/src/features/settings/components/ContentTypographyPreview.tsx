@@ -11,12 +11,12 @@ export function ContentTypographyPreview() {
   const { t } = useTranslation("settings");
   return (
     <div
-      className="overflow-hidden rounded-md border border-border bg-surface"
+      className="overflow-hidden rounded-surface border border-border bg-surface"
       aria-label={t("appearance.contentType.previewLabel")}
     >
       <div className="flex flex-col gap-2 px-5 py-4">
         <div className="flex justify-end">
-          <div className="ra-content-type max-w-[85%] rounded-lg bg-fill-strong px-3 py-2 text-fg">
+          <div className="ra-content-type max-w-[85%] rounded-surface bg-fill-strong px-3 py-2 text-fg">
             {t("appearance.contentType.previewQuestion")}
           </div>
         </div>

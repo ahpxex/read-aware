@@ -20,7 +20,7 @@ export function AttachmentChip({
 }) {
   const { t } = useTranslation("ai");
   return (
-    <div className={cn("flex items-start gap-1.5 rounded-md bg-fill px-2.5 py-1.5", className)}>
+    <div className={cn("flex items-start gap-1.5 rounded-control bg-fill px-2.5 py-1.5", className)}>
       <Quotes size={12} weight="fill" aria-hidden="true" className="mt-0.5 shrink-0 text-fg-subtle" />
       <span className="line-clamp-3 min-w-0 flex-1 text-xs leading-snug text-fg-muted">{attachment.text}</span>
       {onRemove && (

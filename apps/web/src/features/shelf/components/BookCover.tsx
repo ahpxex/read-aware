@@ -86,7 +86,7 @@ export function BookCover({
       >
         {/* Hover shadow is a pointer-fine affordance; on touch a tap's focus
             would pin it on, so gate both reveals behind a fine pointer. */}
-        <div className="relative aspect-[2/3] w-full overflow-hidden rounded-sm transition-shadow pointer-fine:group-hover:shadow-md pointer-fine:group-focus-within:shadow-md">
+        <div className="relative aspect-[2/3] w-full overflow-hidden rounded-mark transition-shadow pointer-fine:group-hover:shadow-md pointer-fine:group-focus-within:shadow-md">
           {book.coverUrl ? (
             <img
               src={book.coverUrl}
@@ -123,7 +123,7 @@ export function BookCover({
           instead). Fine pointers only: on touch a tap's lingering focus would
           flash the overlay, and the long-press menu covers these actions. */}
       {!selecting && (
-        <div className="pointer-events-none absolute inset-0 hidden flex-col justify-between rounded-sm bg-stone-950/0 p-3 opacity-0 transition-all pointer-fine:flex pointer-fine:group-hover:bg-stone-950/80 pointer-fine:group-hover:opacity-100 pointer-fine:group-focus-within:bg-stone-950/80 pointer-fine:group-focus-within:opacity-100">
+        <div className="pointer-events-none absolute inset-0 hidden flex-col justify-between rounded-mark bg-stone-950/0 p-3 opacity-0 transition-all pointer-fine:flex pointer-fine:group-hover:bg-stone-950/80 pointer-fine:group-hover:opacity-100 pointer-fine:group-focus-within:bg-stone-950/80 pointer-fine:group-focus-within:opacity-100">
           <div className="min-w-0">
             <span className="block text-left font-serif text-sm leading-tight font-medium break-words text-white/95">
               {book.title}
@@ -138,14 +138,14 @@ export function BookCover({
                 size="sm"
                 aria-pressed={book.starred ?? false}
                 onClick={() => onToggleStar?.()}
-                className="rounded-sm text-white/70 hover:text-white focus-visible:ring-white"
+                className="text-white/70 hover:text-white focus-visible:ring-white"
                 icon={<Star size={14} weight={book.starred ? "fill" : "regular"} aria-hidden="true" />}
               />
               <IconButton
                 label={t("book.info", { title: book.title })}
                 size="sm"
                 onClick={() => setInfoOpen(true)}
-                className="rounded-sm text-white/70 hover:text-white focus-visible:ring-white"
+                className="text-white/70 hover:text-white focus-visible:ring-white"
                 icon={<Info size={14} weight="regular" aria-hidden="true" />}
               />
               <IconButton
@@ -153,7 +153,7 @@ export function BookCover({
                 size="sm"
                 onClick={() => (pluginItems.length ? setMenuOpen(true) : setRemoveOpen(true))}
                 className={cn(
-                  "rounded-sm text-white/70 focus-visible:ring-white",
+                  "text-white/70 focus-visible:ring-white",
                   pluginItems.length ? "hover:text-white" : "hover:text-red-400",
                 )}
                 icon={

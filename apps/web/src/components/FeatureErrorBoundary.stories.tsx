@@ -30,7 +30,7 @@ function BoundaryPreview({ recoverable }: BoundaryPreviewProps) {
   const [content, setContent] = useState("stats");
   return (
     <div className="flex flex-col gap-3">
-      <div className="h-[24rem] overflow-hidden rounded-lg border border-border">
+      <div className="h-[24rem] overflow-hidden rounded-surface border border-border">
         <FeatureErrorBoundary surface="stats" resetKey={content}>
           <StatsSurface broken={broken} />
         </FeatureErrorBoundary>

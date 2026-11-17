@@ -102,7 +102,7 @@ export function ReaderProgressScrubber({
             // Below the bar, over the page — not inside the header. Sliding it
             // along the title band dragged one line of text across another,
             // which reads as flicker however quiet the surface is.
-            "absolute top-full mt-2 max-w-[min(18rem,80%)] rounded-md bg-[var(--ra-main-surface-color)] px-2 py-1 shadow-[0_6px_20px_-6px_rgba(28,25,23,0.35)]",
+            "absolute top-full mt-2 max-w-[min(18rem,80%)] rounded-mark bg-[var(--ra-main-surface-color)] px-2 py-1 shadow-[0_6px_20px_-6px_rgba(28,25,23,0.35)]",
             readoutAnchor === "center" && "-translate-x-1/2",
             readoutAnchor === "end" && "-translate-x-full",
           )}

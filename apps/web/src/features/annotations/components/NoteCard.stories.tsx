@@ -38,7 +38,7 @@ function Interactive(props: Partial<NoteCardProps> & { notes: Note[] }) {
   const [text, setText] = useState(props.text ?? "");
   const [editingId, setEditingId] = useState<string | null>(props.editingId ?? null);
   return (
-    <div className="w-[22rem] rounded-lg border border-border bg-[var(--ra-main-surface-color)] p-3 shadow-[0_8px_28px_-10px_rgba(28,25,23,0.35)]">
+    <div className="w-[22rem] rounded-surface border border-border bg-[var(--ra-main-surface-color)] p-3 shadow-[0_8px_28px_-10px_rgba(28,25,23,0.35)]">
       <NoteCard
         doneShortcut={["⌘", "Enter"]}
         onDelete={() => {}}

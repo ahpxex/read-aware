@@ -28,7 +28,7 @@ export function BookReferenceCard({
 
   const body = (
     <>
-      <div className="h-16 w-11 shrink-0 overflow-hidden rounded-sm shadow-sm">
+      <div className="h-16 w-11 shrink-0 overflow-hidden rounded-mark shadow-sm">
         {book?.coverUrl ? (
           <img src={book.coverUrl} alt="" className="h-full w-full object-cover" />
         ) : (
@@ -54,7 +54,7 @@ export function BookReferenceCard({
 
   if (missing) {
     return (
-      <div className="flex w-full items-center gap-3 rounded-md border border-border px-2.5 py-2 opacity-70">
+      <div className="flex w-full items-center gap-3 rounded-surface border border-border px-2.5 py-2 opacity-70">
         {body}
       </div>
     );
@@ -66,7 +66,7 @@ export function BookReferenceCard({
       type="button"
       onClick={() => dispatchOpen({ id: crypto.randomUUID(), bookId: reference.bookId })}
       aria-label={t("chat.references.openBook", { title })}
-      className="flex w-full items-center gap-3 rounded-md border border-border px-2.5 py-2 text-left transition-colors hover:bg-fill focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
+      className="flex w-full items-center gap-3 rounded-surface border border-border px-2.5 py-2 text-left transition-colors hover:bg-fill focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
     >
       {body}
     </button>

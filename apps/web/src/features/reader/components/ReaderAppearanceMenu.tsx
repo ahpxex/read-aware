@@ -42,7 +42,7 @@ export function ReaderAppearanceMenu({ bookId, fixedLayout = false, open, onOpen
       triggerLabel={t("readingAppearance")}
       triggerTooltip={t("readingAppearance")}
       className="pointer-events-auto"
-      triggerClassName="h-7 w-7 items-center justify-center rounded-md text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
+      triggerClassName="h-7 w-7 items-center justify-center rounded-control text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
       trigger={<TextAa size={18} weight="regular" aria-hidden="true" />}
       open={open}
       onOpenChange={onOpenChange}

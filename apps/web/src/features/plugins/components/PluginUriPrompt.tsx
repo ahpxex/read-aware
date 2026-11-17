@@ -16,7 +16,7 @@ export function PluginUriPrompt() {
         <div className="flex min-w-0 flex-col gap-3">
           <p className="text-sm text-fg-muted">{t(enabled ? "uri.description" : "uri.unavailable")}</p>
           <div
-            className="max-h-40 overflow-auto break-all rounded border border-border p-2 font-mono text-xs"
+            className="max-h-40 overflow-auto break-all rounded-control border border-border p-2 font-mono text-xs"
             dir="ltr"
           >
             {prompt.link.url}

@@ -97,7 +97,7 @@ export function BackupImportReview({ flow, view }: { flow: BackupImportFlow; vie
             </Stack>
           )}
           {view.fields && (
-            <Stack gap="md" className="border border-border p-3">
+            <Stack gap="md" className="rounded-surface border border-border p-3">
               <Heading as="h3" className="text-lg">
                 {t("dataSync.importDialog.record", { id: view.fields.entryId })}
               </Heading>

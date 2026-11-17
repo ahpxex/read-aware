@@ -12,7 +12,7 @@ export function ChatImageAttachment({ attachment, onRemove }: { attachment: Atta
   const preview = useWebImage(attachment.cacheKey, attachment.cacheKey, loadChatImage);
   return (
     <div className="relative w-28">
-      <div className="flex aspect-[4/3] items-center justify-center overflow-hidden rounded-sm bg-fill">
+      <div className="flex aspect-[4/3] items-center justify-center overflow-hidden rounded-mark bg-fill">
         {preview.failed ? (
           <InlineError compact>{t("chat.localImageUnavailable")}</InlineError>
         ) : preview.url ? (

@@ -31,7 +31,7 @@ const moreItems = [
 function Framed({ state }: { state: HoldMenuState }) {
   const menuRef = useRef<HTMLDivElement | null>(null);
   return (
-    <div className="relative h-[28rem] overflow-hidden rounded-lg border border-border bg-paper">
+    <div className="relative h-[28rem] overflow-hidden rounded-surface border border-border bg-paper">
       <p className="p-6 font-serif text-lg leading-relaxed text-fg">
         Unlike most kids who grew up in Eichler homes, Jobs knew what they were and why they were so wonderful.
       </p>

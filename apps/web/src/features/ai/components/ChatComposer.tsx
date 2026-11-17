@@ -208,7 +208,7 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(fu
               label={t("chat.stopGenerating")}
               size="sm"
               onClick={onStop}
-              className="absolute bottom-1 right-1 rounded-md text-fg-muted hover:bg-fg/5 hover:text-fg"
+              className="absolute bottom-1 right-1 rounded-control text-fg-muted hover:bg-fg/5 hover:text-fg"
               icon={<Stop size={15} weight="fill" aria-hidden="true" />}
             />
           ) : (
@@ -218,7 +218,7 @@ export const ChatComposer = forwardRef<ChatComposerHandle, ChatComposerProps>(fu
               onClick={submit}
               disabled={!canSend}
               className={cn(
-                "absolute bottom-1 right-1 rounded-md transition-colors disabled:pointer-events-none",
+                "absolute bottom-1 right-1 rounded-control transition-colors disabled:pointer-events-none",
                 canSend ? "text-fg hover:bg-fg/5" : "text-fg-subtle",
               )}
               icon={<ArrowUp size={15} weight="bold" aria-hidden="true" />}

@@ -200,7 +200,7 @@ export function ReaderImageLightbox({ src, alt, onClose, session, viewerId, life
       </div>
       <div className="pointer-events-none absolute inset-x-0 bottom-0 flex flex-col items-center gap-3 p-5">
         {alt && <Caption className="max-w-xl truncate text-stone-400">{alt}</Caption>}
-        <div className="pointer-events-auto flex items-center gap-0.5 rounded-lg bg-stone-900/95 px-1.5 py-1">
+        <div className="pointer-events-auto flex items-center gap-0.5 rounded-surface bg-stone-900/95 px-1.5 py-1">
           <IconButton
             size="sm"
             label={t("imageViewer.zoomOut")}

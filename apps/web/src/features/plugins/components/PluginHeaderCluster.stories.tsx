@@ -64,7 +64,7 @@ const meta = {
   args: { surface: "shelf", onOpenPage: () => {} },
   decorators: [
     (Story) => (
-      <div className="flex w-[28rem] items-center justify-end gap-1 rounded-md border border-border bg-surface px-3 py-2">
+      <div className="flex w-[28rem] items-center justify-end gap-1 rounded-surface border border-border bg-surface px-3 py-2">
         <span className="mr-auto text-sm text-fg-subtle">Header</span>
         <Story />
       </div>

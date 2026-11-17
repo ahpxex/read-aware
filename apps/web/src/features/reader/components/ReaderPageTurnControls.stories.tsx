@@ -14,7 +14,7 @@ const meta = {
     (Story) => (
       // The strips are absolute inset-y-0 edges; the frame is their positioned
       // ancestor and stands in for the reader canvas.
-      <div className="relative h-[24rem] overflow-hidden rounded-lg border border-border">
+      <div className="relative h-[24rem] overflow-hidden rounded-surface border border-border">
         <Story />
       </div>
     ),

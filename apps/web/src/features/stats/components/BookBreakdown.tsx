@@ -66,10 +66,10 @@ export function BookBreakdown({ books, store, period, now, annotations, onOpenBo
               <img
                 src={book.coverUrl}
                 alt=""
-                className="h-12 w-9 shrink-0 rounded-sm border border-border object-cover"
+                className="h-12 w-9 shrink-0 rounded-mark border border-border object-cover"
               />
             ) : (
-              <div className="flex h-12 w-9 shrink-0 items-center justify-center rounded-sm border border-border bg-fill text-fg-subtle">
+              <div className="flex h-12 w-9 shrink-0 items-center justify-center rounded-mark border border-border bg-fill text-fg-subtle">
                 <BookOpen size={14} aria-hidden="true" />
               </div>
             )}

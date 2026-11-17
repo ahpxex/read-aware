@@ -49,7 +49,7 @@ function OpenableStat({
       ref={buttonRef}
       type="button"
       onClick={onOpen}
-      className="group -m-1.5 min-w-0 rounded-md p-1.5 text-left transition-colors hover:bg-fg/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
+      className="group -m-1.5 min-w-0 rounded-control p-1.5 text-left transition-colors hover:bg-fg/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
     >
       <Caption className="block text-fg-subtle">{label}</Caption>
       <Body as="span" className="flex items-center gap-1 text-sm font-medium tabular-nums text-fg">
@@ -182,7 +182,7 @@ export function BookDetailsDialogView({ book, open, onClose, onUpdateMetadata, m
         <div className="space-y-5">
           {/* Cover + identity (editable) */}
           <div className="flex gap-4">
-            <div className="relative aspect-[2/3] w-24 shrink-0 overflow-hidden rounded-sm shadow-md">
+            <div className="relative aspect-[2/3] w-24 shrink-0 overflow-hidden rounded-mark shadow-md">
               {book.coverUrl ? (
                 <img src={book.coverUrl} alt="" className="h-full w-full object-cover" />
               ) : (

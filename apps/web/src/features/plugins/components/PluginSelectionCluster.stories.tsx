@@ -61,7 +61,7 @@ const meta = {
   args: { input },
   decorators: [
     (Story) => (
-      <div className="flex items-center gap-1 rounded-lg border border-border bg-surface px-2 py-1.5 shadow-md">
+      <div className="flex items-center gap-1 rounded-surface border border-border bg-surface px-2 py-1.5 shadow-md">
         <span className="px-1 text-xs text-fg-subtle">built-in actions</span>
         <Story />
       </div>

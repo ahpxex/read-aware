@@ -79,7 +79,7 @@ export function AddToCollectionDialog({
                 key={collection.id}
                 type="button"
                 onClick={() => assign(collection.id)}
-                className="truncate rounded-md px-2 py-2 text-left font-sans text-sm text-fg transition-colors hover:bg-fg/5"
+                className="truncate rounded-control px-2 py-2 text-left font-sans text-sm text-fg transition-colors hover:bg-fg/5"
               >
                 {collection.name}
               </button>
@@ -92,7 +92,7 @@ export function AddToCollectionDialog({
           <button
             type="button"
             onClick={() => assign(null)}
-            className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left font-sans text-sm text-fg-muted transition-colors hover:bg-fg/5 hover:text-fg"
+            className="flex w-full items-center gap-2 rounded-control px-2 py-2 text-left font-sans text-sm text-fg-muted transition-colors hover:bg-fg/5 hover:text-fg"
           >
             <Prohibit size={15} weight="regular" aria-hidden="true" />
             {t("collectionDialog.removeFromCollection")}

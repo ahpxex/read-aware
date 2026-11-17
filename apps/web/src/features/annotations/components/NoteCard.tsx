@@ -123,7 +123,7 @@ export function NoteCard({
                 {field}
               </li>
             ) : (
-              <li key={note.id} className="group rounded-md px-1 py-1 hover:bg-fg/5">
+              <li key={note.id} className="group rounded-control px-1 py-1 hover:bg-fg/5">
                 <div className="flex h-6 items-center justify-between gap-2">
                   <p className="text-[11px] text-fg-subtle">
                     {stamp(note.createdAt, now)}

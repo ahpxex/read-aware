@@ -79,7 +79,7 @@ function Row({
         type="button"
         onClick={onClick}
         disabled={disabled}
-        className="w-full rounded-md px-2 py-1.5 text-left transition-colors hover:bg-fg/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg disabled:opacity-60"
+        className="w-full rounded-control px-2 py-1.5 text-left transition-colors hover:bg-fg/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg disabled:opacity-60"
       >
         <Body as="span" className="line-clamp-3 block min-w-0 break-words text-sm leading-6 text-fg">
           {children}
@@ -108,7 +108,7 @@ function HitRow({ hit, onClick }: { hit: BookLocationHit; onClick: () => void })
         <button
           type="button"
           onClick={onClick}
-          className="w-full rounded-md px-2 py-1.5 text-left transition-colors hover:bg-fg/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
+          className="w-full rounded-control px-2 py-1.5 text-left transition-colors hover:bg-fg/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
         >
           <span className="line-clamp-3 block min-w-0 font-sans text-[13px] leading-[21px] break-words text-fg-muted">
             {hit.excerpt.pre.trimStart()}

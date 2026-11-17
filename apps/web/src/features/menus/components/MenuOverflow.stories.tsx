@@ -55,7 +55,7 @@ const meta = {
   args: { entries: actions },
   decorators: [
     (Story) => (
-      <div className="flex w-[24rem] items-center justify-end rounded-md border border-border bg-surface px-3 py-2">
+      <div className="flex w-[24rem] items-center justify-end rounded-surface border border-border bg-surface px-3 py-2">
         <Story />
       </div>
     ),

@@ -34,7 +34,7 @@ export function ReaderZoomIndicator({ feedback, controlsVisible, canLock, locked
       {indicator?.visible && (
         // Fades in when it comes up; while it stays up (a live pinch) only
         // the number changes.
-        <div className="ra-motion-fade-in flex items-center gap-0.5 rounded-md bg-[var(--ra-main-surface-color)] py-1 pr-1 pl-3 shadow-[0_6px_20px_-6px_rgba(28,25,23,0.35)]">
+        <div className="ra-motion-fade-in flex items-center gap-0.5 rounded-surface bg-[var(--ra-main-surface-color)] py-1 pr-1 pl-3 shadow-[0_6px_20px_-6px_rgba(28,25,23,0.35)]">
           <span className="font-sans text-sm tabular-nums text-fg">
             <span className="sr-only">{t("pageZoom")} </span>
             {indicator.percent}%

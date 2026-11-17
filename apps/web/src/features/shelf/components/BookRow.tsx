@@ -48,7 +48,7 @@ export function BookRow({
   return (
     <div
       className={cn(
-        "group flex items-center gap-4 rounded-sm px-2 py-2 transition-colors",
+        "group flex items-center gap-4 rounded-control px-2 py-2 transition-colors",
         selected ? "bg-fg/[0.06]" : "hover:bg-fg/5",
         className,
       )}
@@ -58,7 +58,7 @@ export function BookRow({
         type="button"
         onClick={selecting ? onToggleSelect : onClick}
         aria-pressed={selecting ? selected : undefined}
-        className="flex min-w-0 flex-1 items-center gap-4 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg rounded-sm"
+        className="flex min-w-0 flex-1 items-center gap-4 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg rounded-control"
         draggable={Boolean(getDragIds)}
         onDragStart={(event) => {
           const ids = getDragIds?.();
@@ -73,7 +73,7 @@ export function BookRow({
         {selecting && (
           <span
             className={cn(
-              "flex h-5 w-5 shrink-0 items-center justify-center rounded border",
+              "flex h-5 w-5 shrink-0 items-center justify-center rounded-mark border",
               selected ? "border-fg bg-fg text-inverse-fg" : "border-border-strong text-transparent",
             )}
             aria-hidden="true"
@@ -81,7 +81,7 @@ export function BookRow({
             <Check size={12} weight="bold" />
           </span>
         )}
-        <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-sm shadow-sm">
+        <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-mark shadow-sm">
           {book.coverUrl ? (
             // draggable=false: the row is the drag source, and a default image
             // drag would carry "Files" and read as an OS drop to the importer.

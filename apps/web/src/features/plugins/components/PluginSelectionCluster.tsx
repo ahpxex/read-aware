@@ -17,7 +17,7 @@ import { contributionText } from "../lib/plugin-i18n";
 import { actionEnabled, actionVisible } from "../lib/plugin-action-state";
 
 /** Matches the quiet ghost-button styling of the hosting menus. */
-const actionButtonClass = "rounded-md text-fg-muted hover:bg-fg/5 hover:text-fg focus-visible:ring-fg";
+const actionButtonClass = "rounded-control text-fg-muted hover:bg-fg/5 hover:text-fg focus-visible:ring-fg";
 
 type PluginSelectionClusterProps = {
   /** The current selection context, or null when the menu has no target. */

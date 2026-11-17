@@ -26,7 +26,7 @@ export function PluginFileDrop({
       data-plugin-file-drop="true"
       role="group"
       aria-label={label}
-      className="rounded-lg border border-dashed border-border p-4"
+      className="rounded-surface border border-dashed border-border p-4"
       onDragOver={onDragOver}
       onDrop={onDrop}
     >

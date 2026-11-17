@@ -8,5 +8,5 @@ export const agentHeaderActionClass =
 export const agentMenuActionClass = buttonClassName({
   variant: "ghost",
   size: "sm",
-  className: "w-full justify-start rounded-md px-2 text-left",
+  className: "w-full justify-start rounded-control px-2 text-left",
 });

@@ -62,7 +62,7 @@ const meta = {
   parameters: { layout: "centered" },
   decorators: [
     (Story) => (
-      <div className="flex h-[36rem] w-[28rem] flex-col overflow-hidden rounded-md border border-border bg-[var(--ra-main-surface-color)]">
+      <div className="flex h-[36rem] w-[28rem] flex-col overflow-hidden rounded-surface border border-border bg-[var(--ra-main-surface-color)]">
         <Story />
       </div>
     ),

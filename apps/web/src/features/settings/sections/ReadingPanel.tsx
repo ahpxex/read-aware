@@ -165,7 +165,7 @@ function PageTurnGroup() {
 function ReadingPreview({ style, palette }: { style: React.CSSProperties; palette: ReaderPalette }) {
   const { t } = useTranslation("settings");
   return (
-    <div className="overflow-hidden rounded-md border border-border" aria-label={t("reading.previewLabel")}>
+    <div className="overflow-hidden rounded-surface border border-border" aria-label={t("reading.previewLabel")}>
       <div className="relative px-6 py-5 transition-colors" style={style}>
         <ReaderBackgroundLayer palette={palette} />
         <blockquote className="relative m-0">

@@ -76,7 +76,7 @@ export function TextUnitReadoutChip({
               : undefined
           }
           className={cn(
-            "ra-motion-overlay-pop pointer-events-auto h-auto cursor-grab touch-none select-none gap-2 rounded-md border border-border bg-[var(--ra-main-surface-color)] px-2.5 py-1 text-caption font-normal tabular-nums text-fg-muted shadow-[0_4px_16px_-6px_rgba(28,25,23,0.25)]",
+            "ra-motion-overlay-pop pointer-events-auto h-auto cursor-grab touch-none select-none gap-2 rounded-control border border-border bg-[var(--ra-main-surface-color)] px-2.5 py-1 text-caption font-normal tabular-nums text-fg-muted shadow-[0_4px_16px_-6px_rgba(28,25,23,0.25)]",
             float.dragging && "cursor-grabbing text-fg",
           )}
         >

@@ -75,7 +75,7 @@ export function FontField({ className, ...options }: FontFieldProps) {
                       close();
                       void manager.importFonts();
                     }}
-                    className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-fg-muted transition-colors hover:bg-fill hover:text-fg"
+                    className="flex w-full items-center gap-2 rounded-control px-3 py-2 text-left text-sm text-fg-muted transition-colors hover:bg-fill hover:text-fg"
                   >
                     {manager.importing ? <Spinner size="sm" className="h-3.5 w-3.5" /> : <Plus size={15} />}
                     {t("font.import")}

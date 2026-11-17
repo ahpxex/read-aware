@@ -46,8 +46,8 @@ export function showBootFailure(error: unknown): void {
       written to the log file. Restarting the app may help; if it doesn't, please
       report this from a device that can reach us.
     </p>
-    <pre style="margin:1rem 0 0;max-height:14rem;overflow:auto;padding:.9rem 1rem;border:1px solid currentColor;border-radius:.5rem;opacity:.85;font-size:.75rem;line-height:1.5;white-space:pre-wrap;word-break:break-word;-webkit-user-select:all;user-select:all;"></pre>
-    <button type="button" style="margin-top:1rem;padding:.5rem 1.1rem;border:1px solid currentColor;border-radius:.5rem;background:transparent;color:inherit;font-size:.85rem;cursor:pointer;">Copy details</button>
+    <pre style="margin:1rem 0 0;max-height:14rem;overflow:auto;padding:.9rem 1rem;border:1px solid currentColor;border-radius:.375rem;opacity:.85;font-size:.75rem;line-height:1.5;white-space:pre-wrap;word-break:break-word;-webkit-user-select:all;user-select:all;"></pre>
+    <button type="button" style="margin-top:1rem;padding:.5rem 1.1rem;border:1px solid currentColor;border-radius:.375rem;background:transparent;color:inherit;font-size:.85rem;cursor:pointer;">Copy details</button>
   `;
   // The error text goes in via textContent — never innerHTML — so a message
   // containing markup renders inert.

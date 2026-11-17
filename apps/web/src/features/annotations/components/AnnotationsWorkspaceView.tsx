@@ -190,7 +190,7 @@ function MarksByBook({
               <button
                 type="button"
                 onClick={() => onSelectBook(entry.bookId)}
-                className="flex max-w-full items-baseline gap-2 rounded-md px-2 py-1 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
+                className="flex max-w-full items-baseline gap-2 rounded-control px-2 py-1 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
               >
                 <span className="truncate font-serif text-base text-fg hover:text-fg-muted">{titleOf(entry)}</span>
                 {entry.book?.author && (
@@ -234,7 +234,7 @@ function BookRow({
         onClick={onSelect}
         title={title}
         className={cn(
-          "flex w-full min-w-0 items-center gap-3 rounded-md px-2 py-1.5 text-left font-sans text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
+          "flex w-full min-w-0 items-center gap-3 rounded-control px-2 py-1.5 text-left font-sans text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
           active ? "bg-fill-strong text-fg" : "text-fg-muted hover:bg-fill hover:text-fg",
         )}
       >
@@ -254,9 +254,9 @@ function BookRow({
 
 function Cover({ url }: { url?: string | null }) {
   return url ? (
-    <img src={url} alt="" loading="lazy" className="h-8 w-6 rounded-[2px] border border-border object-cover" />
+    <img src={url} alt="" loading="lazy" className="h-8 w-6 rounded-fine border border-border object-cover" />
   ) : (
-    <span className="h-8 w-6 rounded-[2px] border border-border bg-fill" />
+    <span className="h-8 w-6 rounded-fine border border-border bg-fill" />
   );
 }
 

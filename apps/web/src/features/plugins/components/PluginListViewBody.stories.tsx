@@ -40,7 +40,7 @@ const items = Array.from({ length: 6 }, (_, i) => item(i));
 
 /** The list virtualizes against a host scroll region, so stories supply one. */
 const scrolled: Decorator = (Story) => (
-  <ScrollArea className="h-[32rem] max-w-2xl rounded-md border border-border p-4">
+  <ScrollArea className="h-[32rem] max-w-2xl rounded-surface border border-border p-4">
     <Story />
   </ScrollArea>
 );

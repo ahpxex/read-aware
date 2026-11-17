@@ -22,7 +22,7 @@ const meta = {
   },
   decorators: [
     (Story) => (
-      <div className="relative h-[28rem] overflow-hidden rounded-lg border border-border">
+      <div className="relative h-[28rem] overflow-hidden rounded-surface border border-border">
         {/* Faux tapped highlight at the anchor, so the menu's placement reads. */}
         <div
           aria-hidden="true"

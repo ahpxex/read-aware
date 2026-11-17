@@ -88,7 +88,7 @@ export function DiagnosticsGroup() {
         {report?.step === "sent" ? (
           <div className="space-y-4">
             <p className="text-sm leading-6 text-fg-muted">{t("about.diagnostics.sentBody")}</p>
-            <p className="select-all break-all rounded-md border border-border bg-fill px-3 py-2 font-mono text-xs text-fg">
+            <p className="select-all break-all rounded-control border border-border bg-fill px-3 py-2 font-mono text-xs text-fg">
               {report.reportId}
             </p>
             <div className="flex justify-end">
@@ -104,7 +104,7 @@ export function DiagnosticsGroup() {
         ) : report ? (
           <div className="space-y-4">
             <p className="text-sm leading-6 text-fg-muted">{t("about.diagnostics.previewBody")}</p>
-            <pre className="max-h-64 overflow-auto rounded-md border border-border bg-fill px-3 py-2 font-mono text-xs leading-5 text-fg-muted">
+            <pre className="max-h-64 overflow-auto rounded-control border border-border bg-fill px-3 py-2 font-mono text-xs leading-5 text-fg-muted">
               {JSON.stringify(report.bundle, null, 2)}
             </pre>
             <div className="flex justify-end gap-2">

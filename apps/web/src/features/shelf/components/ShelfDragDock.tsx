@@ -49,7 +49,7 @@ function DockTarget({ icon, label, danger = false, onDropBooks }: DockTargetProp
         if (ids.length > 0) onDropBooks(ids);
       }}
       className={cn(
-        "flex min-w-24 max-w-44 flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed px-4 py-3 transition-colors",
+        "flex min-w-24 max-w-44 flex-col items-center justify-center gap-1.5 rounded-control border border-dashed px-4 py-3 transition-colors",
         over
           ? danger
             ? "border-red-500 bg-red-500/10 text-red-600"
@@ -95,7 +95,7 @@ export function ShelfDragDock({
 
   return createPortal(
     <div className="fixed bottom-[calc(1.5rem+var(--ra-safe-bottom))] left-1/2 z-50 w-max max-w-[calc(100vw-1.5rem)] -translate-x-1/2">
-      <div className="ra-motion-fade-in flex flex-wrap items-stretch justify-center gap-2 rounded-xl border border-border bg-[var(--ra-main-surface-color)] p-2 shadow-lg">
+      <div className="ra-motion-fade-in flex flex-wrap items-stretch justify-center gap-2 rounded-surface border border-border bg-[var(--ra-main-surface-color)] p-2 shadow-lg">
         {collections.map((collection) => (
           <DockTarget
             key={collection.id}

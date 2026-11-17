@@ -13,7 +13,7 @@ export function ReaderSelectionHighlight({ selection }: { selection: ReaderSelec
       {selection.rects.map((rect, index) => (
         <div
           key={index}
-          className="absolute rounded-[2px] bg-[#60a5fa]/30"
+          className="absolute rounded-fine bg-[#60a5fa]/30"
           style={{
             left: rect.left,
             top: rect.top,

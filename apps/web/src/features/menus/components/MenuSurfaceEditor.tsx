@@ -160,7 +160,7 @@ export function MenuSurfaceEditor({ surface }: { surface: MenuSurface }) {
         <div
           {...dropTarget("visible", null)}
           className={cn(
-            "flex min-h-[2.5rem] min-w-0 flex-1 items-center rounded-lg border border-border bg-[var(--ra-main-surface-color)] px-1.5 py-1",
+            "flex min-h-[2.5rem] min-w-0 flex-1 items-center rounded-surface border border-border bg-[var(--ra-main-surface-color)] px-1.5 py-1",
             labelBar ? "justify-center gap-1" : "gap-0.5",
           )}
         >
@@ -178,7 +178,7 @@ export function MenuSurfaceEditor({ surface }: { surface: MenuSurface }) {
                   <span
                     {...dragProps(id, "visible")}
                     className={cn(
-                      "cursor-grab select-none whitespace-nowrap rounded-md px-1.5 py-1 font-sans text-sm font-medium text-fg hover:bg-fg/5",
+                      "cursor-grab select-none whitespace-nowrap rounded-control px-1.5 py-1 font-sans text-sm font-medium text-fg hover:bg-fg/5",
                       dragging(id) && "opacity-40",
                     )}
                   >
@@ -192,7 +192,7 @@ export function MenuSurfaceEditor({ surface }: { surface: MenuSurface }) {
                 <span
                   {...dragProps(id, "visible")}
                   className={cn(
-                    "flex h-8 w-8 shrink-0 cursor-grab select-none items-center justify-center rounded-md text-fg-muted hover:bg-fg/5 hover:text-fg",
+                    "flex h-8 w-8 shrink-0 cursor-grab select-none items-center justify-center rounded-control text-fg-muted hover:bg-fg/5 hover:text-fg",
                     dragging(id) && "opacity-40",
                   )}
                 >
@@ -222,7 +222,7 @@ export function MenuSurfaceEditor({ surface }: { surface: MenuSurface }) {
         <div
           {...dropTarget("overflow", null)}
           className={cn(
-            "ml-auto mr-12 w-56 rounded-lg border bg-[var(--ra-main-surface-color)] p-1",
+            "ml-auto mr-12 w-56 rounded-surface border bg-[var(--ra-main-surface-color)] p-1",
             layout.overflow.length === 0
               ? "border-dashed border-border"
               : "border-border shadow-[0_4px_16px_-6px_rgba(28,25,23,0.15)]",
@@ -236,7 +236,7 @@ export function MenuSurfaceEditor({ surface }: { surface: MenuSurface }) {
                 key={id}
                 {...dragProps(id, "overflow")}
                 className={cn(
-                  "flex cursor-grab select-none items-center gap-2 rounded-md px-2 py-1.5 hover:bg-fg/5",
+                  "flex cursor-grab select-none items-center gap-2 rounded-control px-2 py-1.5 hover:bg-fg/5",
                   dragging(id) && "opacity-40",
                 )}
               >

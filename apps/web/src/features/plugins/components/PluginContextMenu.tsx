@@ -15,7 +15,7 @@ export function PluginContextMenu({ input, className }: { input: ContextActionIn
       className={className}
       triggerLabel={t("menu.actions")}
       trigger={
-        <span className="flex h-8 w-8 items-center justify-center rounded-md bg-paper text-fg-muted hover:text-fg">
+        <span className="flex h-8 w-8 items-center justify-center rounded-control bg-paper text-fg-muted hover:text-fg">
           <DotsThreeVertical size={18} aria-hidden="true" />
         </span>
       }

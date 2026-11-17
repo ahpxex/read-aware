@@ -35,7 +35,7 @@ function ZoomIndicatorPreview({ factor, controlsVisible, canLock, locked: initia
     <div className="flex flex-col gap-3">
       {/* The indicator sits absolutely over the bottom of the reader canvas;
           the frame is its positioned ancestor. */}
-      <div className="relative h-[26rem] overflow-hidden rounded-lg border border-border bg-fill">
+      <div className="relative h-[26rem] overflow-hidden rounded-surface border border-border bg-fill">
         <div className="mx-auto mt-6 aspect-[3/4] h-[calc(100%-3rem)] bg-white shadow-sm" />
         <ReaderZoomIndicator
           feedback={feedback}

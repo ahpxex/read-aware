@@ -157,7 +157,7 @@ export function TextUnitNavigatorBar({
   // Quiet, monochrome ghost buttons — same surface language as the selection
   // menu. Compact layouts keep a single row; overflow uses the shared menu.
   const actionButtonClass =
-    "rounded-md text-fg-muted hover:bg-fg/5 hover:text-fg focus-visible:ring-fg disabled:pointer-events-none disabled:opacity-40 pointer-coarse:h-10 pointer-coarse:w-9";
+    "rounded-control text-fg-muted hover:bg-fg/5 hover:text-fg focus-visible:ring-fg disabled:pointer-events-none disabled:opacity-40 pointer-coarse:h-10 pointer-coarse:w-9";
 
   return (
     <div className="pointer-events-none absolute inset-0 z-30">
@@ -176,13 +176,13 @@ export function TextUnitNavigatorBar({
           role="toolbar"
           aria-label={resolvePluginText(mode.copy.title, locale)}
           data-ra-float
-          className="ra-motion-overlay-pop pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-0.5 rounded-lg border border-border bg-[var(--ra-main-surface-color)] p-1 shadow-[0_4px_16px_-6px_rgba(28,25,23,0.25)]"
+          className="ra-motion-overlay-pop pointer-events-auto flex max-w-full flex-wrap items-center justify-center gap-0.5 rounded-surface border border-border bg-[var(--ra-main-surface-color)] p-1 shadow-[0_4px_16px_-6px_rgba(28,25,23,0.25)]"
         >
           <span
             aria-hidden="true"
             {...float.handleProps}
             className={cn(
-              "hidden h-10 shrink-0 cursor-grab touch-none items-center rounded-md px-0.5 text-fg-subtle pointer-coarse:flex",
+              "hidden h-10 shrink-0 cursor-grab touch-none items-center rounded-control px-0.5 text-fg-subtle pointer-coarse:flex",
               float.dragging && "cursor-grabbing text-fg",
             )}
           >

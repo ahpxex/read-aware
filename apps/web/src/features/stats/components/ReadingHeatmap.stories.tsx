@@ -27,7 +27,7 @@ const meta = {
   args: { now: NOW },
   decorators: [
     (Story) => (
-      <div className="mx-auto max-w-2xl rounded-md border border-border bg-[var(--ra-main-surface-color)] p-6">
+      <div className="mx-auto max-w-2xl rounded-surface border border-border bg-[var(--ra-main-surface-color)] p-6">
         <Story />
       </div>
     ),

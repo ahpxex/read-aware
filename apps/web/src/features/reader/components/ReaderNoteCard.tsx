@@ -73,7 +73,7 @@ export function ReaderNoteCard({ open, anchorRect, passage, phone, marks, ...car
       <div
         ref={menuRef}
         className={cn(
-          "ra-motion-overlay-pop pointer-events-auto absolute w-[22rem] max-w-[calc(100%-1.25rem)] rounded-lg border border-border bg-[var(--ra-main-surface-color)] p-3 shadow-[0_8px_28px_-10px_rgba(28,25,23,0.35)]",
+          "ra-motion-overlay-pop pointer-events-auto absolute w-[22rem] max-w-[calc(100%-1.25rem)] rounded-surface border border-border bg-[var(--ra-main-surface-color)] p-3 shadow-[0_8px_28px_-10px_rgba(28,25,23,0.35)]",
           // Without a passage rect (a keyboard shortcut in guided reading), the card centers.
           !anchorRect && "top-1/4 left-1/2 -translate-x-1/2",
         )}

@@ -33,7 +33,7 @@ export function ReaderModePicker({
       triggerClassName={
         toolbar
           ? cn(iconButtonClassName({ size: "toolbar" }), open && "text-fg")
-          : "h-7 w-7 items-center justify-center rounded-md text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
+          : "h-7 w-7 items-center justify-center rounded-control text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
       }
       panelClassName="w-80 max-w-[calc(100vw-2rem)]"
     >

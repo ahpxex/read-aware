@@ -29,7 +29,7 @@ export function MarkdownLinkDialog({ isOpen, onClose, url }: { isOpen: boolean; 
         <p>{t("chat.externalLink.description")}</p>
         <div
           dir="ltr"
-          className="max-h-32 select-text overflow-y-auto break-all rounded bg-fill px-3 py-2 font-mono text-xs text-fg-muted"
+          className="max-h-32 select-text overflow-y-auto break-all rounded-control bg-fill px-3 py-2 font-mono text-xs text-fg-muted"
         >
           {url}
         </div>

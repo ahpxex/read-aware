@@ -96,11 +96,11 @@ export function CollectionTile({ data, layout, onOpen, onDropBooks }: Collection
           onClick={onOpen}
           {...dropProps}
           className={cn(
-            "group flex min-w-0 flex-1 items-center gap-4 rounded-sm px-2 py-2 text-left transition-colors hover:bg-fg/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
+            "group flex min-w-0 flex-1 items-center gap-4 rounded-control px-2 py-2 text-left transition-colors hover:bg-fg/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
             dragOver && "bg-fg/5 ring-1 ring-fg",
           )}
         >
-          <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-sm border border-border bg-fill">
+          <div className="relative h-16 w-11 shrink-0 overflow-hidden rounded-mark border border-border bg-fill">
             <Montage coverUrls={data.coverUrls} className="h-full w-full" />
           </div>
           <div className="min-w-0 flex-1">
@@ -125,7 +125,7 @@ export function CollectionTile({ data, layout, onOpen, onDropBooks }: Collection
       >
         <div
           className={cn(
-            "relative aspect-[2/3] w-full overflow-hidden rounded-sm border border-border bg-fill transition-shadow group-hover:shadow-md group-focus-within:shadow-md",
+            "relative aspect-[2/3] w-full overflow-hidden rounded-mark border border-border bg-fill transition-shadow group-hover:shadow-md group-focus-within:shadow-md",
             dragOver && "ring-2 ring-fg",
           )}
         >

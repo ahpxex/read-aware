@@ -128,7 +128,7 @@ const meta = {
   parameters: { layout: "centered" },
   decorators: [
     (Story) => (
-      <div className="flex max-h-[36rem] w-[28rem] flex-col overflow-hidden rounded-md border border-border bg-[var(--ra-main-surface-color)]">
+      <div className="flex max-h-[36rem] w-[28rem] flex-col overflow-hidden rounded-surface border border-border bg-[var(--ra-main-surface-color)]">
         <ScrollArea className="min-h-0 flex-1">
           <div className="pb-2">
             <Story />

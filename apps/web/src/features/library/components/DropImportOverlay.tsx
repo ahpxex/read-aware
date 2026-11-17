@@ -10,7 +10,7 @@ export function DropImportOverlay() {
   const { t } = useTranslation("shelf");
   return (
     <div className="pointer-events-none fixed inset-0 z-50 flex items-center justify-center bg-paper/80">
-      <div className="rounded-lg border-2 border-dashed border-stone-400 bg-paper px-10 py-8">
+      <div className="rounded-surface border-2 border-dashed border-stone-400 bg-paper px-10 py-8">
         <Body className="text-stone-600">{t("dropImport.hint")}</Body>
       </div>
     </div>

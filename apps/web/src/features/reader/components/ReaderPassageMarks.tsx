@@ -52,7 +52,7 @@ export function ReaderPassageMarks({ mark, defaultColor, onMark, onRemove, class
             aria-label={t("recolor", { color: t(`colors.${value}`) })}
             aria-pressed={!!mark && value === mark.color}
             onClick={() => onMark(style ?? "highlight", value)}
-            className="flex h-7 w-7 items-center justify-center rounded-md transition-colors hover:bg-fg/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
+            className="flex h-7 w-7 items-center justify-center rounded-control transition-colors hover:bg-fg/5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg"
           >
             <span
               className={cn(

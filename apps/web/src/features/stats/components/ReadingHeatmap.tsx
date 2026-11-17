@@ -90,7 +90,7 @@ export function ReadingHeatmap({ daily, now, cell = 10, className }: ReadingHeat
                       key={day.key}
                       title={cellTitle(day)}
                       className={cn(
-                        "rounded-[2px]",
+                        "rounded-fine",
                         day.active ? LEVEL_CLASS[day.level] : "invisible",
                         day.isToday && "outline outline-1 outline-offset-[-1px] outline-fg",
                       )}
@@ -106,7 +106,7 @@ export function ReadingHeatmap({ daily, now, cell = 10, className }: ReadingHeat
       <div className="mt-3 flex items-center justify-end gap-1.5">
         <Caption className="text-fg-subtle">{t("heatmap.less")}</Caption>
         {([0, 1, 2, 3, 4] as HeatmapLevel[]).map((level) => (
-          <div key={level} className={cn("rounded-[2px]", LEVEL_CLASS[level])} style={{ width: cell, height: cell }} />
+          <div key={level} className={cn("rounded-fine", LEVEL_CLASS[level])} style={{ width: cell, height: cell }} />
         ))}
         <Caption className="text-fg-subtle">{t("heatmap.more")}</Caption>
       </div>

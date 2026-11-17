@@ -24,7 +24,7 @@ function Harness() {
     <div className="mx-auto flex max-w-2xl flex-col gap-8">
       <div>
         <span className="mb-2 block text-xs text-fg-subtle">inline</span>
-        <div className="flex items-center justify-end gap-1 rounded-md border border-border bg-surface px-3 py-2">
+        <div className="flex items-center justify-end gap-1 rounded-surface border border-border bg-surface px-3 py-2">
           {entries.map((entry) => (
             <span key={entry.id}>{entry.inline}</span>
           ))}
@@ -32,7 +32,7 @@ function Harness() {
       </div>
       <div>
         <span className="mb-2 block text-xs text-fg-subtle">collapsed into the dots menu</span>
-        <div className="flex items-center justify-end rounded-md border border-border bg-surface px-3 py-2">
+        <div className="flex items-center justify-end rounded-surface border border-border bg-surface px-3 py-2">
           <MenuOverflow entries={entries.map((entry) => entry.overflow)} />
         </div>
       </div>

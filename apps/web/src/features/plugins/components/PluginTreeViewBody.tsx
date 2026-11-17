@@ -62,7 +62,7 @@ export function PluginTreeViewBody({
               }}
               onKeyDown={(event) => tree.keyDown(event, row, index)}
               onClick={() => tree.activate(row)}
-              className="flex min-h-10 min-w-0 items-start gap-2 rounded-sm py-1 pe-2 text-fg hover:bg-surface-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-border-strong"
+              className="flex min-h-10 min-w-0 items-start gap-2 rounded-control py-1 pe-2 text-fg hover:bg-surface-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-border-strong"
               style={{ paddingInlineStart: `${(row.level - 1) * 12}px` }}
             >
               {branch ? (

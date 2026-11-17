@@ -22,9 +22,9 @@ export function ReaderJumpReturn({
     <div
       role="group"
       aria-label={t("jumpReturn.label")}
-      className="ra-motion-overlay-pop pointer-events-auto flex max-w-full items-center rounded-md border border-border bg-[var(--ra-main-surface-color)] p-0.5 shadow-[0_4px_16px_-6px_rgba(28,25,23,0.25)]"
+      className="ra-motion-overlay-pop pointer-events-auto flex max-w-full items-center rounded-surface border border-border bg-[var(--ra-main-surface-color)] p-0.5 shadow-[0_4px_16px_-6px_rgba(28,25,23,0.25)]"
     >
-      <Button variant="ghost" size="sm" onClick={onBack} className="h-7 min-w-0 rounded px-2 text-caption">
+      <Button variant="ghost" size="sm" onClick={onBack} className="h-7 min-w-0 rounded-control px-2 text-caption">
         <ArrowArcLeft size={14} weight="regular" aria-hidden="true" className="shrink-0" />
         <span className="truncate tabular-nums">
           {page === null ? t("jumpReturn.back") : t("jumpReturn.toPage", { page })}
@@ -35,7 +35,7 @@ export function ReaderJumpReturn({
         size="sm"
         label={t("jumpReturn.dismiss")}
         onClick={onDismiss}
-        className="rounded hover:bg-fg/5"
+        className="rounded-control hover:bg-fg/5"
         icon={<X size={12} weight="regular" aria-hidden="true" />}
       />
     </div>

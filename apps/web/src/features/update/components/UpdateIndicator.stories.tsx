@@ -30,7 +30,7 @@ const meta = {
   parameters: { layout: "centered" },
   decorators: [
     (Story) => (
-      <div className="flex w-[26rem] items-center rounded-md border border-border bg-surface px-3 py-2">
+      <div className="flex w-[26rem] items-center rounded-surface border border-border bg-surface px-3 py-2">
         <Story />
         <span className="ml-auto text-sm text-fg-subtle">Library</span>
       </div>

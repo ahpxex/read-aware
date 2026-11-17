@@ -424,7 +424,7 @@ export function SettingsDialog({ open, onClose, workspaceToken = 0 }: SettingsDi
         aria-modal="true"
         aria-labelledby={titleId}
         className={cn(
-          "flex h-[min(85vh,42rem)] w-full max-w-3xl overflow-hidden rounded-md border border-border bg-[var(--ra-main-surface-color)] text-fg",
+          "flex h-[min(85vh,42rem)] w-full max-w-3xl overflow-hidden rounded-surface border border-border bg-[var(--ra-main-surface-color)] text-fg",
           "transition-[opacity,transform] duration-260 ease-[var(--ra-ease-out-quint)] motion-reduce:transition-none",
           isVisible ? "translate-y-0 scale-100 opacity-100" : "translate-y-2 scale-[0.985] opacity-0",
         )}
@@ -463,7 +463,7 @@ export function SettingsDialog({ open, onClose, workspaceToken = 0 }: SettingsDi
                   aria-current={active ? "page" : undefined}
                   onClick={() => selectSection(index)}
                   className={cn(
-                    "flex items-center gap-2.5 rounded-md px-3 py-2 text-left font-sans text-sm transition-colors",
+                    "flex items-center gap-2.5 rounded-control px-3 py-2 text-left font-sans text-sm transition-colors",
                     active ? "font-medium text-fg" : "text-fg-muted hover:text-fg",
                   )}
                 >

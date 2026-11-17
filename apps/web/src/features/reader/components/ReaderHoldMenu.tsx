@@ -82,7 +82,7 @@ export function ReaderHoldMenu({
   if (!anchorRect) return null;
 
   const actionButtonClass =
-    "rounded-md text-fg-muted hover:bg-fg/5 hover:text-fg focus-visible:ring-fg disabled:pointer-events-none disabled:opacity-40 h-10 w-10";
+    "rounded-control text-fg-muted hover:bg-fg/5 hover:text-fg focus-visible:ring-fg disabled:pointer-events-none disabled:opacity-40 h-10 w-10";
   const raised = "bg-fill-strong text-fg scale-110";
 
   return (
@@ -97,7 +97,7 @@ export function ReaderHoldMenu({
         <span
           aria-live="polite"
           className={cn(
-            "rounded-md bg-fg px-2 py-1 text-xs text-inverse-fg transition-opacity",
+            "rounded-mark bg-fg px-2 py-1 text-xs text-inverse-fg transition-opacity",
             state.sliding && hoveredLabel ? "opacity-100" : "opacity-0",
           )}
         >
@@ -108,7 +108,7 @@ export function ReaderHoldMenu({
             ref={menuRef}
             role="toolbar"
             aria-label={title}
-            className="flex max-w-[calc(100vw-1.25rem)] items-center gap-0.5 rounded-lg border border-border bg-[var(--ra-main-surface-color)] p-1 shadow-[0_4px_16px_-6px_rgba(28,25,23,0.25)]"
+            className="flex max-w-[calc(100vw-1.25rem)] items-center gap-0.5 rounded-surface border border-border bg-[var(--ra-main-surface-color)] p-1 shadow-[0_4px_16px_-6px_rgba(28,25,23,0.25)]"
           >
             {actions.map((action, index) => (
               <IconButton

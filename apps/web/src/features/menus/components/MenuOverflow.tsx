@@ -51,7 +51,7 @@ export function MenuOverflow({ entries, className, align = "right", size = "md" 
       trigger={
         <span
           className={cn(
-            "flex items-center justify-center rounded-md text-fg-muted hover:bg-fg/5 hover:text-fg",
+            "flex items-center justify-center rounded-control text-fg-muted hover:bg-fg/5 hover:text-fg",
             size === "md" ? "h-8 w-8" : "h-7 w-7",
           )}
         >
@@ -74,7 +74,7 @@ export function MenuOverflow({ entries, className, align = "right", size = "md" 
               // Keep the widget's real trigger visible and keyboard reachable.
               // Some widgets contain multiple actions (e.g. reader modes), so
               // relaying a click to their first DOM button loses behavior.
-              <div className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5">
+              <div className="flex items-center justify-between gap-2 rounded-control px-2 py-1.5">
                 <span className="flex min-w-0 items-center gap-2 text-sm text-fg">
                   <span className="text-fg-muted">{entry.icon}</span>
                   <span className="truncate">{entry.label}</span>
@@ -92,7 +92,7 @@ export function MenuOverflow({ entries, className, align = "right", size = "md" 
                 }}
                 variant="ghost"
                 size="sm"
-                className="w-full justify-start rounded-md px-2 text-left"
+                className="w-full justify-start rounded-control px-2 text-left"
               >
                 <span className="text-fg-muted">{entry.icon}</span>
                 <span className="min-w-0 flex-1 truncate">{entry.label}</span>

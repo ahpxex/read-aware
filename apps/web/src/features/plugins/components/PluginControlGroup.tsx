@@ -22,7 +22,7 @@ export function PluginControlGroup({ controls, busy, onResult }: PluginControlGr
             align="right"
             triggerLabel={`${control.label}: ${selected.label}`}
             trigger={
-              <span className="inline-flex min-h-7 max-w-full items-center gap-1 rounded px-1.5 py-0.5 text-xs text-fg-subtle transition-colors hover:text-fg">
+              <span className="inline-flex min-h-7 max-w-full items-center gap-1 rounded-control px-1.5 py-0.5 text-xs text-fg-subtle transition-colors hover:text-fg">
                 {renderPluginIcon(control.icon, 14)}
                 <span className="truncate">{selected.label}</span>
                 <CaretDown size={10} aria-hidden="true" />

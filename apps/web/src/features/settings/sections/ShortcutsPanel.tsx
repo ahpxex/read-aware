@@ -165,7 +165,7 @@ export function ShortcutsPanel() {
                           startRecording(shortcut.id);
                         }}
                         className={cn(
-                          "rounded-md px-2 py-1 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
+                          "rounded-control px-2 py-1 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
                           recording ? "bg-fill" : "hover:bg-fill",
                         )}
                       >
@@ -240,7 +240,7 @@ export function ShortcutsPanel() {
                         startRecording(id);
                       }}
                       className={cn(
-                        "rounded-md px-2 py-1 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
+                        "rounded-control px-2 py-1 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
                         recording ? "bg-fill" : "hover:bg-fill",
                       )}
                     >

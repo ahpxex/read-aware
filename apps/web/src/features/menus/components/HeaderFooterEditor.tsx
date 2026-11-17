@@ -69,7 +69,7 @@ export function HeaderFooterEditor() {
       data-hf-item={item}
       role="listitem"
       className={cn(
-        "inline-flex min-w-0 max-w-full cursor-grab select-none items-center gap-1 rounded-md border border-border bg-[var(--ra-main-surface-color)] px-1.5 py-0.5 font-sans text-xs text-fg",
+        "inline-flex min-w-0 max-w-full cursor-grab select-none items-center gap-1 rounded-control border border-border bg-[var(--ra-main-surface-color)] px-1.5 py-0.5 font-sans text-xs text-fg",
         "[touch-action:none]",
         draggingItem === item && "opacity-40",
         disabled && "cursor-default",
@@ -95,7 +95,7 @@ export function HeaderFooterEditor() {
       data-hf-zone={position}
       aria-label={t(`menus.headerFooter.positions.${position}`)}
       className={cn(
-        "flex min-h-7 min-w-0 flex-1 flex-wrap items-center gap-1 rounded-md px-1 py-0.5",
+        "flex min-h-7 min-w-0 flex-1 flex-wrap items-center gap-1 rounded-control px-1 py-0.5",
         align === "center" && "justify-center",
         align === "end" && "justify-end",
         settings.slots[position].length === 0 && "border border-dashed border-border",
@@ -110,17 +110,17 @@ export function HeaderFooterEditor() {
     <div ref={rootRef} className="flex flex-col gap-3">
       <div aria-disabled={disabled} className={cn("flex flex-col gap-2", disabled && "pointer-events-none opacity-50")}>
         {/* Miniature page: header band, body, footer band. */}
-        <div className="rounded-lg border border-border bg-[var(--ra-main-surface-color)] p-1.5">
+        <div className="rounded-surface border border-border bg-[var(--ra-main-surface-color)] p-1.5">
           <div className="flex gap-1">
             {dropZone("header-left", "start")}
             {dropZone("header-center", "center")}
             {dropZone("header-right", "end")}
           </div>
           <div aria-hidden="true" className="flex flex-col gap-1.5 px-2 py-3">
-            <div className="h-1.5 w-full rounded bg-fg/10" />
-            <div className="h-1.5 w-11/12 rounded bg-fg/10" />
-            <div className="h-1.5 w-full rounded bg-fg/10" />
-            <div className="h-1.5 w-4/5 rounded bg-fg/10" />
+            <div className="h-1.5 w-full rounded-mark bg-fg/10" />
+            <div className="h-1.5 w-11/12 rounded-mark bg-fg/10" />
+            <div className="h-1.5 w-full rounded-mark bg-fg/10" />
+            <div className="h-1.5 w-4/5 rounded-mark bg-fg/10" />
           </div>
           <div className="flex gap-1">
             {dropZone("footer-left", "start")}
@@ -134,7 +134,7 @@ export function HeaderFooterEditor() {
             data-hf-zone="hidden"
             aria-label={t("menus.headerFooter.notShown")}
             className={cn(
-              "flex min-h-9 flex-1 flex-wrap items-center gap-1 rounded-lg border border-dashed border-border px-1.5 py-1",
+              "flex min-h-9 flex-1 flex-wrap items-center gap-1 rounded-surface border border-dashed border-border px-1.5 py-1",
               zoneHighlighted("hidden") && "bg-fg/5",
             )}
           >
@@ -159,7 +159,7 @@ export function HeaderFooterEditor() {
       {ghost && (
         <span
           aria-hidden="true"
-          className="pointer-events-none fixed z-[90] inline-flex -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-md border border-border bg-[var(--ra-main-surface-color)] px-1.5 py-0.5 font-sans text-xs text-fg shadow-md"
+          className="pointer-events-none fixed z-[90] inline-flex -translate-x-1/2 -translate-y-1/2 items-center gap-1 rounded-control border border-border bg-[var(--ra-main-surface-color)] px-1.5 py-0.5 font-sans text-xs text-fg shadow-md"
           style={{ left: ghost.x, top: ghost.y }}
         >
           <span className="text-fg-muted">{ITEM_ICONS[ghost.item]}</span>

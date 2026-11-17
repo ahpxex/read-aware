@@ -699,6 +699,7 @@ ${textAlignCss(settings.textAlign)}${textIndentCss(typography.textIndent)}
     :not(pre) > code {
       padding: 0.1em 0.35em !important;
       background: ${theme.faint} !important;
+      /* The design system's mark radius (radius.css), as chat inline code uses. */
       border-radius: 0.25rem !important;
     }
 
@@ -706,7 +707,8 @@ ${textAlignCss(settings.textAlign)}${textIndentCss(typography.textIndent)}
       margin: 0 0 ${paragraphSpacing} 0 !important;
       padding: 1rem 1.15rem !important;
       background: ${theme.faint} !important;
-      border-radius: 0.4rem !important;
+      /* The design system's surface radius (radius.css), as chat code blocks use. */
+      border-radius: 0.5rem !important;
       line-height: 1.5 !important;
       overflow-x: auto !important;
     }

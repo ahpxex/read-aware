@@ -28,7 +28,7 @@ const meta = {
   decorators: [
     (Story) => (
       <div
-        className="relative h-[26rem] w-[36rem] overflow-hidden rounded-sm border border-border p-8 font-serif text-sm leading-7"
+        className="relative h-[26rem] w-[36rem] overflow-hidden rounded-surface border border-border p-8 font-serif text-sm leading-7"
         style={{ backgroundColor: page.bg, color: page.text }}
       >
         <p>

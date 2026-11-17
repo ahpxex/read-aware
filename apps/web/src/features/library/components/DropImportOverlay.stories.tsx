@@ -27,7 +27,7 @@ export const OverTheShelf: Story = {
       <h1 className="font-serif text-2xl text-fg">Library</h1>
       <div className="mt-6 grid grid-cols-[repeat(auto-fill,minmax(8rem,1fr))] gap-6">
         {Array.from({ length: 10 }, (_, i) => (
-          <div key={i} className="aspect-[2/3] rounded-sm border border-border bg-fill" />
+          <div key={i} className="aspect-[2/3] rounded-mark border border-border bg-fill" />
         ))}
       </div>
       <DropImportOverlay {...args} />

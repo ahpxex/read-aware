@@ -139,7 +139,7 @@ export const ScrollingBody: Story = {
   },
   decorators: [
     (Story) => (
-      <div className="mx-auto flex h-[28rem] max-w-2xl flex-col rounded-md border border-border p-4">
+      <div className="mx-auto flex h-[28rem] max-w-2xl flex-col rounded-surface border border-border p-4">
         <Story />
       </div>
     ),

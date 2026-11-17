@@ -78,7 +78,7 @@ export function PluginHeaderCluster({ surface, input = {}, onOpenPage, buttonCla
           triggerLabel={t("menu.actions")}
           className={buttonClassName}
           trigger={
-            <span className="flex h-8 w-8 items-center justify-center rounded-md text-fg-muted hover:text-fg">
+            <span className="flex h-8 w-8 items-center justify-center rounded-control text-fg-muted hover:text-fg">
               <PuzzlePiece size={16} weight="regular" aria-hidden="true" />
             </span>
           }
@@ -195,7 +195,7 @@ function PluginHeaderPopupButton({
         toolbar ? (
           renderPluginIcon(action.icon, 20)
         ) : (
-          <span className="flex h-8 w-8 items-center justify-center rounded-md text-fg-muted hover:text-fg">
+          <span className="flex h-8 w-8 items-center justify-center rounded-control text-fg-muted hover:text-fg">
             {renderPluginIcon(action.icon, 16)}
           </span>
         )

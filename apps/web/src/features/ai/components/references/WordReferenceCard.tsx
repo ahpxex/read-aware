@@ -16,7 +16,7 @@ export function WordReferenceCard({ reference }: { reference: ChatWordReference 
   const numbered = entry.senses.length > 1;
 
   return (
-    <div className="rounded-md border border-border px-3 py-2.5">
+    <div className="rounded-surface border border-border px-3 py-2.5">
       <div className="flex items-center gap-2">
         <div className="flex min-w-0 flex-1 items-baseline gap-2">
           <span className="font-serif text-base font-medium text-fg">{reference.term}</span>

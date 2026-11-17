@@ -55,7 +55,7 @@ const meta = {
       // the frame stands in for it, painted with the page palette, and keeps
       // the text clear of the strips' reserved height as the paginator does.
       <div
-        className="relative mx-auto h-[30rem] max-w-2xl overflow-hidden rounded-lg border border-border"
+        className="relative mx-auto h-[30rem] max-w-2xl overflow-hidden rounded-surface border border-border"
         style={{ background: args.palette.bg, color: args.palette.text }}
       >
         <div

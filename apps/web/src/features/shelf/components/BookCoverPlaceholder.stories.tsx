@@ -13,7 +13,7 @@ type Story = StoryObj<typeof meta>;
 function Frame({ children }: { children: React.ReactNode }) {
   return (
     <div className="w-40">
-      <div className="aspect-[2/3] w-full overflow-hidden rounded-sm">{children}</div>
+      <div className="aspect-[2/3] w-full overflow-hidden rounded-mark">{children}</div>
     </div>
   );
 }
@@ -55,7 +55,7 @@ export const NoAuthor: Story = {
 export const ListThumbnail: Story = {
   args: { title: "The Structure of Scientific Revolutions", author: "Thomas S. Kuhn", format: "azw3", compact: true },
   render: (args) => (
-    <div className="h-16 w-11 overflow-hidden rounded-sm">
+    <div className="h-16 w-11 overflow-hidden rounded-mark">
       <BookCoverPlaceholder {...args} />
     </div>
   ),
@@ -78,7 +78,7 @@ export const Gallery: Story = {
     return (
       <div className="grid w-full max-w-3xl grid-cols-3 gap-5 sm:grid-cols-6">
         {books.map((book) => (
-          <div key={book.title} className="aspect-[2/3] w-full overflow-hidden rounded-sm">
+          <div key={book.title} className="aspect-[2/3] w-full overflow-hidden rounded-mark">
             <BookCoverPlaceholder {...book} />
           </div>
         ))}

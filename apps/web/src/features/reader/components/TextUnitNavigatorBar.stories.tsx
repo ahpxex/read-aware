@@ -51,7 +51,7 @@ const mode: RegisteredReaderMode = {
 function FramedNavigatorBar(props: ComponentProps<typeof TextUnitNavigatorBar>) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   return (
-    <div ref={containerRef} className="relative h-[26rem] overflow-hidden rounded-lg border border-border">
+    <div ref={containerRef} className="relative h-[26rem] overflow-hidden rounded-surface border border-border">
       <TextUnitNavigatorBar {...props} containerRef={containerRef} />
     </div>
   );

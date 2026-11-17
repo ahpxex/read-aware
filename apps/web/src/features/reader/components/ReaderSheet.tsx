@@ -106,7 +106,7 @@ export function ReaderSheet<K extends string>({
                   } as CSSProperties
                 }
                 className={cn(
-                  "flex flex-col rounded-t-xl border-t border-border/70",
+                  "flex flex-col rounded-t-surface border-t border-border/70",
                   !content.tall && "max-h-[min(56dvh,30rem)]",
                 )}
               >

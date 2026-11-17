@@ -1,4 +1,4 @@
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAtom, useAtomValue } from "jotai";
 import { Books } from "@phosphor-icons/react";
 import { Body, Button, EmptyState, Skeleton } from "@read-aware/ui";
@@ -13,6 +13,7 @@ import { ShelfSelectionToolbar } from "../../shelf/components/ShelfSelectionTool
 import { deriveShelfView, type ShelfCollection } from "../../shelf/lib/derive-shelf-view";
 import { useShelfBookDrag } from "../../shelf/hooks/useShelfBookDrag";
 import { useShelfSelection } from "../../shelf/hooks/useShelfSelection";
+import { useCollectionLevel } from "../hooks/useCollectionLevel";
 import { activeCollectionAtom, shelfViewAtom } from "../../../state/ui";
 import type { BookMetadataPatch, Collection, LibraryBook } from "../lib/library-types";
 
@@ -158,8 +159,12 @@ export const LibraryWorkspace = memo(function LibraryWorkspace({
 
   const collectionCount = activeCollection ? books.filter((b) => b.collectionId === activeCollection.id).length : 0;
 
+  const rootRef = useRef<HTMLDivElement>(null);
+  const levelMoved = useCollectionLevel(activeCollectionId, rootRef);
+
   return (
     <div
+      ref={rootRef}
       className={cn(
         "ra-motion-page-enter mx-auto flex min-h-full w-full flex-col px-6 pt-5 sm:pt-6",
         // The cover grid flows to fill any window; list rows keep a readable
@@ -220,7 +225,8 @@ export const LibraryWorkspace = memo(function LibraryWorkspace({
       ) : (
         // Fades in over the skeleton it replaces (same grid geometry), so the
         // ready swap reads as the shelf resolving rather than a hard cut.
-        <div className="ra-motion-fade-in">
+        // Opening or leaving a collection remounts it as a new page.
+        <div key={activeCollectionId ?? "shelf"} className={levelMoved ? "ra-motion-page-enter" : "ra-motion-fade-in"}>
           {activeCollection && (
             <CollectionHeader
               key={activeCollection.id}

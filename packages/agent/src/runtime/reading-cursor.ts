@@ -146,8 +146,11 @@ export function formatReadingCursor(cursor: ReadingCursor, position?: TurnReadin
 /**
  * 用户消息的主导文字系统 → 回复语言锚点。system prompt 里的静态语言规则
  * 压不住某些模型的漂移（deepseek 会对英文提问漏中文）；把锚点动态放到
- * 每轮 user message 的末尾（注意力最近处）。只对可无歧义判定的文字系统
- * 给出具体语言名，拉丁字母语言之间不猜。
+ * 每轮 user message 的末尾（注意力最近处）。
+ *
+ * 判定看主导文字，不看是否出现：英文提问里夹一个中文书名或人名仍是英文。
+ * 只有文字系统能唯一确定语言时（假名 → 日语、谚文 → 韩语、汉字 → 中文）
+ * 才说出语言名；西里尔与拉丁字母都覆盖多种语言，只锚定"读者原话的语言"。
  */
 export function replyLanguageAnchor(content: string): string {
   const counts = {
@@ -155,13 +158,18 @@ export function replyLanguageAnchor(content: string): string {
     hangul: (content.match(/[가-힯]/g) ?? []).length,
     han: (content.match(/[一-鿿]/g) ?? []).length,
     cyrillic: (content.match(/[Ѐ-ӿ]/g) ?? []).length,
+    latin: (content.match(/[A-Za-zÀ-ɏ]/g) ?? []).length,
   };
-  if (counts.kana > 0) return "Japanese";
-  if (counts.hangul > counts.han) return "Korean";
-  if (counts.han > 0) return "Chinese";
-  if (counts.cyrillic > 0) return "Russian";
-  // 四类非拉丁文字都未检出 → 消息是拉丁字系语言。具体语种之间不猜，
-  // 但可以断言"绝不用非拉丁文字回复"——观测到的漂移全部是漂去中文。
+  // Japanese writes kanji and kana together; any kana in a CJK-dominant message makes it Japanese.
+  const cjk = counts.kana + counts.hangul + counts.han;
+  const dominant = Math.max(cjk, counts.cyrillic, counts.latin);
+  if (dominant === 0) return "the exact language of the reader's message above";
+  if (dominant === cjk) {
+    if (counts.kana > 0) return "Japanese";
+    return counts.hangul > counts.han ? "Korean" : "Chinese";
+  }
+  if (dominant === counts.cyrillic)
+    return "the exact language of the reader's message above (written in Cyrillic; never switch languages mid-reply)";
   return "the exact language of the reader's message above (a Latin-script language — never reply in Chinese or any other non-Latin script, and never switch languages mid-reply)";
 }
 

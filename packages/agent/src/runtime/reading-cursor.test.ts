@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { formatPromptTurn, formatReadingCursor } from "./reading-cursor";
+import { formatPromptTurn, formatReadingCursor, replyLanguageAnchor } from "./reading-cursor";
 
 describe("reading cursor prompt context", () => {
   test("describes the live viewport without exposing the opaque anchor", () => {
@@ -93,9 +93,23 @@ describe("reading cursor prompt context", () => {
   test("anchors the reply language to the dominant script of the user turn", () => {
     expect(formatPromptTurn("这本书讲了什么？")).toContain("reply entirely in Chinese");
     expect(formatPromptTurn("この本について教えて")).toContain("reply entirely in Japanese");
-    expect(formatPromptTurn("Расскажи об этой книге")).toContain("reply entirely in Russian");
+    expect(formatPromptTurn("Расскажи об этой книге")).toContain("written in Cyrillic");
     expect(formatPromptTurn("What is this book about?")).toContain(
       "reply entirely in the exact language of the reader's message above",
     );
+  });
+});
+
+describe("reply language anchor", () => {
+  test("names the language only from the message's dominant script", () => {
+    expect(replyLanguageAnchor("这一段是什么意思？")).toBe("Chinese");
+    expect(replyLanguageAnchor("この段落はどういう意味？")).toBe("Japanese");
+    expect(replyLanguageAnchor("이 문단은 무슨 뜻이에요?")).toBe("Korean");
+    // A Chinese title inside an English question leaves the reply in English.
+    expect(replyLanguageAnchor("Who is 孙悟空 in this chapter, and why does he rebel?")).toContain("Latin-script");
+    // Cyrillic covers Ukrainian, Bulgarian, Serbian and more: no language is assumed.
+    const cyrillic = replyLanguageAnchor("Що означає цей абзац?");
+    expect(cyrillic).not.toContain("Russian");
+    expect(cyrillic).toContain("Cyrillic");
   });
 });

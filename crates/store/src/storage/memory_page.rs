@@ -2,7 +2,7 @@
 //! SQLite orders scoped candidates; native code streams matching rows into the
 //! result identity and retains only the requested page. Exact content identity
 //! still requires a scan: this is not a constant-time or durable snapshot API.
-use super::{memories::bounded_memory_row, Memory};
+use super::{memories::bounded_memory_row, schema::memory_match_expr, Memory};
 use crate::error::CommandError;
 use rusqlite::{params, Connection};
 use serde::Serialize;
@@ -112,23 +112,6 @@ fn normalize(input: &Value) -> Result<Query, CommandError> {
     })
 }
 
-fn search_terms(query: &str) -> Vec<String> {
-    let query = query.to_lowercase();
-    if query.is_empty() {
-        return Vec::new();
-    }
-    let mut terms = vec![query.clone()];
-    for token in query.split(|c| {
-        whitespace(c) || ",.。，！？!?；;：:、\"'“”‘’()（）《》〈〉【】[]-—…·/|".contains(c)
-    }) {
-        let cjk = token.chars().any(|c| matches!(c, '\u{4e00}'..='\u{9fff}' | '\u{3040}'..='\u{30ff}' | '\u{ac00}'..='\u{d7af}'));
-        if token.encode_utf16().count() >= if cjk { 2 } else { 4 } {
-            terms.push(token.to_string());
-        }
-    }
-    terms
-}
-
 fn hash_value(hash: &mut Sha256, value: &impl Serialize) -> Result<(), CommandError> {
     let bytes =
         serde_json::to_vec(value).map_err(|error| CommandError::internal(error.to_string()))?;
@@ -146,7 +129,13 @@ pub fn memory_page_inner(conn: &mut Connection, input: &Value) -> Result<MemoryP
 
 pub fn memory_page_read(conn: &Connection, input: &Value) -> Result<MemoryPage, CommandError> {
     let query = normalize(input)?;
-    let terms = search_terms(&query.query);
+    // Memories matching the query, by the shared FTS rule; none when the query
+    // has no searchable term at all.
+    let matching = if query.query.trim().is_empty() {
+        None
+    } else {
+        Some(memory_match_expr(&query.query))
+    };
     let mut hash = Sha256::new();
     hash.update(b"readaware-memory-page-v2");
     hash_value(&mut hash, &query.scopes)?;
@@ -161,11 +150,21 @@ pub fn memory_page_read(conn: &Connection, input: &Value) -> Result<MemoryPage, 
         let mut stmt = conn.prepare(
             "SELECT * FROM memories
             WHERE status = 'active' AND scope IN (SELECT value FROM json_each(?1))
+              AND (?2 IS NULL OR id IN (SELECT id FROM memories_fts WHERE memories_fts MATCH ?2))
             ORDER BY (pinned <> 0) DESC, importance DESC, updated_at DESC, id ASC",
         )?;
         let scope_json = serde_json::to_string(&query.scopes)
             .map_err(|error| CommandError::internal(error.to_string()))?;
-        let mut rows = stmt.query(params![scope_json])?;
+        // A query of punctuation alone names nothing to find: no rows.
+        let unmatched = matching == Some(None);
+        let mut rows = stmt.query(params![
+            if unmatched {
+                "[]".to_string()
+            } else {
+                scope_json
+            },
+            matching.flatten()
+        ])?;
         while let Some(row) = rows.next()? {
             scanned += 1;
             if scanned > 10000 {
@@ -182,12 +181,6 @@ pub fn memory_page_read(conn: &Connection, input: &Value) -> Result<MemoryPage, 
                     "memory/input-budget-exceeded",
                     "Memory scan exceeds its byte budget",
                 ));
-            }
-            if !terms.is_empty() {
-                let content = memory.content.to_lowercase();
-                if !terms.iter().any(|term| content.contains(term)) {
-                    continue;
-                }
             }
             hash_value(&mut hash, &memory)?;
             if total >= query.offset && items.len() < query.limit && !page_full {

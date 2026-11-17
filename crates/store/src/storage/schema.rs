@@ -997,6 +997,25 @@ pub const MIGRATIONS: &[(i64, &str, &str)] = &[
     // Identity consolidation batches an oversized input in memory within one
     // pass; its resumable model-page log (v39/v40) is retired.
     (61, "retire_identity_work_log", "DROP TABLE IF EXISTS identity_consolidation_pages; DROP TABLE IF EXISTS identity_consolidation_work;"),
+    // Memory retrieval uses the same segmented FTS as annotations (see v4),
+    // instead of a hand-written substring scan.
+    (62, "memories_fts_index", "CREATE VIRTUAL TABLE IF NOT EXISTS memories_fts USING fts5(
+            id UNINDEXED,
+            content,
+            tokenize = 'unicode61'
+         );
+         CREATE TRIGGER IF NOT EXISTS trg_memories_fts_insert AFTER INSERT ON memories BEGIN
+            INSERT INTO memories_fts (id, content) VALUES (new.id, ra_fts_segment(new.content));
+         END;
+         CREATE TRIGGER IF NOT EXISTS trg_memories_fts_update AFTER UPDATE OF content ON memories BEGIN
+            DELETE FROM memories_fts WHERE id = old.id;
+            INSERT INTO memories_fts (id, content) VALUES (new.id, ra_fts_segment(new.content));
+         END;
+         CREATE TRIGGER IF NOT EXISTS trg_memories_fts_delete AFTER DELETE ON memories BEGIN
+            DELETE FROM memories_fts WHERE id = old.id;
+         END;
+         DELETE FROM memories_fts;
+         INSERT INTO memories_fts (id, content) SELECT id, ra_fts_segment(content) FROM memories;"),
 ];
 
 /// Rebuild the annotation FTS index from the table. Required after any VACUUM
@@ -1015,7 +1034,7 @@ pub fn rebuild_annotations_fts(conn: &Connection) -> Result<(), CommandError> {
 /// The schema version a projection checkpoint is stamped with. Restoring one
 /// is only sound when the derived tables' shapes match exactly, so a
 /// checkpoint from a different version is ignored in favour of the log.
-pub const SCHEMA_VERSION: i64 = 61;
+pub const SCHEMA_VERSION: i64 = 62;
 
 /// The migration after which `materialize_legacy_covers` must run: the cover
 /// projection columns exist, the inline data-URL column still does.
@@ -1229,27 +1248,58 @@ pub fn fts_segment(text: &str) -> String {
 /// Quoting every token also neutralizes fts5 operators (AND/OR/NEAR/parens) in
 /// user input. Returns None when the query has no indexable tokens.
 pub fn fts_match_expr(query: &str) -> Option<String> {
+    let parts = fts_query_parts(query);
+    if parts.is_empty() {
+        None
+    } else {
+        Some(
+            parts
+                .into_iter()
+                .map(|part| part.expr)
+                .collect::<Vec<_>>()
+                .join(" "),
+        ) // implicit AND
+    }
+}
+
+/// One query term as an fts5 expression, and whether it alone is specific
+/// enough to select a memory (a word of 4+ characters or a CJK phrase of 2+).
+struct FtsQueryPart {
+    expr: String,
+    distinctive: bool,
+}
+
+fn fts_query_parts(query: &str) -> Vec<FtsQueryPart> {
     fn quote(token: &str) -> String {
         format!("\"{}\"", token.replace('"', "\"\""))
     }
-    fn flush_word(parts: &mut Vec<String>, word: &mut String) {
+    fn flush_word(parts: &mut Vec<FtsQueryPart>, word: &mut String) {
         if !word.is_empty() {
-            parts.push(format!("{}*", quote(word)));
+            parts.push(FtsQueryPart {
+                expr: format!("{}*", quote(word)),
+                distinctive: word.chars().count() >= 4,
+            });
             word.clear();
         }
     }
-    fn flush_cjk(parts: &mut Vec<String>, run: &mut Vec<char>) {
+    fn flush_cjk(parts: &mut Vec<FtsQueryPart>, run: &mut Vec<char>) {
         let mut bigrams: Vec<String> = Vec::new();
         flush_cjk_run(&mut bigrams, run);
         match bigrams.as_slice() {
             [] => {}
             // Lone CJK char: prefix-match so it still hits bigram tokens.
-            [only] if only.chars().count() == 1 => parts.push(format!("{}*", quote(only))),
-            _ => parts.push(quote(&bigrams.join(" "))),
+            [only] if only.chars().count() == 1 => parts.push(FtsQueryPart {
+                expr: format!("{}*", quote(only)),
+                distinctive: false,
+            }),
+            _ => parts.push(FtsQueryPart {
+                expr: quote(&bigrams.join(" ")),
+                distinctive: true,
+            }),
         }
     }
 
-    let mut parts: Vec<String> = Vec::new();
+    let mut parts: Vec<FtsQueryPart> = Vec::new();
     let mut cjk_run: Vec<char> = Vec::new();
     let mut word = String::new();
     for c in query.chars() {
@@ -1266,11 +1316,32 @@ pub fn fts_match_expr(query: &str) -> Option<String> {
     }
     flush_word(&mut parts, &mut word);
     flush_cjk(&mut parts, &mut cjk_run);
+    parts
+}
+
+/// The memory-retrieval match: a memory holds every term of the query, or any
+/// one distinctive term, so a descriptive agent query ("programming language
+/// preference") still finds a memory that names only part of it. The shared
+/// cases in `packages/core/src/memory-query-cases.json` pin the TypeScript
+/// mirror (`matchesMemoryQuery`) to this rule.
+pub fn memory_match_expr(query: &str) -> Option<String> {
+    let parts = fts_query_parts(query);
     if parts.is_empty() {
-        None
-    } else {
-        Some(parts.join(" ")) // implicit AND
+        return None;
     }
+    let all = parts
+        .iter()
+        .map(|part| part.expr.as_str())
+        .collect::<Vec<_>>()
+        .join(" ");
+    let mut alternatives = vec![format!("({all})")];
+    alternatives.extend(
+        parts
+            .iter()
+            .filter(|part| part.distinctive)
+            .map(|part| part.expr.clone()),
+    );
+    Some(alternatives.join(" OR "))
 }
 
 /// Register app SQL functions on a connection. Must run BEFORE migrations

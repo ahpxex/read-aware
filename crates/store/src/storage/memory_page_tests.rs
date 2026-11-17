@@ -191,3 +191,61 @@ fn byte_shortened_pages_keep_contiguous_offsets_and_full_result_revision() {
         "memory/input-budget-exceeded"
     );
 }
+
+#[test]
+fn memory_search_gives_the_shared_cases_results() {
+    // The same cases pin the TypeScript in-memory match (query-match.ts).
+    let shared: Value = serde_json::from_str(include_str!(
+        "../../../../packages/agent/src/memory/memory-query-cases.json"
+    ))
+    .unwrap();
+    let mut conn = Connection::open_in_memory().unwrap();
+    super::super::apply_connection_pragmas(&conn).unwrap();
+    super::super::register_sql_functions(&conn).unwrap();
+    super::super::run_migrations(&mut conn).unwrap();
+    for memory in shared["memories"].as_array().unwrap() {
+        conn.execute("INSERT INTO memories (id,scope,kind,content,importance,evidence_count,pinned,status,created_at,updated_at)
+            VALUES (?1,'user','fact',?2,0.5,1,0,'active','2026-11-17','2026-11-17')",
+            params![memory["id"].as_str().unwrap(), memory["content"].as_str().unwrap()]).unwrap();
+    }
+    for case in shared["cases"].as_array().unwrap() {
+        let query = case["query"].as_str().unwrap();
+        let page = memory_page_inner(
+            &mut conn,
+            &json!({"scopes":["user"], "query": query, "limit": 100}),
+        )
+        .unwrap();
+        let mut found: Vec<String> = page.items.into_iter().map(|m| m.id).collect();
+        found.sort();
+        let mut expected: Vec<String> = case["matches"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|id| id.as_str().unwrap().to_string())
+            .collect();
+        expected.sort();
+        assert_eq!(found, expected, "query {query:?}");
+    }
+    // Content edits and deletions keep the index in step.
+    conn.execute(
+        "UPDATE memories SET content='Prefers Go now' WHERE id='rust'",
+        [],
+    )
+    .unwrap();
+    conn.execute("DELETE FROM memories WHERE id='habits'", [])
+        .unwrap();
+    let ids = |conn: &mut Connection, query: &str| -> Vec<String> {
+        memory_page_inner(
+            conn,
+            &json!({"scopes":["user"], "query": query, "limit": 100}),
+        )
+        .unwrap()
+        .items
+        .into_iter()
+        .map(|m| m.id)
+        .collect()
+    };
+    assert!(ids(&mut conn, "programming").is_empty());
+    assert_eq!(ids(&mut conn, "prefers"), vec!["rust".to_string()]);
+    assert!(ids(&mut conn, "habit").is_empty());
+}

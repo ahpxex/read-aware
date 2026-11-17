@@ -1,0 +1,26 @@
+{
+  "memories": [
+    { "id": "rust", "content": "The reader prefers Rust as a programming language." },
+    { "id": "habit-zh", "content": "养成好习惯需要时间。" },
+    { "id": "habits", "content": "Reads about habits every morning." },
+    { "id": "art", "content": "A note on art history." },
+    { "id": "window", "content": "喜欢在窗户边读书" },
+    { "id": "started", "content": "He started the work." },
+    { "id": "cafe", "content": "Café au lait at dawn" }
+  ],
+  "cases": [
+    { "query": "programming language preference", "matches": ["rust"] },
+    { "query": "Rust programmer", "matches": ["rust"] },
+    { "query": "习惯", "matches": ["habit-zh"] },
+    { "query": "成好", "matches": ["habit-zh"] },
+    { "query": "好", "matches": ["habit-zh"] },
+    { "query": "habit", "matches": ["habits"] },
+    { "query": "art", "matches": ["art"] },
+    { "query": "the", "matches": ["rust", "started"] },
+    { "query": "窗户", "matches": ["window"] },
+    { "query": "读书 习惯", "matches": ["habit-zh", "window"] },
+    { "query": "CAFE", "matches": ["cafe"] },
+    { "query": "!!!", "matches": [] },
+    { "query": "nothing like this", "matches": [] }
+  ]
+}

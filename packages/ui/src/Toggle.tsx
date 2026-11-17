@@ -42,13 +42,13 @@ export function Toggle({
         aria-describedby={error ? `${id}-error` : undefined}
         onClick={() => onChange(!checked)}
         className={cn(
-          "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg disabled:cursor-not-allowed disabled:opacity-50",
+          "relative inline-flex h-5 w-9 shrink-0 items-center rounded-mark transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg disabled:cursor-not-allowed disabled:opacity-50",
           checked ? "bg-fg" : "bg-fill-strong",
         )}
       >
         <span
           className={cn(
-            "inline-block h-3.5 w-3.5 rounded-full transition-transform",
+            "inline-block h-3.5 w-3.5 rounded-fine transition-transform",
             checked ? "translate-x-[18px] bg-inverse-fg" : "translate-x-[3px] bg-white",
           )}
         />

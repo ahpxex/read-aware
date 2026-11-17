@@ -90,7 +90,7 @@ export function SwatchGroup<T extends string>({
               <span
                 aria-hidden="true"
                 className={cn(
-                  "relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-border-strong",
+                  "relative flex h-11 w-11 items-center justify-center overflow-hidden rounded-control border border-border-strong",
                   // An outline, not a ring: its offset gap stays see-through,
                   // so it reads on whatever surface hosts the group.
                   "outline-offset-2 group-focus-visible/swatch:outline-1 group-focus-visible/swatch:outline-fg",

@@ -102,7 +102,7 @@ export function ReaderAnnotationMenu({
             >
               <span
                 className={cn(
-                  "block h-4 w-4 rounded-full ring-1 ring-inset",
+                  "block h-4 w-4 rounded-mark ring-1 ring-inset",
                   color === activeColor ? "ring-fg" : "ring-black/15 dark:ring-white/20",
                 )}
                 style={{ backgroundColor: HIGHLIGHT_COLORS[color] }}

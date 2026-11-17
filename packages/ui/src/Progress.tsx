@@ -43,11 +43,11 @@ export function Progress({ value, max = 100, size = "md", label, showValue = fal
         aria-valuemax={current === undefined ? undefined : maximum}
         aria-busy={current === undefined || undefined}
         aria-label={label ?? t("progress")}
-        className={cn("w-full overflow-hidden rounded-full bg-fill-strong", sizeClasses[size])}
+        className={cn("w-full overflow-hidden rounded-fine bg-fill-strong", sizeClasses[size])}
       >
         <div
           className={cn(
-            "h-full rounded-full bg-fg transition-[width] duration-300",
+            "h-full rounded-fine bg-fg transition-[width] duration-300",
             current === undefined && "animate-pulse motion-reduce:animate-none",
           )}
           style={{ width: current === undefined ? "33%" : `${percent}%` }}

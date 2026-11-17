@@ -42,11 +42,11 @@ never a per-component taste. The names live in `packages/ui/src/radius.css`:
 
 | Class | Radius | For |
 | --- | --- | --- |
-| `rounded-fine` | 2px | marks smaller than a line of text: heatmap cells, the selection highlight, thumbnail covers |
-| `rounded-mark` | 4px | checkboxes, keys, tags, badges, tooltips, inline code, book covers |
-| `rounded-control` | 6px | buttons, fields, selects, menu items, tabs, rows that highlight, wells inside a surface |
+| `rounded-fine` | 2px | marks smaller than a line of text (heatmap cells, the selection highlight, thumbnail covers) and the thin parts of controls (progress and slider tracks, a switch's knob) |
+| `rounded-mark` | 4px | checkboxes, radios, switches, slider thumbs, keys, tags, badges, tooltips, inline code, colour dots, book covers, avatars |
+| `rounded-control` | 6px | buttons, fields, selects, menu items, tabs, colour swatches, rows that highlight, wells inside a surface |
 | `rounded-surface` | 8px | cards, menus, popovers, dialogs, alerts, toasts, floating bars and panels |
-| `rounded-full` | -- | pills, switches, avatars, progress tracks |
+| `rounded-full` | -- | only what is round by nature: dots, drag handles, hairline indicator bars, rings -- never a control |
 
 - **Square where it touches the window.** Headers, sidebars, bottom bars, a sheet's
   attached edge and full-screen overlays stay square, as do one-sided rules,

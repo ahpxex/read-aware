@@ -19,7 +19,7 @@ export const Radio = forwardRef<HTMLInputElement, RadioProps>(function Radio(
         id={id}
         type="radio"
         aria-describedby={description ? `${id}-desc` : undefined}
-        className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer appearance-none rounded-full border border-border-strong bg-transparent checked:border-[5px] checked:border-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg"
+        className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer appearance-none rounded-mark border border-border-strong bg-transparent checked:border-[5px] checked:border-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg"
         {...props}
       />
       <div className="flex flex-col">

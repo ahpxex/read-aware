@@ -1,0 +1,162 @@
+[
+  {
+    "scope": "book",
+    "query": "annotation edit update",
+    "runs": 2,
+    "expect": [
+      "apply_annotation_changes"
+    ]
+  },
+  {
+    "scope": "book",
+    "query": "annotation highlight note create",
+    "runs": 2,
+    "expect": [
+      "create_annotation",
+      "get_reading_session"
+    ]
+  },
+  {
+    "scope": "book",
+    "query": "annotation note create",
+    "runs": 2,
+    "expect": [
+      "create_annotation"
+    ]
+  },
+  {
+    "scope": "book",
+    "query": "create annotation highlight",
+    "runs": 7,
+    "expect": [
+      "create_annotation",
+      "find_book_locations",
+      "get_reading_session"
+    ]
+  },
+  {
+    "scope": "book",
+    "query": "create annotation highlight note",
+    "runs": 8,
+    "expect": [
+      "create_annotation",
+      "get_reading_session"
+    ]
+  },
+  {
+    "scope": "book",
+    "query": "create annotation highlight selection",
+    "runs": 2,
+    "expect": [
+      "create_annotation"
+    ]
+  },
+  {
+    "scope": "book",
+    "query": "create annotation note",
+    "runs": 8,
+    "expect": [
+      "create_annotation"
+    ]
+  },
+  {
+    "scope": "book",
+    "query": "create annotation note highlight",
+    "runs": 6,
+    "expect": [
+      "create_annotation"
+    ]
+  },
+  {
+    "scope": "book",
+    "query": "create highlight annotation",
+    "runs": 6,
+    "expect": [
+      "create_annotation",
+      "find_book_locations",
+      "get_reading_session"
+    ]
+  },
+  {
+    "scope": "book",
+    "query": "highlight annotation create",
+    "runs": 5,
+    "expect": [
+      "create_annotation",
+      "find_book_locations",
+      "get_reading_session"
+    ]
+  },
+  {
+    "scope": "book",
+    "query": "reading stats time",
+    "runs": 3,
+    "expect": [
+      "query_reading_stats"
+    ]
+  },
+  {
+    "scope": "book",
+    "query": "reading stats time duration",
+    "runs": 2,
+    "expect": [
+      "query_reading_stats"
+    ]
+  },
+  {
+    "scope": "book",
+    "query": "reading stats time spent",
+    "runs": 2,
+    "expect": [
+      "query_reading_stats"
+    ]
+  },
+  {
+    "scope": "global",
+    "query": "delete book",
+    "runs": 4,
+    "expect": [
+      "delete_book"
+    ]
+  },
+  {
+    "scope": "global",
+    "query": "delete book from shelf",
+    "runs": 3,
+    "expect": [
+      "delete_book"
+    ]
+  },
+  {
+    "scope": "global",
+    "query": "delete book remove from shelf",
+    "runs": 7,
+    "expect": [
+      "delete_book"
+    ]
+  },
+  {
+    "scope": "global",
+    "query": "passage recommendation",
+    "runs": 4,
+    "expect": [
+      "plugin_recommend_passage"
+    ]
+  },
+  {
+    "scope": "global",
+    "query": "reading stats",
+    "runs": 2,
+    "expect": [
+      "query_reading_stats"
+    ]
+  },
+  {
+    "scope": "global",
+    "query": "reading stats time spent",
+    "runs": 4,
+    "expect": [
+      "query_reading_stats"
+    ]
+  }
+]

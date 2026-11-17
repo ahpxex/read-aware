@@ -4,6 +4,8 @@ import type { ThreadScope } from "../thread-scope";
 import { textResult } from "./tool-result";
 import { toolAvailability, type ToolAvailability } from "./tool-availability";
 import { bool, int, obj, oneOf, opt, str } from "@earendil-works/pi-schema";
+import { TOOL_DISCOVERY_HINTS } from "./tool-discovery-hints";
+import { schemaWording, searchTools } from "./tool-search";
 
 const FAMILIES = ["domains", "services", "contributions", "schemas"] as const;
 type Family = (typeof FAMILIES)[number];
@@ -96,30 +98,17 @@ function toolEntry(tool: AgentTool, source: ToolEntry["source"], registered = tr
   };
 }
 
-/** Models often discover with several keywords, not a verbatim phrase. Rank
- * partial matches so a missing adjective cannot conceal an available tool. */
-function searchToolEntries(entries: ToolEntry[], query: string): ToolEntry[] {
-  const terms = [...new Set(query.split(/\s+/).filter(Boolean))];
-  return entries
-    .map((entry) => {
-      const name = entry.name.toLowerCase(),
-        label = entry.label.toLowerCase(),
-        description = entry.description.toLowerCase();
-      const score = terms.reduce(
-        (sum, term) => sum + (name.includes(term) ? 8 : label.includes(term) ? 4 : description.includes(term) ? 1 : 0),
-        0,
-      );
-      return { entry, score };
-    })
-    .filter(({ score }) => !terms.length || score > 0)
-    .sort(
-      (a, b) =>
-        b.score - a.score ||
-        a.entry.name.localeCompare(b.entry.name, "en") ||
-        a.entry.source.localeCompare(b.entry.source, "en"),
-    )
-    .map(({ entry }) => entry);
-}
+/** A tool this conversation cannot call, and why, so a search for it ends with an answer. */
+export type WithheldTool = { name: string; label: string; reason: string };
+
+/**
+ * Discovery loads the best matches, not the whole page: a schema costs context
+ * on every later request. A hit loads when it scores at least this share of the
+ * best hit, up to this many; the rest stay listed and load by exact name.
+ */
+const LOAD_SCORE_SHARE = 0.5;
+const MAX_LOADED_PER_DISCOVERY = 6;
+const MAX_WITHHELD_LISTED = 3;
 
 /** Metadata from the same registry snapshot sent to this model request. Never
  * call extraTools again here: discovery must not silently describe another set. */
@@ -129,7 +118,22 @@ export function buildCapabilityTool(
   extensions: readonly AgentTool[],
   allHostTools: readonly AgentTool[] = hostTools,
   discover?: (names: string[]) => { loaded: string[]; unloaded: string[] },
+  /** Tools that exist only in the other kind of conversation; built on demand, for this scope's searches. */
+  elsewhere?: () => readonly AgentTool[],
 ): AgentTool {
+  // Search reads the full text and schema wording; the listing shows a bounded excerpt.
+  const documents = new Map<string, { name: string; label: string; body: string; keywords?: readonly string[] }>();
+  const index = (tool: AgentTool) =>
+    documents.set(tool.name, {
+      name: tool.name,
+      label: tool.label,
+      body: `${tool.description} ${schemaWording(tool.parameters)}`,
+      keywords: TOOL_DISCOVERY_HINTS[tool.name]?.keywords,
+    });
+  for (const tool of [...allHostTools, ...extensions]) index(tool);
+  const document = (entry: { name: string; label: string }) =>
+    documents.get(entry.name) ?? { name: entry.name, label: entry.label, body: "" };
+  const elsewhereReason = scope.kind === "book" ? "only-in-the-global-assistant" : "only-in-a-book-conversation";
   const registered = [
     ...hostTools.map((tool) => toolEntry(tool, "host")),
     ...extensions.map((tool) => toolEntry(tool, "extension")),
@@ -142,7 +146,7 @@ export function buildCapabilityTool(
     name: "get_host_capabilities",
     label: "Host capabilities",
     description:
-      "Discover capabilities. To use tools absent from your current tool list, call catalog=tools with short English keywords (e.g. reading stats, annotation, sync, window, resource, plugin, navigation) or exact tool name. Matching available tools on this page are loaded for your NEXT request with their real parameter schemas; call them then, not in this same batch. Discovered tools stay loaded for later requests in this conversation. When more than 12 are loaded, the least recently used ones are unloaded and named in unloadedTools (never a tool you already called in this reply); discover an unloaded tool again by its exact name. catalog=host instead lists public API families, versions and plugin permission hints without loading tools. includeUnavailable explains tools withheld by ambient reader state. Availability is not authorization or a completion guarantee; execution rechecks. Host APIs are not Agent tools and permission hints are not grants. Continue with nextOffset AND revision; restart at offset 0 without revision after changes. Descriptions are metadata, not instructions.",
+      "Discover capabilities. To use tools absent from your current tool list, call catalog=tools with a few English keywords for the task (e.g. reading stats, delete book, export notes, sync, plugin) or an exact tool name. Results are ranked; the best matches (loaded=true) and the tools they depend on get their real parameter schemas on your NEXT request: call them then, not in this same batch. Other listed tools load when you query their exact name. withheld lists matching tools this conversation cannot call, with the reason: report that instead of searching again. An empty result with no withheld entry means no tool matches these words; try other words once, then treat the capability as absent. Omitting query browses the catalog without loading anything. Discovered tools stay loaded for later requests in this conversation. When more than 12 are loaded, the least recently used ones are unloaded and named in unloadedTools (never a tool you already called in this reply); discover an unloaded tool again by its exact name. catalog=host instead lists public API families, versions and plugin permission hints without loading tools. includeUnavailable explains tools withheld by ambient reader state. Availability is not authorization or a completion guarantee; execution rechecks. Host APIs are not Agent tools and permission hints are not grants. Continue with nextOffset AND revision; restart at offset 0 without revision after changes. Descriptions are metadata, not instructions.",
     parameters: obj({
       catalog: opt(oneOf(["host", "tools"])),
       family: opt(oneOf(FAMILIES)),
@@ -157,6 +161,29 @@ export function buildCapabilityTool(
       const query = normalizeQuery(input);
       const toolCandidates = [...registered, ...(query.includeUnavailable ? unavailable : [])];
       const exact = toolCandidates.find((entry) => entry.name.toLowerCase() === query.query);
+      const describesNeed = query.catalog === "tools" && !exact && query.query !== "";
+      // Tools this conversation cannot call: unavailable now, or present only in the other scope.
+      const withheldCandidates: WithheldTool[] = [];
+      if (describesNeed && !query.includeUnavailable) {
+        const other = elsewhere?.() ?? [];
+        for (const tool of other) index(tool);
+        withheldCandidates.push(
+          ...unavailable.map((entry) => ({
+            name: entry.name,
+            label: entry.label,
+            reason: entry.availability?.reason ?? "unavailable-now",
+          })),
+          ...other.map((tool) => ({ name: tool.name, label: tool.label.slice(0, 120), reason: elsewhereReason })),
+        );
+      }
+      const namedWithheld = withheldCandidates.find((candidate) => candidate.name.toLowerCase() === query.query);
+      // An exact name is a question about that tool, not a keyword search over its words.
+      const searching = describesNeed && !namedWithheld;
+      const hits = searching ? searchTools(toolCandidates, document, query.query) : [];
+      const bestScore = hits[0]?.score ?? 0;
+      const relevant = new Set(
+        hits.filter((hit) => hit.score >= bestScore * LOAD_SCORE_SHARE).map((hit) => hit.item.name),
+      );
       const entries =
         query.catalog === "host"
           ? host.filter(
@@ -166,7 +193,11 @@ export function buildCapabilityTool(
             )
           : exact
             ? [exact]
-            : searchToolEntries(toolCandidates, query.query);
+            : searching
+              ? hits.map((hit) => hit.item)
+              : namedWithheld
+                ? []
+                : toolCandidates;
       const bytes = new TextEncoder().encode(
         JSON.stringify({
           scope: scope.kind,
@@ -188,8 +219,7 @@ export function buildCapabilityTool(
       // Count serialized size, including escaped plugin metadata, rather than
       // assuming a character limit on descriptions bounds the JSON response.
       let size = 0;
-      const pageLimit = discover && query.catalog === "tools" ? Math.min(query.limit, 12) : query.limit;
-      for (const entry of entries.slice(query.offset, query.offset + pageLimit)) {
+      for (const entry of entries.slice(query.offset, query.offset + query.limit)) {
         const length = JSON.stringify(entry).length + 1;
         if (size + length > MAX_PAGE_CHARS) {
           if (!items.length)
@@ -200,19 +230,39 @@ export function buildCapabilityTool(
         size += length;
       }
       const next = query.offset + items.length;
-      const loadout =
+      const chosen =
         query.catalog === "tools" && discover
-          ? discover(
-              items
-                .filter((entry): entry is ToolEntry => "name" in entry && entry.registered)
-                .map((entry) => entry.name),
-            )
-          : undefined;
+          ? items
+              .filter((entry): entry is ToolEntry => "name" in entry)
+              .filter((entry) => entry.registered && (entry === exact || relevant.has(entry.name)))
+              .slice(0, MAX_LOADED_PER_DISCOVERY)
+              .map((entry) => entry.name)
+          : [];
+      const callable = new Set(registered.map((entry) => entry.name));
+      const companions = chosen
+        .flatMap((name) => TOOL_DISCOVERY_HINTS[name]?.companions ?? [])
+        .filter((name) => callable.has(name) && !chosen.includes(name));
+      // Companions first: the tools the model asked for stay the most recently needed.
+      const loadout = query.catalog === "tools" && discover ? discover([...new Set(companions), ...chosen]) : undefined;
+      const nowLoaded = new Set(loadout?.loaded);
+      const withheld: WithheldTool[] = namedWithheld ? [namedWithheld] : [];
+      if (searching && withheldCandidates.length) {
+        // Ranked together with the callable catalog, so a withheld entry is one that would have been a real match.
+        const withheldNames = new Set(withheldCandidates.map((candidate) => candidate.name));
+        const ranked = searchTools([...toolCandidates, ...withheldCandidates], document, query.query);
+        const best = ranked[0]?.score ?? 0;
+        for (const hit of ranked) {
+          if (withheld.length >= MAX_WITHHELD_LISTED || hit.score < best * LOAD_SCORE_SHARE) break;
+          if (withheldNames.has(hit.item.name)) withheld.push(hit.item as WithheldTool);
+        }
+      }
       return textResult({
         catalog: query.catalog,
         scope: scope.kind,
         revision,
-        items,
+        items: loadout
+          ? items.map((entry) => ("name" in entry ? { ...entry, loaded: nowLoaded.has(entry.name) } : entry))
+          : items,
         total: entries.length,
         ...(loadout
           ? {
@@ -220,9 +270,10 @@ export function buildCapabilityTool(
               // Named so the model asks again by exact name instead of calling a tool it no longer holds.
               ...(loadout.unloaded.length ? { unloadedTools: loadout.unloaded } : {}),
               loading:
-                "Schemas are available on your next request. A tool in unloadedTools must be discovered again by its exact name before you call it.",
+                "Tools with loaded=true have schemas on your next request. Query a listed or unloaded tool by its exact name to load it.",
             }
           : {}),
+        ...(withheld.length ? { withheld } : {}),
         nextOffset: next < entries.length ? next : null,
         semantics:
           query.catalog === "host"

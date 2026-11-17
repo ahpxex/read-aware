@@ -27,6 +27,7 @@
     "eval:review": "bun src/eval-review-run.ts",
     "eval:digests": "bun src/eval-digests-run.ts",
     "eval:classify": "bun src/eval-classify-run.ts",
+    "eval:discovery-cases": "bun src/eval-discovery-cases-run.ts",
     "eval:reading": "bun ../../apps/web/scripts/agent-evals.ts reading",
     "eval:behavior": "bun ../../apps/web/scripts/agent-evals.ts behavior",
     "eval:realbook": "bun ../../apps/web/scripts/agent-evals.ts realbook",

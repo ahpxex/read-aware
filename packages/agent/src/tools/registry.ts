@@ -92,15 +92,9 @@ const BOOK_CORE_TOOLS = new Set([
   "classify_book",
 ]);
 
-/** One authoritative scope/availability policy; full catalog for host callers,
- * compact projection for the model. Both execute the same guarded tools. */
-export function buildAgentTools(
-  scope: ThreadScope,
-  deps: RuntimeDeps,
-  turnState?: AgentTurnState,
-  modelFacing = false,
-): AgentTool[] {
-  const hostTools: AgentTool[] = [
+/** Every host tool for a scope, before readiness and family consolidation. */
+function buildHostTools(scope: ThreadScope, deps: RuntimeDeps, turnState?: AgentTurnState): AgentTool[] {
+  return [
     ...(scope.kind === "global" ? [buildOnboardingTool(scope, deps)] : []),
     ...(scope.kind === "global" ? buildReadingAiTools(scope, deps) : []),
     ...buildEnvironmentTools(deps),
@@ -143,6 +137,17 @@ export function buildAgentTools(
     ...buildSpoilerAccessTools(scope, deps, turnState),
     ...buildSettingsTools(scope, deps),
   ];
+}
+
+/** One authoritative scope/availability policy; full catalog for host callers,
+ * compact projection for the model. Both execute the same guarded tools. */
+export function buildAgentTools(
+  scope: ThreadScope,
+  deps: RuntimeDeps,
+  turnState?: AgentTurnState,
+  modelFacing = false,
+): AgentTool[] {
+  const hostTools = buildHostTools(scope, deps, turnState);
   const extensions = deps.extraTools?.(scope) ?? [];
   const prepared = consolidateHostTools(prepareHostTools(hostTools, scope, deps, turnState).all);
   const loadout = turnState?.loadout ?? createToolLoadout();
@@ -155,8 +160,21 @@ export function buildAgentTools(
         )
     : undefined;
   // Built after the others because it lists them; it takes the same host path.
+  // A book conversation has no shelf-wide tools. Discovery names them as withheld
+  // rather than returning nothing, so the model stops searching for them. Only
+  // their metadata is read; nothing here is callable from this scope.
+  const elsewhere =
+    scope.kind === "book"
+      ? () => {
+          const here = new Set(prepared.all.map((tool) => tool.name));
+          const global: ThreadScope = { kind: "global", threadId: "capability-catalog" };
+          return consolidateHostTools(prepareHostTools(buildHostTools(global, deps), global, deps).all).all.filter(
+            (tool) => !here.has(tool.name),
+          );
+        }
+      : undefined;
   const [catalog] = prepareHostTools(
-    [buildCapabilityTool(scope, prepared.enabled, extensions, prepared.all, discover)],
+    [buildCapabilityTool(scope, prepared.enabled, extensions, prepared.all, discover, elsewhere)],
     scope,
     deps,
     turnState,

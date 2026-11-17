@@ -258,9 +258,8 @@ describe("live model tool snapshots", () => {
     faux.setResponses([
       discover("get_book_content_state"),
       check(),
-      // Two broad discoveries load more schemas than the budget holds.
-      discover("resource"),
-      discover("plugin"),
+      // Further discoveries load more schemas than the budget holds.
+      ...["resource", "plugin", "sync", "window", "bookmark"].map(discover),
       check(),
       fauxAssistantMessage("Checked."),
     ]);
@@ -270,7 +269,7 @@ describe("live model tool snapshots", () => {
       const checks = ends.filter((chunk) => chunk.tool === "get_book_content_state");
       expect(checks).toHaveLength(2);
       expect(checks.every((chunk) => !chunk.isError)).toBe(true);
-      expect(seen[4]).toContain("get_book_content_state");
+      expect(seen[7]).toContain("get_book_content_state");
       const unloaded = ends
         .filter((chunk) => chunk.tool === "get_host_capabilities")
         .flatMap((chunk) => (JSON.parse(String(chunk.output)) as { unloadedTools?: string[] }).unloadedTools ?? []);

@@ -26,6 +26,7 @@
       "get_reading_insights": "Tendencias de lectura",
       "delete_books": "Eliminando libros",
       "list_book_removal_cleanup": "Consultando la limpieza pendiente",
+      "check_book_files": "Comprobando los archivos de los libros",
       "search_memory": "Recordando",
       "remember": "Guardando un recuerdo",
       "search_conversation": "Buscando en conversaciones pasadas",

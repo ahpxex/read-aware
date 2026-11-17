@@ -26,6 +26,7 @@
       "get_reading_insights": "Тенденции чтения",
       "delete_books": "Удаление книг",
       "list_book_removal_cleanup": "Проверка ожидающей очистки файлов",
+      "check_book_files": "Проверка файлов книг",
       "search_memory": "Вспоминаю",
       "remember": "Сохраняю в память",
       "search_conversation": "Ищу в прошлых беседах",

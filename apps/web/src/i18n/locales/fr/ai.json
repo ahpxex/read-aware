@@ -26,6 +26,7 @@
       "get_reading_insights": "Tendances de lecture",
       "delete_books": "Suppression des livres",
       "list_book_removal_cleanup": "Vérification du nettoyage en attente",
+      "check_book_files": "Vérification des fichiers des livres",
       "search_memory": "Rappel des souvenirs",
       "remember": "Enregistrement d'un souvenir",
       "search_conversation": "Recherche dans les conversations passées",

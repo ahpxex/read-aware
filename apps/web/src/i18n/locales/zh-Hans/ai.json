@@ -28,6 +28,7 @@
       "get_reading_insights": "阅读趋势",
       "delete_books": "正在移除书籍",
       "list_book_removal_cleanup": "正在查询待清理文件",
+      "check_book_files": "正在检查书籍文件",
       "search_memory": "正在回忆",
       "remember": "正在记下这一点",
       "search_conversation": "正在检索过往对话",

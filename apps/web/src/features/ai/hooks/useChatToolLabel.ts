@@ -52,6 +52,7 @@ const TOOL_LABEL_KEYS = {
   delete_book: "chat.tools.delete_book",
   delete_books: "chat.tools.delete_books",
   list_book_removal_cleanup: "chat.tools.list_book_removal_cleanup",
+  check_book_files: "chat.tools.check_book_files",
   delete_collection: "chat.tools.delete_collection",
   create_annotation: "chat.tools.create_annotation",
   edit_annotation: "chat.tools.edit_annotation",

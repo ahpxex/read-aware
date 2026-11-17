@@ -30,6 +30,7 @@
       "get_reading_insights": "Reading trends",
       "delete_books": "Removing books",
       "list_book_removal_cleanup": "Checking pending file cleanup",
+      "check_book_files": "Checking book files",
       "search_memory": "Recalling memories",
       "remember": "Saving a memory",
       "search_conversation": "Searching past conversations",

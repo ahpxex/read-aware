@@ -89,7 +89,8 @@ export const TOOL_DISCOVERY_HINTS: Readonly<Record<string, ToolDiscoveryHint>> =
   set_reading_selection: { keywords: ["select text"], companions: ["find_book_locations"] },
 
   // Book content beyond the core reading tools
-  find_book_locations: { keywords: ["locate", "exact text", "range", "where"] },
+  // Its result reports the book's text status; an "unsearched" answer sends the model to check it.
+  find_book_locations: { keywords: ["locate", "exact text", "range", "where"], companions: ["get_book_text_status"] },
   read_book_range: { keywords: ["passage", "excerpt"], companions: ["find_book_locations"] },
   list_book_navigation_targets: { keywords: ["page list", "landmarks", "toc"] },
   list_book_images: { keywords: ["picture", "figure", "illustration", "photo"] },

@@ -26,6 +26,7 @@
       "get_reading_insights": "読書傾向",
       "delete_books": "本を削除しています",
       "list_book_removal_cleanup": "未完了のファイル削除を確認しています",
+      "check_book_files": "書籍ファイルを確認しています",
       "search_memory": "記憶を呼び出しています",
       "remember": "記憶を保存しています",
       "search_conversation": "過去の会話を検索しています",

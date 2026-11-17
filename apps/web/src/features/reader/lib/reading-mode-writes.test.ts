@@ -20,16 +20,16 @@ test("write receipts include failures that settled before indexing feedback", as
   await expect(writes.wait(1)).rejects.toThrow("database refused");
 });
 
-test("barrier includes writes registered after feedback and while earlier writes settle", async () => {
+test("barrier includes writes registered while earlier writes settle", async () => {
   const writes = new ReadingModeWrites();
   writes.start(1);
   const first = deferred(),
     second = deferred();
   let completed = false;
+  writes.track(1, first.promise);
   const done = writes.wait(1).then(() => {
     completed = true;
   });
-  writes.track(1, first.promise);
   await Promise.resolve();
   first.resolve();
   writes.track(1, second.promise);

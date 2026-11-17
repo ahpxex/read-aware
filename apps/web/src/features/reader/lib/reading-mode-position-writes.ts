@@ -65,9 +65,10 @@ export class ReadingModePositionWrites {
     signal: AbortSignal,
     retry?: number,
   ): Promise<void> {
+    // The navigator registers a step's or a restore's save inside the move
+    // itself, before that move resolves; a missing receipt here is a move
+    // that saved nothing, not one still on its way.
     const binding = this.binding;
-    // Let the commit's remaining React effects register their exact position.
-    await Promise.resolve();
     const check = () => {
       if (signal.aborted) throw signal.reason;
       if (binding !== this.binding || revision !== this.revision)

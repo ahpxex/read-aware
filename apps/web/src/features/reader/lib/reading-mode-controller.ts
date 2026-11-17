@@ -549,10 +549,10 @@ export class ReadingModeController {
       cfiRange: null,
       position: null,
     };
-    if (!active && unavailableReason) {
-      this.finish(this.request.revision);
-    }
+    // Observers register this request's configuration write as it is
+    // published, so publish before an immediate settlement waits for writes.
     this.emit();
+    if (!active && unavailableReason) this.finish(this.request.revision);
   }
 
   private emit(origin: DomainActor = this.resultOrigin): void {

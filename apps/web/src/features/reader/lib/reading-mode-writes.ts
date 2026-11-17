@@ -46,8 +46,9 @@ export class ReadingModeWrites {
     // The preflight check can throw before the race starts observing cancellation.
     void cancelled.catch(() => {});
     try {
-      // React's remaining effects can register writes after the child's feedback.
-      await Promise.resolve();
+      // Every write of a request is registered before the feedback that
+      // settles it: the configuration as the request is made, the navigator's
+      // save in the same step that changes the state it reports.
       while (true) {
         if (revision !== this.revision)
           throw new AppError("reader/superseded", "Reading mode persistence was replaced");

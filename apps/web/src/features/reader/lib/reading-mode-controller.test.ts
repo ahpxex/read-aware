@@ -106,8 +106,14 @@ test("disabling an unavailable provider still waits for retained book-state pers
   const { controller } = fixture();
   controller.requireDurability();
   controller.environment(null, true);
+  // The configuration write registers as the request is published.
+  controller.observe(() =>
+    controller.trackPersistence(
+      controller.generation(),
+      Promise.reject(new AppError("db/error", "book state rejected")),
+    ),
+  );
   const work = controller.configure({ active: false });
-  controller.trackPersistence(controller.generation(), Promise.reject(new AppError("db/error", "book state rejected")));
   await expect(work).rejects.toMatchObject({ code: "db/error" });
 });
 

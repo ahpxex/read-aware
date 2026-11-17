@@ -7,8 +7,8 @@ import {
 } from "@read-aware/core";
 import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
-import { assertSpoilerPermission, spoilerParameters, spoilerGranted } from "./book-text-tools";
-import { isCurrentBookArg, nestedBookIdArg, resolveBookId } from "./current-book";
+import { resolveBookId } from "./current-book";
+import { readingFence } from "./spoiler-access";
 import { textResult } from "./tool-result";
 import type { AgentTurnState } from "./turn-state";
 import { bookRangeSchema } from "./book-range-schema";
@@ -46,19 +46,14 @@ export function buildNavigationTools(scope: ThreadScope, deps: RuntimeDeps, stat
       label: "Find book locations",
       description:
         "Find exact text matches and return versioned locations suitable for open_book. Unlike search_book_text this does not use token fallback. Pagination is bounded by matches and scanned sections; follow nextCursor to continue, including when a batch has no hits. Narrative searches stay behind the reading fence unless the reader explicitly grants spoilers.",
-      ...spoilerParameters(
-        scope,
-        {
-          bookId: opt(str()),
-          query: str({ minLength: 1, maxLength: 500 }),
-          matchCase: opt(bool()),
-          wholeWords: opt(bool()),
-          cursor: opt(str()),
-          contentVersion: opt(str()),
-        },
-        state,
-        (args) => isCurrentBookArg(scope, args.bookId),
-      ),
+      parameters: obj({
+        bookId: opt(str()),
+        query: str({ minLength: 1, maxLength: 500 }),
+        matchCase: opt(bool()),
+        wholeWords: opt(bool()),
+        cursor: opt(str()),
+        contentVersion: opt(str()),
+      }),
       execute: async (_id, params, signal) => {
         const raw = params as {
           bookId?: string;
@@ -67,11 +62,9 @@ export function buildNavigationTools(scope: ThreadScope, deps: RuntimeDeps, stat
           wholeWords?: boolean;
           cursor?: string;
           contentVersion?: string;
-          confirmSpoiler?: unknown;
         };
         const bookId = resolveBookId(scope, raw.bookId);
-        const confirmSpoiler = spoilerGranted(raw.confirmSpoiler);
-        assertSpoilerPermission(confirmSpoiler, state, scope.kind === "book" && bookId === scope.bookId);
+        const fence = readingFence(scope, state, bookId);
         const result = await deps.bookText.searchLocations(
           {
             bookId,
@@ -81,14 +74,10 @@ export function buildNavigationTools(scope: ThreadScope, deps: RuntimeDeps, stat
             cursor: raw.cursor,
             contentVersion: raw.contentVersion,
             limit: 12,
-            ...(scope.kind === "book" && bookId === scope.bookId && state?.spoilerFence && !confirmSpoiler
-              ? { throughChapterIndex: state.spoilerFence.throughChapterIndex }
-              : {}),
+            ...(fence ? { throughChapterIndex: fence.throughChapterIndex } : {}),
           },
           signal,
         );
-        state?.evidenceTexts.push(...result.hits.map((hit) => hit.excerpt.pre + hit.excerpt.match + hit.excerpt.post));
-        if (state && confirmSpoiler && scope.kind === "book" && bookId === scope.bookId) state.spoilerGranted = true;
         return textResult(result);
       },
     },
@@ -97,34 +86,19 @@ export function buildNavigationTools(scope: ThreadScope, deps: RuntimeDeps, stat
       label: "Read a book range",
       description:
         "Read a versioned range returned by find_book_locations, without opening or moving the reader. Do not invent or rewrite its bookId, contentVersion or CFI. Returns bounded text, same-section context and nextOffset for continuation. A stale/missing range requires a fresh search. The current narrative book's original reading fence still applies, even to a known range.",
-      ...spoilerParameters(
-        scope,
-        {
-          range: bookRangeSchema,
-          offset: opt(int({ minimum: 0 })),
-          limit: opt(int({ minimum: 2, maximum: 12000 })),
-          contextChars: opt(int({ minimum: 0, maximum: 2000 })),
-        },
-        state,
-        (args) => isCurrentBookArg(scope, nestedBookIdArg(args, "range")),
-      ),
+      parameters: obj({
+        range: bookRangeSchema,
+        offset: opt(int({ minimum: 0 })),
+        limit: opt(int({ minimum: 2, maximum: 12000 })),
+        contextChars: opt(int({ minimum: 0, maximum: 2000 })),
+      }),
       execute: async (_id, params, signal) => {
-        const { confirmSpoiler: rawGrant, ...input } = params as BookRangeQuery & { confirmSpoiler?: unknown };
-        const query = normalizeBookRangeQuery(input);
-        const current = scope.kind === "book" && query.range.bookId === scope.bookId;
-        const grant = spoilerGranted(rawGrant);
-        assertSpoilerPermission(grant, state, current);
+        const query = normalizeBookRangeQuery(params as BookRangeQuery);
+        const fence = readingFence(scope, state, query.range.bookId);
         const page = await deps.bookText.readRange(
-          {
-            ...query,
-            ...(current && state?.spoilerFence && !grant
-              ? { throughChapterIndex: state.spoilerFence.throughChapterIndex }
-              : {}),
-          },
+          { ...query, ...(fence ? { throughChapterIndex: fence.throughChapterIndex } : {}) },
           signal,
         );
-        state?.evidenceTexts.push(...[page.context.before, page.text, page.context.after].filter(Boolean));
-        if (state && grant && current) state.spoilerGranted = true;
         return textResult(page);
       },
     },

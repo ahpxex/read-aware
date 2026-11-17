@@ -207,6 +207,12 @@
           "question": "提交这组变更？",
           "description": "显示的本地变更只会在预览仍有效时一起提交。撤销同样检查条件，不会覆盖后续修改。",
           "approve": "提交变更"
+        },
+        "revealSpoilers": {
+          "question": "要剧透后面的内容吗？",
+          "description": "回答这个问题需要读到你当前位置之后的内容：\n\n{{subject}}\n\n只对这一条回复生效。",
+          "approve": "可以剧透",
+          "decline": "先不要"
         }
       }
     },

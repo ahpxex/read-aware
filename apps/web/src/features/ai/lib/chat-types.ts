@@ -101,7 +101,8 @@ export type ChatPermissionAction =
   | "download-resource"
   | "complete-onboarding"
   | "update-profile"
-  | "manage-entity";
+  | "manage-entity"
+  | "reveal-spoilers";
 
 export type ChatInteractionRequest = {
   id: string;

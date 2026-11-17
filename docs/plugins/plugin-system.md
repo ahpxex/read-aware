@@ -2781,10 +2781,9 @@ tool is registered in global and book scopes and uses the same host implementati
   `reader/stale-location`. All five new codes have copy in eight locales.
 - Agent current-book reads retain the turn's original narrative ceiling,
   including surrounding context. The host resolves allowed chapter hrefs to
-  sections and checks before the target document/text load. `confirmSpoiler`
-  requires a host-verified grant; a returned range does not grant access. Global
-  and other-book policy is unchanged. Only returned text/context enters evidence,
-  as separate pieces rather than fabricated adjacency across a paginated range.
+  sections and checks before the target document/text load. Only the reader's
+  approval of the Agent's spoiler card lifts the ceiling for a reply; a returned
+  range does not grant access. Global and other-book policy is unchanged.
 - Plugin `getNavigationToc`, `searchLocations`, and `readRange` now use the
   lifecycle read barrier: cancellation immediately rejects the consumer with
   `plugin/cancelled`, while shutdown drains the actual source operation and its
@@ -3477,7 +3476,7 @@ accepts exactly an optional `names` array OR `chapterIndex`, never both. Names
 contain 1–8 nonblank strings, each at most 256 code units, trimmed/deduplicated;
 chapterIndex is a nonnegative safe integer in the extracted chapter sequence,
 not a printed chapter number. `{}` requests an overview. Callers cannot supply
-`confirmSpoiler` or a fence. The tagged `BookGraphResult` variants are:
+a spoiler grant or a fence. The tagged `BookGraphResult` variants are:
 
 | graph | Result |
 | --- | --- |

@@ -195,12 +195,13 @@ export const santiEvalSuite: EvalSuite<AgentEvalScenario> = {
     }),
     defineAgentEvalScenario({
       id: "explicit-spoiler-crosses-fence",
-      description: "关于可见章节标题的显式剧透请求通过 confirmSpoiler 跨越栅栏并从实际文本回答。",
+      description: "关于可见章节标题的显式剧透请求经授权卡片同意后跨越栅栏并从实际文本回答。",
       tags: ["smoke", "spoiler", "grant", "retrieval", "santi", "book"],
       scope: { kind: "book", bookId: santi.bookId },
       seed: {
         ...santi.seed(readerProgress()),
         chapterDigests: santi.digestsSeed(READER_CHAPTER),
+        spoilerAccess: "approve",
       },
       seedSummary: santi.seedSummary(readerProgress()),
       turns: [

@@ -12,6 +12,7 @@ import { buildBookGraphTaskTool } from "./book-graph-task-tool";
 import { buildConversationTools } from "./conversation-tools";
 import { buildConversationControlTools } from "./conversation-control-tools";
 import { buildInteractionTools } from "./interaction-tools";
+import { buildSpoilerAccessTools, SPOILER_ACCESS_TOOL } from "./spoiler-access";
 import { buildThreadTools } from "./library-tools";
 import { buildMemoryTools } from "./memory-tools";
 import { buildPresentTools } from "./present-tools";
@@ -55,6 +56,8 @@ export { createAgentTurnState } from "./turn-state";
 const CORE_TOOLS = new Set([
   "get_host_capabilities",
   "ask_user",
+  // Offered only while the turn's book is spoiler-protected; it must not hide behind discovery.
+  SPOILER_ACCESS_TOOL,
   "list_books",
   "get_book_overview",
   "query_conversation",
@@ -124,7 +127,8 @@ export function buildAgentTools(
     ...buildReaderTools(scope, deps, turnState),
     ...buildNavigationTools(scope, deps, turnState),
     ...buildReferenceTools(scope, deps, turnState),
-    ...buildInteractionTools(scope, deps, turnState),
+    ...buildInteractionTools(scope, deps),
+    ...buildSpoilerAccessTools(scope, deps, turnState),
     ...buildSettingsTools(scope, deps),
   ];
   const extensions = deps.extraTools?.(scope) ?? [];

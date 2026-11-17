@@ -15,6 +15,7 @@ import { textResult } from "./tool-result";
 import { requestUserInteraction } from "./user-interaction";
 import { bookRangeSchema } from "./book-range-schema";
 import type { AgentTurnState } from "./turn-state";
+import { readingFence } from "./spoiler-access";
 import { buildAnnotationBatchTool } from "./annotation-batch-tool";
 import { obj, oneOf, opt, str } from "@earendil-works/pi-schema";
 
@@ -112,23 +113,15 @@ export function buildAnnotationTools(scope: ThreadScope, deps: RuntimeDeps, stat
             "Range must identify the target book without separate anchor fields",
           );
         }
-        const activeSelection =
-          scope.kind === "book" && target === scope.bookId && state?.spoilerFence && !state.spoilerGranted
-            ? await isCurrentReaderSelection(deps, target, range)
-            : false;
+        const fence = readingFence(scope, state, target);
+        const activeSelection = fence ? await isCurrentReaderSelection(deps, target, range) : false;
         signal?.throwIfAborted();
         await deps.bookText.readRange(
           {
             range,
             limit: 2,
             contextChars: 0,
-            ...(scope.kind === "book" &&
-            target === scope.bookId &&
-            state?.spoilerFence &&
-            !state.spoilerGranted &&
-            !activeSelection
-              ? { throughChapterIndex: state.spoilerFence.throughChapterIndex }
-              : {}),
+            ...(fence && !activeSelection ? { throughChapterIndex: fence.throughChapterIndex } : {}),
           },
           signal,
         );

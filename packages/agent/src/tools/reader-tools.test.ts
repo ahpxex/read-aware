@@ -98,7 +98,7 @@ test("session selection is versioned and withheld with privacy restrictions, spo
   policy.set({ selection: true, surrounding: true });
   state.spoilerFence = { throughChapterIndex: 0 };
   expect((await read()).selection).toBeNull();
-  state.spoilerPermissionGranted = true;
+  state.spoilersAllowed = true;
   expect((await read()).selection).toEqual(selection);
   const globalResult = await buildReaderTools({ kind: "global", threadId: "pagination-test" }, deps, state)
     .find((t) => t.name === "get_reading_session")!

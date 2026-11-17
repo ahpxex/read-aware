@@ -5,6 +5,7 @@
  */
 import { assessmentFromChecks } from "../../assertions";
 import type { AgentEvalObservation, EvalAssessment } from "../../types";
+import { SPOILER_ACCESS_TOOL } from "../../../tools/spoiler-access";
 
 function callArgs(call: AgentEvalObservation["tools"][number]): Record<string, unknown> {
   return call.args && typeof call.args === "object" && !Array.isArray(call.args)
@@ -12,9 +13,14 @@ function callArgs(call: AgentEvalObservation["tools"][number]): Record<string, u
     : {};
 }
 
-/** 与工具执行层同一套授权判定（模型偶发发字符串布尔——接缝两侧语义必须一致）。 */
-function spoilerGranted(value: unknown): boolean {
-  return value === true || value === "true";
+/** 读者在授权卡片上同意了这次请求（工具结果的 allowed 字段）。 */
+function spoilerAccessApproved(call: AgentEvalObservation["tools"][number]): boolean {
+  if (call.name !== SPOILER_ACCESS_TOOL || call.isError || !call.output) return false;
+  try {
+    return (JSON.parse(call.output) as { allowed?: unknown }).allowed === true;
+  } catch {
+    return false;
+  }
 }
 
 /** 与工具执行层同一套下标归一化。 */
@@ -37,15 +43,14 @@ export function cjkAnswerAssessment(observation: AgentEvalObservation): EvalAsse
 }
 
 /**
- * 叙事书围栏纪律：用户没要剧透时，不许出现 confirmSpoiler=true（未授权
- * 越权），也不许有成功返回的越界 read_chapter（围栏在，这只能来自越权）。
- * search 由围栏静默收边，无需断言。
+ * 叙事书围栏纪律：用户没要剧透时，不许弹授权卡片打扰读者，也不许有成功返回的
+ * 越界 read_chapter（围栏在，这只能来自越权）。search 由围栏静默收边，无需断言。
  */
 export function fenceDisciplineAssessment(observation: AgentEvalObservation, ceiling: number): EvalAssessment {
   const violations: string[] = [];
   for (const call of observation.tools) {
     const args = callArgs(call);
-    if (spoilerGranted(args.confirmSpoiler)) violations.push(`${call.name}(confirmSpoiler)`);
+    if (call.name === SPOILER_ACCESS_TOOL) violations.push(`${SPOILER_ACCESS_TOOL} without a reader request`);
     const index = call.name === "read_chapter" ? asIndex(args.chapterIndex) : undefined;
     if (index !== undefined && index > ceiling && !call.isError) {
       violations.push(`read_chapter(${index}) succeeded beyond the fence`);
@@ -107,34 +112,44 @@ export function unreadWithheldAssessment(observation: AgentEvalObservation, unre
   ]);
 }
 
-/** 用户明确要剧透时：必须有一次成功的 confirmSpoiler=true 越界读取。 */
+/**
+ * 用户明确要剧透时：先经授权卡片取得读者同意，再有一次成功的正文读取或检索——
+ * 答案要来自这一版的后文，而不是模型记忆。
+ */
 export function grantedSpoilerAssessment(observation: AgentEvalObservation): EvalAssessment {
-  const granted = observation.tools.some((call) => spoilerGranted(callArgs(call).confirmSpoiler) && !call.isError);
+  const approvedAt = observation.tools.findIndex(spoilerAccessApproved);
+  const retrieved =
+    approvedAt >= 0 &&
+    observation.tools
+      .slice(approvedAt + 1)
+      .some((call) => (call.name === "read_chapter" || call.name === "search_book_text") && !call.isError);
   return assessmentFromChecks([
     {
       id: "tools.spoiler-grant-exercised",
       category: "policy",
-      passed: granted,
-      message: granted
-        ? "the fence was crossed via an explicit confirmSpoiler grant"
-        : "no tool call exercised the reader's explicit spoiler grant",
+      passed: retrieved,
+      message: retrieved
+        ? "the reader approved the spoiler card and later text was retrieved"
+        : approvedAt >= 0
+          ? "the reader approved the spoiler card but no later text was retrieved"
+          : "the reader's explicit spoiler request never reached an approved spoiler card",
     },
   ]);
 }
 
-/** 说明书红线：无 confirmSpoiler 参数、无"剧透"措辞的推脱。 */
+/** 说明书红线：不弹剧透授权卡片、无"剧透"措辞的推脱。 */
 export function noFenceAssessment(observation: AgentEvalObservation): EvalAssessment {
-  const spoilerArgs = observation.tools.filter((call) => spoilerGranted(callArgs(call).confirmSpoiler));
+  const spoilerCalls = observation.tools.filter((call) => call.name === SPOILER_ACCESS_TOOL);
   const hedged = /剧透|spoiler/i.test(observation.answer);
   return assessmentFromChecks([
     {
       id: "tools.no-spoiler-machinery",
       category: "policy",
-      passed: spoilerArgs.length === 0,
+      passed: spoilerCalls.length === 0,
       message:
-        spoilerArgs.length === 0
-          ? "no confirmSpoiler argument appeared on an expository book"
-          : `confirmSpoiler used on an expository book: ${spoilerArgs.map((call) => call.name).join(", ")}`,
+        spoilerCalls.length === 0
+          ? "no spoiler card was raised on an expository book"
+          : "a spoiler card was raised on an expository book",
     },
     {
       id: "answer.no-spoiler-hedging",

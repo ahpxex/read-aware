@@ -396,10 +396,10 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
       }),
       defineAgentEvalScenario({
         id: "explicit-spoiler-crosses-fence",
-        description: "明确的剧透请求通过confirmSpoiler跨越围栏，并从实际文本作答。",
+        description: "明确的剧透请求经授权卡片同意后跨越围栏，并从实际文本作答。",
         tags: ["spoiler", "grant", "retrieval", "karamazov", "book"],
         scope: { kind: "book", bookId: kara.bookId },
-        seed: { ...kara.seed(12), chapterDigests: kara.digestsSeed(EARLY_CHAPTER) },
+        seed: { ...kara.seed(12), chapterDigests: kara.digestsSeed(EARLY_CHAPTER), spoilerAccess: "approve" },
         seedSummary: kara.seedSummary(12),
         turns: [
           {
@@ -415,7 +415,7 @@ export const karamazovEvalSuite: EvalSuite<AgentEvalScenario> = {
         ],
         criteria: {
           fateStated: "answer must state the death",
-          grantExercised: "beyond-fence retrieval must carry confirmSpoiler",
+          grantExercised: "beyond-fence retrieval must follow an approved spoiler card",
         },
         rubric: [
           "States Fyodor's fate directly and grounds the account in the book's actual text rather than a vague adaptation-flavored summary, without moralizing about the spoiler request",

@@ -20,23 +20,12 @@ import {
 import { chapterLayout, type ChapterRange } from "../runtime/reading-position";
 import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
-import { isCurrentBookArg, normalizeBookIdParam, resolveBookId as resolveScopedBookId } from "./current-book";
+import { normalizeBookIdParam, resolveBookId as resolveScopedBookId } from "./current-book";
 import { textResult } from "./tool-result";
 import type { AgentTurnState } from "./turn-state";
+import { BEYOND_READER_POSITION, readingFence } from "./spoiler-access";
 import { buildBookTextTaskTools } from "./book-text-task-tools";
-import {
-  arr,
-  bool,
-  num,
-  obj,
-  int,
-  oneOf,
-  opt,
-  str,
-  type Properties,
-  type Schema,
-  type Static,
-} from "@earendil-works/pi-schema";
+import { arr, num, obj, int, oneOf, opt, str } from "@earendil-works/pi-schema";
 
 /** The most text one read_chapter call returns. */
 const READ_BUDGET_CHARS = 12000;
@@ -89,73 +78,6 @@ function chapterOutline(text: string, layout: ChapterLayout, end: number) {
   }));
 }
 
-export const confirmSpoilerSchema = opt(
-  bool({
-    description:
-      "Set true ONLY when the reader explicitly asked for spoilers in this conversation; lifts the narrative reading-position fence for this call. NEVER set it to widen search coverage, on expository/technical books (they have no fence), or 'just in case' — setting it without the reader's explicit grant is a policy violation.",
-  }),
-);
-
-/**
- * Parameters of a tool that can cross the narrative reading fence.
- *
- * confirmSpoiler is advertised only after the host has verified reader consent
- * in a book thread. With consent it stays advertised even when no fence exists
- * (an unknown reading position): the answer check still treats the whole book
- * as unread there, and a call that exercises the grant is what lets the answer
- * keep the requested later material. Without consent, a call that still sends
- * it on the current book is a self-grant attempt rather than a schema slip: the guard
- * rejects it with the permission explanation and marks the turn before schema
- * validation would report a bare unknown field. A value aimed at another book
- * carries no grant and is dropped. The execute path still validates raw calls.
- */
-export function spoilerParameters<const P extends Properties>(
-  scope: ThreadScope,
-  properties: P,
-  turnState: AgentTurnState | undefined,
-  isCurrentBook: (args: Record<string, unknown>) => boolean,
-) {
-  // confirmSpoiler is optional in the arguments either way; only the advertised schema differs.
-  const advertised = obj({ ...properties, confirmSpoiler: confirmSpoilerSchema });
-  type Args = Static<typeof advertised>;
-  if (scope.kind === "book" && turnState?.spoilerPermissionGranted === true) {
-    return { parameters: advertised };
-  }
-  return {
-    parameters: obj(properties) as Schema as typeof advertised,
-    // A shim before validation: it hands the arguments on unvalidated, as prepareArguments always does.
-    prepareArguments: (args: unknown): Args => {
-      if (typeof args !== "object" || args === null || Array.isArray(args) || !("confirmSpoiler" in args))
-        return args as Args;
-      const { confirmSpoiler, ...rest } = args as Record<string, unknown>;
-      assertSpoilerPermission(spoilerGranted(confirmSpoiler), turnState, isCurrentBook(rest));
-      return rest as Args;
-    },
-  };
-}
-
-/**
- * 授权参数归一化：模型偶发把布尔发成字符串。宽松 truthy 判断会让
- * "false" 字符串穿透围栏——只认 true 与 "true"，其余一律视为未授权。
- */
-export function spoilerGranted(value: unknown): boolean {
-  return value === true || value === "true";
-}
-
-/** confirmSpoiler is capability use, not authorization creation. */
-export function assertSpoilerPermission(
-  confirmSpoiler: boolean,
-  turnState: AgentTurnState | undefined,
-  targetIsCurrentBook: boolean,
-): void {
-  if (!confirmSpoiler || !turnState || !targetIsCurrentBook) return;
-  if (turnState.spoilerPermissionGranted) return;
-  turnState.spoilerPermissionDenied = true;
-  throw new Error(
-    "confirmSpoiler was rejected because the reader has not explicitly granted spoiler permission. Stay within the reading boundary or ask the reader with ask_user; the tool argument cannot grant itself permission.",
-  );
-}
-
 /** 数字参数归一化（模型偶发发成字符串数字）；非数字返回 undefined。 */
 function asIndex(value: unknown): number | undefined {
   const parsed = typeof value === "string" ? Number(value) : value;
@@ -166,10 +88,6 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps, turnSt
   const defaultBookId = scope.kind === "book" ? scope.bookId : undefined;
 
   const resolveBookId = (raw?: string): Id => resolveScopedBookId(scope, raw);
-
-  /** 围栏只作用于当前书（围栏本身仅在书线程被 thread 设置）。 */
-  const fenceFor = (target: Id | undefined) =>
-    scope.kind === "book" && target === scope.bookId ? turnState?.spoilerFence : undefined;
 
   const getToc: AgentTool = {
     name: "get_toc",
@@ -248,9 +166,6 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps, turnSt
         ...(blocks === undefined ? {} : { blocks }),
         ...(unit === "page" ? { unit } : {}),
       }));
-      // The rewriter must retain the same catalog metadata the reader's model
-      // received. This grants titles/indices, never the unread chapter prose.
-      if (target === defaultBookId) turnState?.evidenceTexts.push(JSON.stringify(entries));
       return textResult(entries);
     },
   };
@@ -259,41 +174,36 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps, turnSt
     name: "read_chapter",
     label: "Read chapter",
     description:
-      'Read a chapter\'s actual text by reading coordinates: chapter → block (a paragraph; a page when unit is "page") → sentence, all zero-based. They are the coordinates reading_cursor reports and search_book_text hits carry. Each returned block is one line led by its index, e.g. "[12] …"; headings keep their level ("[0] ## …"). One call returns up to 12000 chars in whole sentences and reports next (where to continue) or null when the range is complete. Three ways to call it: (1) around="position" or around="selection" reads the reader\'s current page or the passage they selected this turn with `context` blocks on each side, and reports where it sits (placeInChapter and focus), blocks.total and the chapter\'s outline — use this first for "what does this sentence/paragraph mean" or "what is its role in this chapter", then widen with (2); (2) chapterIndex + paragraph (+ sentence) reads from that address; (3) chapterIndex alone reads from the start. In a narrative book the reader has not finished, the reader\'s own chapter is returned only up to their position (readerPosition marks it; nothing after it is returned) and later chapters are refused unless the reader asked for spoilers. After reading, complete the reader\'s requested answer in this turn. Need several chapters or ranges? Issue the calls together in one batch — they run in parallel. bookId defaults to the current book.',
-    ...spoilerParameters(
-      scope,
-      {
-        chapterIndex: opt(
-          num({
-            description:
-              "Internal chapterIndex copied from get_toc, search_book_text or reading_cursor. Match printed chapter numbers against the title, not array order. Cite the returned chapterTitle in replies; an index is never a printed chapter number. Omit with around.",
-          }),
-        ),
-        paragraph: opt(int({ minimum: 0, description: "Block to start from (default 0). Omit with around." })),
-        sentence: opt(
-          int({
-            minimum: 0,
-            description: "Sentence inside that block to start from (default 0); use a returned next.",
-          }),
-        ),
-        around: opt(
-          oneOf(["position", "selection"], {
-            description:
-              "Read around the reader's current position, or around the passage they selected in this message. The chapter and address come from this turn's reading_cursor.",
-          }),
-        ),
-        context: opt(
-          int({
-            minimum: 0,
-            maximum: MAX_AROUND_CONTEXT_BLOCKS,
-            description: `With around: blocks to include before and after it (default ${AROUND_CONTEXT_BLOCKS}).`,
-          }),
-        ),
-        bookId: opt(str()),
-      },
-      turnState,
-      (args) => isCurrentBookArg(scope, args.bookId),
-    ),
+      'Read a chapter\'s actual text by reading coordinates: chapter → block (a paragraph; a page when unit is "page") → sentence, all zero-based. They are the coordinates reading_cursor reports and search_book_text hits carry. Each returned block is one line led by its index, e.g. "[12] …"; headings keep their level ("[0] ## …"). One call returns up to 12000 chars in whole sentences and reports next (where to continue) or null when the range is complete. Three ways to call it: (1) around="position" or around="selection" reads the reader\'s current page or the passage they selected this turn with `context` blocks on each side, and reports where it sits (placeInChapter and focus), blocks.total and the chapter\'s outline — use this first for "what does this sentence/paragraph mean" or "what is its role in this chapter", then widen with (2); (2) chapterIndex + paragraph (+ sentence) reads from that address; (3) chapterIndex alone reads from the start. In a narrative book the reader has not finished, the reader\'s own chapter is returned only up to their position (readerPosition marks it; nothing after it is returned) and later chapters are refused unless the reader approved request_spoiler_access in this reply. After reading, complete the reader\'s requested answer in this turn. Need several chapters or ranges? Issue the calls together in one batch — they run in parallel. bookId defaults to the current book.',
+    parameters: obj({
+      chapterIndex: opt(
+        num({
+          description:
+            "Internal chapterIndex copied from get_toc, search_book_text or reading_cursor. Match printed chapter numbers against the title, not array order. Cite the returned chapterTitle in replies; an index is never a printed chapter number. Omit with around.",
+        }),
+      ),
+      paragraph: opt(int({ minimum: 0, description: "Block to start from (default 0). Omit with around." })),
+      sentence: opt(
+        int({
+          minimum: 0,
+          description: "Sentence inside that block to start from (default 0); use a returned next.",
+        }),
+      ),
+      around: opt(
+        oneOf(["position", "selection"], {
+          description:
+            "Read around the reader's current position, or around the passage they selected in this message. The chapter and address come from this turn's reading_cursor.",
+        }),
+      ),
+      context: opt(
+        int({
+          minimum: 0,
+          maximum: MAX_AROUND_CONTEXT_BLOCKS,
+          description: `With around: blocks to include before and after it (default ${AROUND_CONTEXT_BLOCKS}).`,
+        }),
+      ),
+      bookId: opt(str()),
+    }),
     execute: async (_id, params) => {
       const raw = params as {
         chapterIndex?: unknown;
@@ -302,9 +212,7 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps, turnSt
         around?: unknown;
         context?: unknown;
         bookId?: string;
-        confirmSpoiler?: unknown;
       };
-      const confirmSpoiler = spoilerGranted(raw.confirmSpoiler);
       const target = resolveBookId(raw.bookId);
       let chapterIndex = asIndex(raw.chapterIndex);
       let focus: ChapterRange | undefined;
@@ -329,20 +237,19 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps, turnSt
       if (chapterIndex === undefined) {
         throw new Error("chapterIndex must be a non-negative integer");
       }
-      const fence = fenceFor(target);
-      assertSpoilerPermission(confirmSpoiler, turnState, target === defaultBookId);
+      const fence = readingFence(scope, turnState, target);
       // The reader's own chapter is read up to where they are; chapters after it not at all.
       // A passage the reader selected is theirs wherever it lies: past the boundary it is
       // returned as its own text, with nothing around it. The boundary follows the page the
       // reader is on, never the selection.
       let readerThrough: number | undefined;
       const reachedHere = chapterIndex === fence?.readerChapterIndex && fence.readerChapterThrough !== undefined;
-      if (fence && chapterIndex > fence.throughChapterIndex && !confirmSpoiler) {
+      if (fence && chapterIndex > fence.throughChapterIndex) {
         if (reachedHere) readerThrough = fence.readerChapterThrough;
         else if (raw.around === "selection") readerThrough = 0;
         else
           throw new Error(
-            `chapterIndex ${chapterIndex} is beyond the reader's position or viewport boundary (reader chapter index ${fence.readerChapterIndex ?? fence.throughChapterIndex}) in this narrative book. If the reader explicitly asked for spoilers this turn, retry with confirmSpoiler: true; otherwise stay within the boundary.`,
+            `chapterIndex ${chapterIndex} (reader chapter index ${fence.readerChapterIndex ?? fence.throughChapterIndex}) is ${BEYOND_READER_POSITION}`,
           );
       }
       const [text, toc] = await Promise.all([
@@ -377,7 +284,7 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps, turnSt
         throw new Error(
           from >= text.length
             ? `That address is past the end of chapterIndex ${chapterIndex}, which has ${layout.paragraphs.length} ${layout.unit}s (0 to ${layout.paragraphs.length - 1}).`
-            : `That part of chapterIndex ${chapterIndex} is beyond the reader's position in this narrative book. If the reader explicitly asked for spoilers this turn, retry with confirmSpoiler: true; otherwise read up to their position.`,
+            : `That part of chapterIndex ${chapterIndex} is ${BEYOND_READER_POSITION}`,
         );
       }
       let window: { start: number; end: number; next: number | null };
@@ -390,11 +297,6 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps, turnSt
         window = { start: reach.start, end: Math.min(reach.end, beyond.end), next: null };
       } else {
         window = readWindow(layout, text.length, { from, to, budget: READ_BUDGET_CHARS });
-      }
-      const returnedText = text.slice(window.start, window.end);
-      if (turnState) {
-        turnState.evidenceTexts.push(returnedText);
-        if (confirmSpoiler && target === defaultBookId) turnState.spoilerGranted = true;
       }
       const first = addressAt(layout, window.start).paragraph;
       const last = addressAt(layout, Math.max(window.start, window.end - 1)).paragraph;
@@ -439,27 +341,22 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps, turnSt
     name: "search_book_text",
     label: "Search book text",
     description:
-      "Full-text search inside the books' actual prose. For who/what/relation/arc questions, query_book_graph first — it answers those directly and names the provenance chapters, turning this from a blind sweep into a targeted fetch; use THIS tool for exact wording, quotes, and anything the graph does not carry. Pass SEVERAL phrasings/synonyms in `queries` in this ONE call (results are merged and deduped) instead of retrying one query at a time — recall depends on wording and each retry costs a whole round trip. Exact matches come first; token-level fallback matches are marked \"partial\". Each hit reports the `paragraph` it falls in, so read_chapter(chapterIndex, paragraph) jumps straight to it. throughChapterIndex is an inclusive chapter ceiling, but it cannot hide unread text later inside that same chapter. When a narrative book has cursor.visible_text and the reader did not request spoilers, NEVER search the current or later chapters, even to gather or verify clues the reader has already seen; read the current chapter with read_chapter (it stops at the reader's position) and search only earlier chapters. bookId defaults to the current book; omit bookId in the global thread to search the whole shelf.",
-    ...spoilerParameters(
-      scope,
-      {
-        queries: arr(str({ minLength: 1, maxLength: 1024 }), {
-          minItems: 1,
+      "Full-text search inside the books' actual prose. For who/what/relation/arc questions, query_book_graph first — it answers those directly and names the provenance chapters, turning this from a blind sweep into a targeted fetch; use THIS tool for exact wording, quotes, and anything the graph does not carry. Pass SEVERAL phrasings/synonyms in `queries` in this ONE call (results are merged and deduped) instead of retrying one query at a time — recall depends on wording and each retry costs a whole round trip. Exact matches come first; token-level fallback matches are marked \"partial\". Each hit reports the `paragraph` it falls in, so read_chapter(chapterIndex, paragraph) jumps straight to it. throughChapterIndex is an inclusive chapter ceiling, but it cannot hide unread text later inside that same chapter. When a narrative book has cursor.visible_text and the reader has not approved request_spoiler_access in this reply, NEVER search the current or later chapters, even to gather or verify clues the reader has already seen; read the current chapter with read_chapter (it stops at the reader's position) and search only earlier chapters. bookId defaults to the current book; omit bookId in the global thread to search the whole shelf.",
+    parameters: obj({
+      queries: arr(str({ minLength: 1, maxLength: 1024 }), {
+        minItems: 1,
+        description:
+          "Query variants, searched together. 2-5 focused variants beat a broad sweep; anything past 12 is ignored.",
+      }),
+      bookId: opt(str()),
+      throughChapterIndex: opt(
+        num({
+          minimum: 0,
           description:
-            "Query variants, searched together. 2-5 focused variants beat a broad sweep; anything past 12 is ignored.",
+            "Inclusive last chapter to search. For an unfinished narrative chapter, use the previous chapter as the ceiling and read the current chapter with read_chapter.",
         }),
-        bookId: opt(str()),
-        throughChapterIndex: opt(
-          num({
-            minimum: 0,
-            description:
-              "Inclusive last chapter to search. For an unfinished narrative chapter, use the previous chapter as the ceiling and read the current chapter with read_chapter; explicit spoiler requests may use later chapters.",
-          }),
-        ),
-      },
-      turnState,
-      (args) => isCurrentBookArg(scope, args.bookId),
-    ),
+      ),
+    }),
     execute: async (_id, params, signal) => {
       const {
         queries: rawQueries,
@@ -469,20 +366,17 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps, turnSt
         queries: string[];
         bookId?: string;
         throughChapterIndex?: unknown;
-        confirmSpoiler?: unknown;
       };
-      const confirmSpoiler = spoilerGranted(rest.confirmSpoiler);
       let throughChapterIndex = asIndex(rest.throughChapterIndex);
       // 变体轰炸（25 个查询）就地截断，别让 schema 报错烧掉一轮往返
       const queries = rawQueries.slice(0, 12);
       const target = normalizeBookIdParam(bookId) ?? defaultBookId;
-      assertSpoilerPermission(confirmSpoiler, turnState, target === defaultBookId);
       if (throughChapterIndex !== undefined && !target) {
         throw new Error("throughChapterIndex requires bookId in the global thread");
       }
       // 围栏：未获剧透授权的检索静默收边到读者位置——结果按构造即安全，不烧往返
-      const fence = fenceFor(target as Id | undefined);
-      if (fence && !confirmSpoiler) {
+      const fence = readingFence(scope, turnState, target);
+      if (fence) {
         throughChapterIndex = Math.min(throughChapterIndex ?? fence.throughChapterIndex, fence.throughChapterIndex);
       }
       const hits = await deps.bookText.searchText(
@@ -494,10 +388,6 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps, turnSt
         },
         signal,
       );
-      if (turnState) {
-        turnState.evidenceTexts.push(...hits.map((hit) => hit.snippet));
-        if (confirmSpoiler && target === defaultBookId) turnState.spoilerGranted = true;
-      }
       // Each hit's block, so the model can read on from it. A host without layouts reports none.
       const layouts = new Map<string, Promise<ChapterLayout | undefined>>();
       const layoutOf = (bookId: Id, chapterIndex: number) => {

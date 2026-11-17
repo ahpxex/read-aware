@@ -123,12 +123,14 @@ export const readingEvalSuite: EvalSuite<AgentEvalScenario> = {
     }),
     defineAgentEvalScenario({
       id: "explicit-spoiler",
-      description: "允许请求的剧透，但需基于实际书籍文本。",
+      description: "读者要剧透：经授权卡片同意后，基于实际书籍文本作答。",
       tags: ["spoiler", "grant", "retrieval", "book"],
       scope: { kind: "book", bookId: NARRATIVE_BOOK_ID },
       seed: {
         books: [narrativeBook],
         chapters: { [NARRATIVE_BOOK_ID]: narrativeChapters },
+        // The reader asked for spoilers, so they approve the card when it comes.
+        spoilerAccess: "approve",
       },
       turns: [
         {

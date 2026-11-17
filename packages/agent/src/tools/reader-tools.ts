@@ -9,6 +9,7 @@ import { readingContextCall } from "../runtime/reading-context-policy";
 import { buildSelectionTools } from "./selection-tools";
 import { buildEmphasisTools } from "./emphasis-tools";
 import { buildReaderFocusTool } from "./reader-focus-tool";
+import { readingFence } from "./spoiler-access";
 import { bool, int, num, obj, oneOf, opt, str } from "@earendil-works/pi-schema";
 
 /**
@@ -178,7 +179,7 @@ export function buildReaderTools(scope: ThreadScope, deps: RuntimeDeps, state?: 
         if (scope.kind === "book" && snapshot.bookId !== scope.bookId)
           return textResult({ status: "not-active", bookId: scope.bookId });
         const privateText = !call.permissions.selection || !call.permissions.surrounding;
-        if (privateText || (state?.spoilerFence && !state.spoilerPermissionGranted)) {
+        if (privateText || readingFence(scope, state, snapshot.bookId ?? undefined)) {
           const safe = structuredClone(snapshot);
           safe.visibleText = "";
           // An explicit, version-matched reader selection is the user's

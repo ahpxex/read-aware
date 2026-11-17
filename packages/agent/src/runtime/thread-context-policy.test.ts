@@ -169,7 +169,7 @@ test("a withheld position does not open the reader's own chapter of a narrative 
     // Reading up to the reader's page would hand over the surrounding text and where the reader is.
     expect(result.includes("CONTEXT BEFORE")).toBe(disclosed);
     expect(result.includes("readerPosition")).toBe(disclosed);
-    expect(result.includes("beyond the reader's position or viewport boundary")).toBe(!disclosed);
+    expect(result.includes("is beyond the reader's position")).toBe(!disclosed);
     expect(result).not.toContain("UNREAD REMAINDER");
     f.thread.dispose();
   }

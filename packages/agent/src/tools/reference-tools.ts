@@ -9,40 +9,27 @@ import {
 import type { RuntimeDeps } from "../ports";
 import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import type { AgentTurnState } from "./turn-state";
-import { assertSpoilerPermission, spoilerParameters, spoilerGranted } from "./book-text-tools";
-import { isCurrentBookArg, nestedBookIdArg, resolveBookId } from "./current-book";
+import { resolveBookId } from "./current-book";
+import { readingFence } from "./spoiler-access";
 import { textResult } from "./tool-result";
 import { int, obj, opt, str } from "@earendil-works/pi-schema";
 
-function referenceParameters(scope: ThreadScope, state?: AgentTurnState) {
-  return spoilerParameters(
-    scope,
-    {
-      reference: obj({
-        bookId: str({ minLength: 1, maxLength: 512 }),
-        contentVersion: str({ minLength: 1, maxLength: 256 }),
-        sectionIndex: int({ minimum: 0 }),
-        index: int({ minimum: 0 }),
-      }),
-      offset: opt(int({ minimum: 0 })),
-      limit: opt(int({ minimum: 2, maximum: 12000 })),
-    },
-    state,
-    (args) => isCurrentBookArg(scope, nestedBookIdArg(args, "reference")),
-  );
-}
+const referenceParameters = obj({
+  reference: obj({
+    bookId: str({ minLength: 1, maxLength: 512 }),
+    contentVersion: str({ minLength: 1, maxLength: 256 }),
+    sectionIndex: int({ minimum: 0 }),
+    index: int({ minimum: 0 }),
+  }),
+  offset: opt(int({ minimum: 0 })),
+  limit: opt(int({ minimum: 2, maximum: 12000 })),
+});
 
 export function buildReferenceTools(scope: ThreadScope, deps: RuntimeDeps, state?: AgentTurnState): AgentTool[] {
-  function access(bookId: string, raw: unknown) {
-    const current = scope.kind === "book" && bookId === scope.bookId,
-      grant = spoilerGranted(raw);
-    assertSpoilerPermission(grant, state, current);
-    return {
-      current,
-      grant,
-      fence:
-        current && state?.spoilerFence && !grant ? { throughChapterIndex: state.spoilerFence.throughChapterIndex } : {},
-    };
+  /** The fence a call on `bookId` carries to the host. */
+  function access(bookId: string) {
+    const fence = readingFence(scope, state, bookId);
+    return fence ? { throughChapterIndex: fence.throughChapterIndex } : {};
   }
   return [
     {
@@ -50,26 +37,17 @@ export function buildReferenceTools(scope: ThreadScope, deps: RuntimeDeps, state
       label: "Book references",
       description:
         "List links and inline notes in one versioned book section. Get sectionIndex and contentVersion from get_navigation_toc, not read_chapter's chapter index. Returns opaque reference descriptors, bounded labels and nextOffset. Does not read destinations, fetch URLs, or move the reader. Narrative source sections remain behind the reading fence.",
-      ...spoilerParameters(
-        scope,
-        {
-          bookId: opt(str()),
-          contentVersion: str({ minLength: 1, maxLength: 256 }),
-          sectionIndex: int({ minimum: 0 }),
-          offset: opt(int({ minimum: 0 })),
-        },
-        state,
-        (args) => isCurrentBookArg(scope, args.bookId),
-      ),
+      parameters: obj({
+        bookId: opt(str()),
+        contentVersion: str({ minLength: 1, maxLength: 256 }),
+        sectionIndex: int({ minimum: 0 }),
+        offset: opt(int({ minimum: 0 })),
+      }),
       execute: async (_id, params, signal) => {
-        const { confirmSpoiler, ...raw } = params as Omit<BookReferencesQuery, "bookId"> & {
-          bookId?: string;
-          confirmSpoiler?: unknown;
-        };
+        const raw = params as Omit<BookReferencesQuery, "bookId"> & { bookId?: string };
         const query = normalizeBookReferencesQuery({ ...raw, bookId: resolveBookId(scope, raw.bookId), limit: 20 });
-        const { current, grant, fence } = access(query.bookId, confirmSpoiler);
+        const fence = access(query.bookId);
         const result = await deps.bookText.listReferences({ ...query, ...fence }, signal);
-        if (state && current && grant) state.spoilerGranted = true;
         return textResult(result);
       },
     },
@@ -78,14 +56,11 @@ export function buildReferenceTools(scope: ThreadScope, deps: RuntimeDeps, state
       label: "Read book reference",
       description:
         "Resolve a reference returned by list_book_references and preview bounded plain text without moving the reader. Copy its descriptor unchanged. Both source and internal target must satisfy the narrative reading fence; known links do not bypass it. A resolved location can be passed to open_book. External URLs are only reported, never fetched/opened; blocked/missing/unsupported are explicit. Supports PDF link annotations and text notes; an internal PDF link previews the destination page text, without guessing its exact rectangle. Named actions, attachments and scripts are blocked. Follow nextOffset for more text; oversized source sections fail with library/content-budget-exceeded instead of being silently truncated.",
-      ...referenceParameters(scope, state),
+      parameters: referenceParameters,
       execute: async (_id, params, signal) => {
-        const { confirmSpoiler, ...raw } = params as BookReferenceQuery & { confirmSpoiler?: unknown };
-        const query = normalizeBookReferenceQuery(raw);
-        const { current, grant, fence } = access(query.reference.bookId, confirmSpoiler);
+        const query = normalizeBookReferenceQuery(params as BookReferenceQuery);
+        const fence = access(query.reference.bookId);
         const result = await deps.bookText.readReference({ ...query, ...fence }, signal);
-        if (state && result.text) state.evidenceTexts.push(result.text);
-        if (state && current && grant) state.spoilerGranted = true;
         return textResult(result);
       },
     },
@@ -94,12 +69,11 @@ export function buildReferenceTools(scope: ThreadScope, deps: RuntimeDeps, state
       label: "Show book reference",
       description:
         "Show one bounded reference preview in the open book's native note popup, without navigating. Use only when the user wants to see it. Open that book first. Source and target reading fences still apply. Returns opened only after the host surface commits, or not-opened for external/blocked/missing/unsupported references. Retain the returned ID to close only this thread's preview. Offset/nextOffset can select another preview page.",
-      ...referenceParameters(scope, state),
+      parameters: referenceParameters,
       executionMode: "sequential",
       execute: async (_id, params, signal) => {
-        const { confirmSpoiler, ...raw } = params as BookReferenceQuery & { confirmSpoiler?: unknown };
-        const query = normalizeBookReferenceQuery(raw);
-        const { current, grant, fence } = access(query.reference.bookId, confirmSpoiler);
+        const query = normalizeBookReferenceQuery(params as BookReferenceQuery);
+        const fence = access(query.reference.bookId);
         const session = await deps.reader.getSession();
         if (session.status !== "ready" || !session.sessionId)
           throw new AppError("reader/unavailable", "Open the reference book first");
@@ -107,8 +81,6 @@ export function buildReferenceTools(scope: ThreadScope, deps: RuntimeDeps, state
           sessionId: session.sessionId,
           bookId: query.reference.bookId,
         });
-        if (state && result.preview.text) state.evidenceTexts.push(result.preview.text);
-        if (state && current && grant) state.spoilerGranted = true;
         return textResult(result);
       },
     },

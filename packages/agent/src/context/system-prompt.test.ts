@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { Id } from "@read-aware/core";
 import { buildSystemPrompt } from "./system-prompt";
+import { SPOILER_POLICY } from "./spoiler-policy";
 
 describe("book system prompt", () => {
   test("protects narrative books without treating expository books like plots", () => {
@@ -20,16 +21,13 @@ describe("book system prompt", () => {
     expect(prompt).toContain("Apply spoiler protection selectively");
     expect(prompt).toContain("Protect fictional plot discoveries");
     expect(prompt).toContain("END of the newest cursor's position");
-    expect(prompt).toContain("whether it comes from a tool result or your general knowledge");
-    expect(prompt).toContain("compare the tool's ENTIRE possible return range");
-    expect(prompt).toContain("the host returns the reader's chapter up to that position and nothing after it");
-    expect(prompt).toContain("NEVER search the current or later narrative chapters and never read a later chapter");
-    expect(prompt).toContain("do NOT call read_chapter on the current chapter");
-    expect(prompt).toContain("NEVER search the current or later narrative chapters");
-    expect(prompt).toContain("explicitly requests spoilers, do not add a permission question");
-    expect(prompt).toContain("READ or SEARCH the later chapters");
-    expect(prompt).toContain("never acceptable: what you remember is another edition");
-    expect(prompt).toContain("include unread text after the reader's position");
+    expect(prompt).toContain("whether it comes from a tool result or from your own memory of the book");
+    expect(prompt).toContain("read_chapter returns the reader's own chapter up to their position");
+    expect(prompt).toContain("never search the current or later chapters");
+    expect(prompt).toContain("do not read_chapter the current chapter");
+    expect(prompt).toContain(SPOILER_POLICY.requestAccess);
+    expect(prompt).toContain(SPOILER_POLICY.answerFromText);
+    expect(prompt).not.toContain("confirmSpoiler");
     expect(prompt).toContain("Factual history, politics, biography, memoir");
     expect(prompt).toContain("Do not restate the same plan");
     expect(prompt).not.toContain("present them as cards");
@@ -61,7 +59,7 @@ describe("book system prompt", () => {
       { book: { id: "book-1" as Id, title: "The Example", status: "reading" } },
     );
     expect(unknown).toContain("Reading position: not recorded.");
-    expect(unknown).toContain("ask the reader where they are");
+    expect(unknown).toContain("ask where the reader is before revealing narrative content");
     expect(unknown).toContain("cannot add position information beyond this line");
   });
 

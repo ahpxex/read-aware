@@ -2,9 +2,7 @@ import type { AgentTool } from "@earendil-works/pi-agent-core";
 import type { RuntimeDeps, UserInteractionOption } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 import { threadScopeKey } from "../thread-scope";
-import { interactionGrantsSpoilerPermission } from "./spoiler-permission";
 import { textResult } from "./tool-result";
-import type { AgentTurnState } from "./turn-state";
 import { requestUserInteraction } from "./user-interaction";
 import { buildInteractionFormTool } from "./interaction-form-tool";
 import { arr, obj, opt, str } from "@earendil-works/pi-schema";
@@ -16,7 +14,7 @@ const optionSchema = obj({
 });
 
 /** A first-class pause in the current tool loop, resolved by the in-chat UI. */
-export function buildInteractionTools(scope: ThreadScope, deps: RuntimeDeps, turnState?: AgentTurnState): AgentTool[] {
+export function buildInteractionTools(scope: ThreadScope, deps: RuntimeDeps): AgentTool[] {
   const askUser: AgentTool = {
     name: "ask_user",
     label: "Ask the user",
@@ -61,10 +59,6 @@ export function buildInteractionTools(scope: ThreadScope, deps: RuntimeDeps, tur
         signal,
         onUpdate,
       });
-      if (turnState && interactionGrantsSpoilerPermission({ question, options: normalized, answer })) {
-        turnState.spoilerPermissionGranted = true;
-        turnState.spoilerPermissionDenied = false;
-      }
       return {
         ...textResult(
           answer.cancelled

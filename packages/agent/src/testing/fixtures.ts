@@ -109,6 +109,11 @@ export interface InMemorySeed {
   bookStats?: BookStats[];
   statsOverview?: StatsOverview;
   settings?: AgentSettingsSnapshot;
+  /**
+   * The reader's answer to a spoiler-access card. Declined unless a scenario
+   * says the reader asked for later content: the model cannot approve its own request.
+   */
+  spoilerAccess?: "approve" | "decline";
 }
 
 function defaultSettings(): AgentSettingsSnapshot {
@@ -845,6 +850,11 @@ export function createInMemoryDeps(seed: InMemorySeed = {}): {
     interactions: {
       request: async (request) => {
         stores.interactions.push(request);
+        if (request.kind === "permission" && request.action === "reveal-spoilers") {
+          return seed.spoilerAccess === "approve"
+            ? { optionId: "approve", text: "Approved" }
+            : { optionId: "decline", text: "Declined" };
+        }
         if (request.kind === "permission") {
           return { optionId: "approve", text: "Approved" };
         }

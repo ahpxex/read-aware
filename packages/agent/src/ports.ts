@@ -382,7 +382,8 @@ export type UserPermissionAction =
   | "download-resource"
   | "complete-onboarding"
   | "update-profile"
-  | "manage-entity";
+  | "manage-entity"
+  | "reveal-spoilers";
 
 type UserInteractionBase = {
   /** Globally unique for the lifetime of the tool call. */

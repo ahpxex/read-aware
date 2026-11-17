@@ -186,6 +186,12 @@
           "question": "Appliquer ces modifications ?",
           "description": "Les modifications locales sont validées ensemble si l’aperçu est toujours à jour. L’annulation vérifie aussi les conditions et n’écrase pas les modifications ultérieures.",
           "approve": "Appliquer"
+        },
+        "revealSpoilers": {
+          "question": "Révéler la suite ?",
+          "description": "Pour répondre, l’assistant devrait lire au-delà de l’endroit où vous en êtes dans ce livre :\n\n{{subject}}\n\nCela ne vaut que pour cette réponse.",
+          "approve": "Révéler",
+          "decline": "Pas maintenant"
         }
       }
     },

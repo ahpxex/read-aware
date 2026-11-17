@@ -209,6 +209,12 @@
           "question": "Apply this transaction?",
           "description": "The displayed local changes commit together only if the preview is still current. Undo is also conditional and will not overwrite later changes.",
           "approve": "Apply changes"
+        },
+        "revealSpoilers": {
+          "question": "Reveal what comes later?",
+          "description": "To answer, the assistant would read past where you are in this book:\n\n{{subject}}\n\nThis applies to this reply only.",
+          "approve": "Reveal it",
+          "decline": "Not now"
         }
       }
     },

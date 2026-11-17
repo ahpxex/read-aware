@@ -461,14 +461,14 @@ function scenariosFor(config: GridBookConfig): AgentEvalScenario[] {
     scenarios.push(
       defineAgentEvalScenario({
         id: `${config.slug}-no-cursor-explicit-spoiler`,
-        description: `No-cursor explicit spoiler request on ${config.slug}: retrieve actual later text and answer directly without another permission question.`,
+        description: `No-cursor explicit spoiler request on ${config.slug}: retrieve actual later text and answer from it.`,
         tags: [config.slug, "spoiler", "book"],
         scope,
-        seed: baseSeed(),
+        seed: { ...baseSeed(), spoilerAccess: "approve" },
         seedSummary: book.seedSummary(config.progressPercent),
         turns: [{ text: noCursor.explicitQuestion }],
         criteria: {
-          rule: SPOILER_POLICY.explicitRequest,
+          rule: SPOILER_POLICY.answerFromText,
           answerAnyOf: noCursor.answerAnyOf,
         },
         rubric: [

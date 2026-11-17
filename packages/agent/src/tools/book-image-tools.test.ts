@@ -66,15 +66,18 @@ test("image discovery/acquisition pass the original fence and bind resources to 
     [{ bookId: "book", contentVersion: "v1", sectionIndex: 0, offset: 0, limit: 20, throughChapterIndex: 0 }, signal],
     ["book:book", { image, throughChapterIndex: 0 }, signal],
   ]);
-  await expect(open!.execute("open", { image, confirmSpoiler: true })).rejects.toThrow("not explicitly granted");
+  // An argument carries no permission: it is an unknown field.
+  await expect(open!.execute("open", { image, confirmSpoiler: true })).rejects.toMatchObject({
+    code: "library/invalid-query",
+  });
   await expect(open!.execute("open", { image, throughChapterIndex: 100 })).rejects.toMatchObject({
     code: "library/invalid-query",
   });
   await expect(open!.execute("open", { image: { ...image, bookId: "other" } })).rejects.toMatchObject({
     code: "memory/forbidden",
   });
-  state.spoilerPermissionGranted = true;
-  await open!.execute("open", { image, confirmSpoiler: true });
+  state.spoilersAllowed = true;
+  await open!.execute("open", { image });
   expect(calls[calls.length - 1]).toEqual(["book:book", { image }, undefined]);
   await buildBookImageTools({ kind: "global", threadId: "global" }, deps)[1]!.execute("open", { image });
   expect(calls[calls.length - 1]).toEqual(["global:global", { image }, undefined]);
@@ -102,7 +105,9 @@ test("show_book_image keeps the reading fence and uses a host-derived session gu
   const show = buildBookImageTools({ kind: "book", bookId: "book" }, deps, state)[2]!;
   await show.execute("show", { image }, signal);
   expect(calls).toEqual([[{ image, throughChapterIndex: 0 }, signal, { sessionId: "current", bookId: "book" }]]);
-  await expect(show.execute("show", { image, confirmSpoiler: true })).rejects.toThrow("not explicitly granted");
+  await expect(show.execute("show", { image, confirmSpoiler: true })).rejects.toMatchObject({
+    code: "library/invalid-query",
+  });
   await expect(show.execute("show", { image: { ...image, bookId: "other" } })).rejects.toMatchObject({
     code: "memory/forbidden",
   });
@@ -129,7 +134,9 @@ test("vision tool emits actual bounded image content, enforces reading scope and
   expect(result.content[1]).toEqual({ type: "image", mimeType: "image/png", data: "AAAA" });
   expect(result.content[0]).not.toHaveProperty("data");
   expect(calls[0]).toEqual(["book:book", { image, throughChapterIndex: 0 }, undefined]);
-  await expect(read.execute("vision", { image, confirmSpoiler: true })).rejects.toThrow("not explicitly granted");
+  await expect(read.execute("vision", { image, confirmSpoiler: true })).rejects.toMatchObject({
+    code: "library/invalid-query",
+  });
   await expect(read.execute("vision", { image: { ...image, bookId: "other" } })).rejects.toMatchObject({
     code: "memory/forbidden",
   });

@@ -46,6 +46,19 @@ const permission: ChatInteractionPart = {
   },
 };
 
+const spoilerAccess: ChatInteractionPart = {
+  type: "interaction",
+  id: "story-spoilers",
+  state: "pending",
+  request: {
+    id: "story-spoilers",
+    threadKey: "book:storybook",
+    kind: "permission",
+    action: "reveal-spoilers",
+    subject: "How the trial ends",
+  },
+};
+
 const answeredQuestion: ChatInteractionPart = {
   ...question,
   state: "answered",
@@ -102,4 +115,10 @@ export const AnsweredQuestion: Story = {
 export const Permission: Story = {
   args: { part: permission },
   render: () => <InteractiveStory initialPart={permission} />,
+};
+
+/** The reader decides whether this reply may read past their position; not a destructive action. */
+export const SpoilerAccess: Story = {
+  args: { part: spoilerAccess },
+  render: () => <InteractiveStory initialPart={spoilerAccess} />,
 };

@@ -32,7 +32,7 @@ function value(result: AgentToolResult<unknown>) {
 }
 
 test("navigation catalogs are bounded metadata queries whose locations round-trip without guessed page arithmetic", async () => {
-  const { deps, state, tool } = fixture();
+  const { deps, tool } = fixture();
   const signal = new AbortController().signal,
     location = { bookId: "book", contentVersion: "v1", href: "first#page-iv" };
   let passed: unknown;
@@ -63,8 +63,6 @@ test("navigation catalogs are bounded metadata queries whose locations round-tri
   };
   await tool("open_book").execute("open", { location: page.items[0].location });
   expect(passed).toEqual(location);
-  expect(state.spoilerGranted).toBe(false);
-  expect(state.evidenceTexts).toEqual([]);
   await expect(
     tool("list_book_navigation_targets").execute("bad", {
       contentVersion: "v1",
@@ -74,8 +72,8 @@ test("navigation catalogs are bounded metadata queries whose locations round-tri
   ).rejects.toMatchObject({ code: "library/invalid-query" });
 });
 
-test("precise navigation search preserves the turn's original spoiler fence and records returned evidence", async () => {
-  const { deps, state, tool } = fixture();
+test("precise navigation search preserves the turn's spoiler fence", async () => {
+  const { deps, tool } = fixture();
   const signal = new AbortController().signal;
   const original = deps.bookText.searchLocations;
   let actualSignal: AbortSignal | undefined;
@@ -87,29 +85,15 @@ test("precise navigation search preserves the turn's original spoiler fence and 
   expect(actualSignal).toBe(signal);
   expect(result.hits).toHaveLength(1);
   expect(JSON.stringify(result)).not.toContain("spoiler");
-  expect(state.evidenceTexts).toEqual(["needle before"]);
-  expect(state.spoilerGranted).toBe(false);
 });
 
-test("the model cannot grant itself spoilers with a parameter", async () => {
+test("no argument opens the fence; only the reader's approval does", async () => {
   const { state, tool } = fixture();
-  await expect(tool("find_book_locations").execute("test", { query: "needle", confirmSpoiler: true })).rejects.toThrow(
-    "not explicitly granted",
-  );
-  expect(state.spoilerPermissionDenied).toBe(true);
-  expect(state.evidenceTexts).toEqual([]);
-});
-
-test("an explicit host-verified grant allows the full query but a string false does not", async () => {
-  const { state, tool } = fixture();
-  state.spoilerPermissionGranted = true;
-  expect(
-    value(await tool("find_book_locations").execute("test", { query: "needle", confirmSpoiler: "false" })).hits,
-  ).toHaveLength(1);
   expect(
     value(await tool("find_book_locations").execute("test", { query: "needle", confirmSpoiler: true })).hits,
-  ).toHaveLength(2);
-  expect(state.spoilerGranted).toBe(true);
+  ).toHaveLength(1);
+  state.spoilersAllowed = true;
+  expect(value(await tool("find_book_locations").execute("test", { query: "needle" })).hits).toHaveLength(2);
 });
 
 test("navigation cannot turn a later viewport into authorized text", async () => {
@@ -123,7 +107,7 @@ test("navigation cannot turn a later viewport into authorized text", async () =>
     truncated: false,
     reason: "withheld",
   });
-  state.spoilerPermissionGranted = true;
+  state.spoilersAllowed = true;
   expect(value(await tool("get_reading_session").execute("test", {})).visibleText).toBe("spoiler after navigation");
 });
 
@@ -147,17 +131,16 @@ test("TOC locations round-trip through open_book without chapter-number arithmet
   ).rejects.toThrow("conflicting targets");
 });
 
-test("other-book searches do not reuse the current book's chapter fence or mark its spoiler grant", async () => {
-  const { deps, state, tool } = fixture();
+test("other-book searches do not reuse the current book's chapter fence", async () => {
+  const { deps, tool } = fixture();
   let input: unknown;
   const original = deps.bookText.searchLocations;
   deps.bookText.searchLocations = (query, signal) => {
     input = query;
     return original(query, signal);
   };
-  await tool("find_book_locations").execute("test", { bookId: "other", query: "needle", confirmSpoiler: true });
+  await tool("find_book_locations").execute("test", { bookId: "other", query: "needle" });
   expect(input).not.toHaveProperty("throughChapterIndex");
-  expect(state.spoilerGranted).toBe(false);
 });
 
 test("the model fixture paginates non-Latin queries without corrupting its cursor", async () => {
@@ -174,8 +157,8 @@ test("the model fixture paginates non-Latin queries without corrupting its curso
   expect(last.nextCursor).toBeNull();
 });
 
-test("range reads reuse exact search identity, preserve the fence and signal, and record only returned evidence", async () => {
-  const { deps, state, tool } = fixture();
+test("range reads reuse exact search identity and preserve the fence and signal", async () => {
+  const { deps, tool } = fixture();
   const hit = (await deps.bookText.searchLocations({ bookId: "book", query: "needle" })).hits[0];
   const signal = new AbortController().signal;
   const original = deps.bookText.readRange;
@@ -190,28 +173,20 @@ test("range reads reuse exact search identity, preserve the fence and signal, an
     actualSignal: signal,
   });
   expect(page).toMatchObject({ text: "nee", nextOffset: 3, totalLength: 6 });
-  expect(state.evidenceTexts).toEqual(["nee", " before"]);
 });
 
-test("knowing a future range does not authorize reading it or granting its own spoiler permission", async () => {
+test("knowing a future range does not authorize reading it; the reader's approval does", async () => {
   const { deps, state, tool } = fixture();
   const range = (await deps.bookText.searchLocations({ bookId: "book", query: "needle" })).hits[1].range;
   await expect(tool("read_book_range").execute("range", { range })).rejects.toMatchObject({
     code: "library/range-forbidden",
   });
-  await expect(tool("read_book_range").execute("range", { range, confirmSpoiler: true })).rejects.toThrow(
-    "not explicitly granted",
-  );
-  expect(state.evidenceTexts).toEqual([]);
-  state.spoilerPermissionGranted = true;
-  expect(
-    value(await tool("read_book_range").execute("range", { range, confirmSpoiler: true })).context.after,
-  ).toContain("spoiler");
-  expect(state.spoilerGranted).toBe(true);
+  state.spoilersAllowed = true;
+  expect(value(await tool("read_book_range").execute("range", { range })).context.after).toContain("spoiler");
 });
 
 test("range tools reject stale refs and injected authority fields; both thread scopes expose the tool", async () => {
-  const { deps, state, tool } = fixture();
+  const { deps, tool } = fixture();
   const range = (await deps.bookText.searchLocations({ bookId: "book", query: "needle" })).hits[0].range;
   await expect(
     tool("read_book_range").execute("range", { range: { ...range, contentVersion: "stale" } }),
@@ -219,7 +194,6 @@ test("range tools reject stale refs and injected authority fields; both thread s
   await expect(tool("read_book_range").execute("range", { range, throughChapterIndex: 99 })).rejects.toMatchObject({
     code: "library/invalid-range",
   });
-  expect(state.evidenceTexts).toEqual([]);
   const global = buildNavigationTools({ kind: "global", threadId: "range-test" }, deps).find(
     (t) => t.name === "read_book_range",
   )!;

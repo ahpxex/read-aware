@@ -38,7 +38,7 @@ const DIGESTS: ChapterDigest[] = [
   },
 ];
 
-function tools(options?: { fenceAt?: number; finished?: boolean; global?: boolean; permissionGranted?: boolean }) {
+function tools(options?: { fenceAt?: number; finished?: boolean; global?: boolean; spoilersAllowed?: boolean }) {
   const { deps } = createInMemoryDeps({
     books: [
       {
@@ -51,7 +51,7 @@ function tools(options?: { fenceAt?: number; finished?: boolean; global?: boolea
     chapterDigests: { [BOOK]: DIGESTS },
   });
   const state = createAgentTurnState();
-  state.spoilerPermissionGranted = options?.permissionGranted ?? false;
+  state.spoilersAllowed = options?.spoilersAllowed ?? false;
   if (options?.fenceAt !== undefined) state.spoilerFence = { throughChapterIndex: options.fenceAt };
   const scope = options?.global
     ? ({ kind: "global", threadId: "graph-thread" } as const)
@@ -65,7 +65,7 @@ function parse(result: { content: Array<{ type: string; text?: string }> }): Rec
 }
 
 describe("query_book_graph", () => {
-  test("answer evidence keeps returned aliases without admitting future digests", async () => {
+  test("returned profiles keep aliases without admitting future digests", async () => {
     const { deps } = createInMemoryDeps({
       books: [{ id: BOOK, title: "Novel", status: "reading", narrativity: "narrative" }],
       chapterDigests: { [BOOK]: DIGESTS },
@@ -73,8 +73,9 @@ describe("query_book_graph", () => {
     const state = createAgentTurnState();
     state.bookMemoryBoundary = { kind: "before", chapterIndex: 1 };
     const [tool] = buildGraphTools({ kind: "book", bookId: BOOK }, deps, state);
-    await tool!.execute("profiles", { names: ["米嘉", "斯乜尔加科夫"] });
-    const evidence = JSON.parse(state.evidenceTexts[0]!);
+    const evidence = parse(await tool!.execute("profiles", { names: ["米嘉", "斯乜尔加科夫"] })) as {
+      profiles: Array<{ aliases: string[] }>;
+    };
     expect(evidence.profiles).toHaveLength(1);
     expect(evidence.profiles[0].aliases).toContain("米嘉");
     expect(JSON.stringify(evidence.profiles)).not.toContain("厨子");
@@ -139,19 +140,11 @@ describe("query_book_graph", () => {
     expect(out.graph).toBe("unavailable");
   });
 
-  test("confirmSpoiler lifts the clamp; string 'false' does not", async () => {
-    const { query_book_graph } = tools({ fenceAt: 1, permissionGranted: true });
-    const granted = parse(await query_book_graph!.execute("q5", { confirmSpoiler: true }));
+  test("the reader's approval lifts the clamp; an argument does not", async () => {
+    const granted = parse(await tools({ fenceAt: 1, spoilersAllowed: true }).query_book_graph!.execute("q5", {}));
     expect(granted.chaptersDigested).toBe(3);
-    const denied = parse(await query_book_graph!.execute("q6", { confirmSpoiler: "false" }));
+    const denied = parse(await tools({ fenceAt: 1 }).query_book_graph!.execute("q6", { confirmSpoiler: true }));
     expect(denied.chaptersDigested).toBe(1);
-  });
-
-  test("confirmSpoiler cannot self-authorize graph access", async () => {
-    const { query_book_graph } = tools({ fenceAt: 1 });
-    await expect(query_book_graph!.execute("q-denied", { confirmSpoiler: true })).rejects.toThrow(
-      "reader has not explicitly granted spoiler permission",
-    );
   });
 
   test("chapter mode beyond the fence explains instead of leaking", async () => {

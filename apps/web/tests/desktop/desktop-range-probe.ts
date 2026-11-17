@@ -81,9 +81,9 @@ export async function runRangeProbe() {
   state.spoilerFence = { throughChapterIndex: 0, readerChapterIndex: 1 };
   const scope = { kind: "book" as const, bookId: seed.bookId };
   const tool = buildNavigationTools(scope, deps, state).find((t) => t.name === "read_book_range")!;
-  const call = async (range: BookTextRange, confirmSpoiler?: boolean) => {
+  const call = async (range: BookTextRange) => {
     try {
-      const result = await tool.execute("range-probe", { range, confirmSpoiler });
+      const result = await tool.execute("range-probe", { range });
       return result.content[0]?.type === "text" ? JSON.parse(result.content[0].text) : result;
     } catch (error) {
       return { code: error && typeof error === "object" && "code" in error ? error.code : "tool-denied" };
@@ -92,11 +92,11 @@ export async function runRangeProbe() {
   const agent = {
     first: await call(first),
     laterDenied: await call(later),
-    selfGrant: await call(later, true),
     approved: null as unknown,
   };
-  state.spoilerPermissionGranted = true;
-  agent.approved = await call(later, true);
+  // Only the reader's approval of the spoiler card opens the later range.
+  state.spoilersAllowed = true;
+  agent.approved = await call(later);
   const globalTool = buildNavigationTools({ kind: "global", threadId: "range-probe" }, deps).find(
     (t) => t.name === "read_book_range",
   )!;

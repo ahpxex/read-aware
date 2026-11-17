@@ -25,15 +25,15 @@ test("both reference tools preserve the original fence, signal and bounded evide
     [{ bookId: "book", contentVersion: "v1", sectionIndex: 0, limit: 20, offset: 0, throughChapterIndex: 0 }, signal],
     [{ reference, limit: 4000, offset: 0, throughChapterIndex: 0 }, signal],
   ]);
-  expect(state.evidenceTexts).toEqual(["Note"]);
-  await expect(tools[1].execute("read", { reference, confirmSpoiler: true })).rejects.toThrow("not explicitly granted");
+  await expect(tools[1].execute("read", { reference, confirmSpoiler: true })).rejects.toMatchObject({
+    code: "library/invalid-query",
+  });
   await expect(tools[1].execute("read", { reference, throughChapterIndex: 100 })).rejects.toMatchObject({
     code: "library/invalid-query",
   });
-  state.spoilerPermissionGranted = true;
-  await tools[1].execute("read", { reference, confirmSpoiler: true });
+  state.spoilersAllowed = true;
+  await tools[1].execute("read", { reference });
   expect(calls[2]).toEqual([{ reference, offset: 0, limit: 4000 }, undefined]);
-  expect(state.spoilerGranted).toBe(true);
   expect(buildReferenceTools({ kind: "global", threadId: "global" }, deps).map((tool) => tool.name)).toEqual([
     "list_book_references",
     "read_book_reference",
@@ -78,10 +78,9 @@ test("native preview tools bind ownership to the thread and pass the same source
     passed: signal,
     guard: { bookId: "book", sessionId: "fixture" },
   });
-  expect(state.evidenceTexts).toEqual(["Shown"]);
   await tools.find((tool) => tool.name === "close_book_reference")!.execute("close", { id: "preview" }, signal);
   expect(closed).toEqual({ owner: "book:book", id: "preview", passed: signal });
   await expect(
     tools.find((tool) => tool.name === "show_book_reference")!.execute("show", { reference, confirmSpoiler: true }),
-  ).rejects.toThrow("not explicitly granted");
+  ).rejects.toMatchObject({ code: "library/invalid-query" });
 });

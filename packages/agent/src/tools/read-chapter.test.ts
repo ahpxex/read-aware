@@ -38,7 +38,7 @@ function fixture() {
 }
 
 test("a chapter is read as addressed blocks, from any block or sentence", async () => {
-  const { read, state } = fixture();
+  const { read } = fixture();
   const whole = await read({ chapterIndex: 1 });
   expect(whole).toMatchObject({
     chapterTitle: "第二章",
@@ -60,8 +60,6 @@ test("a chapter is read as addressed blocks, from any block or sentence", async 
     "[2, from sentence 1] 东西一条。南北两条。",
     "[3] 爷从新街走出来。他回了学校。",
   ]);
-  // What the model was shown is what an answer may be checked against: the text, without its addresses.
-  expect(state.evidenceTexts[state.evidenceTexts.length - 1]).toStartWith("东西一条。南北两条。");
   await expect(read({ chapterIndex: 1, paragraph: 40 })).rejects.toThrow("has 7 paragraphs (0 to 6)");
   await expect(read({})).rejects.toThrow("chapterIndex must be a non-negative integer");
 });
@@ -103,22 +101,24 @@ test("a narrative reader's own chapter is returned up to their position and neve
   expect(chapter.text).toEndWith("[4] 终也舀不干。");
   expect(chapter.text).not.toContain("越来越旺");
   expect(chapter).toMatchObject({ next: null, readerPosition: { paragraph: 4, sentence: 0 } });
-  expect(JSON.stringify(state.evidenceTexts)).not.toContain("越来越旺");
   // Context around the page cannot reach past it either, and the unread part cannot be addressed.
   const around = await read({ around: "position", context: 5 });
   expect(around.text).toEndWith("[4] 终也舀不干。");
   expect(around.blocks).toEqual({ first: 0, last: 4, total: 7 });
   await expect(read({ chapterIndex: 1, paragraph: 5 })).rejects.toThrow("beyond the reader's position");
   await expect(read({ chapterIndex: 1, paragraph: 4, sentence: 1 })).rejects.toThrow("beyond the reader's position");
-  await expect(read({ chapterIndex: 2 })).rejects.toThrow("beyond the reader's position or viewport boundary");
+  await expect(read({ chapterIndex: 2 })).rejects.toThrow("is beyond the reader's position");
   expect((await read({ chapterIndex: 0 })).text).toContain("序言二段。");
-  // An explicit, host-verified spoiler grant reads on.
-  state.spoilerPermissionGranted = true;
-  expect((await read({ chapterIndex: 1, paragraph: 5, confirmSpoiler: true })).text).toContain("[6] 后来的事");
+  // The reader's approval reads on; an argument alone does not.
+  await expect(read({ chapterIndex: 1, paragraph: 5, confirmSpoiler: true })).rejects.toThrow(
+    "beyond the reader's position",
+  );
+  state.spoilersAllowed = true;
+  expect((await read({ chapterIndex: 1, paragraph: 5 })).text).toContain("[6] 后来的事");
   // Without a position inside the chapter, the chapter stays closed as a whole.
-  state.spoilerPermissionGranted = false;
+  state.spoilersAllowed = false;
   state.spoilerFence = { throughChapterIndex: 0, readerChapterIndex: 1 };
-  await expect(read({ chapterIndex: 1 })).rejects.toThrow("beyond the reader's position or viewport boundary");
+  await expect(read({ chapterIndex: 1 })).rejects.toThrow("is beyond the reader's position");
 });
 
 test("a selection past the reader's page is returned as its own text, and does not move the boundary", async () => {
@@ -133,7 +133,6 @@ test("a selection past the reader's page is returned as its own text, and does n
   expect(apart.text).toBe("[5, from sentence 0] 人都散");
   expect(apart.next).toBeNull();
   expect(apart.readerPosition.note).toContain("returned as its own text only");
-  expect(JSON.stringify(state.evidenceTexts)).not.toContain("越来越旺");
   // Starting within reach and running past it: the context before it, then the selection to its own end.
   state.readingRanges.selection = chapterRangeOf(CHAPTERS, 1, "终也舀不干。竟是越");
   const across = await read({ around: "selection", context: 1 });
@@ -146,7 +145,7 @@ test("a selection past the reader's page is returned as its own text, and does n
   expect(later).toMatchObject({ chapterIndex: 2, text: "[1] 以后的事", next: null });
   expect(later.note).toContain("only its own text is returned");
   expect(later.readerPosition).toBeUndefined();
-  await expect(read({ chapterIndex: 2 })).rejects.toThrow("beyond the reader's position or viewport boundary");
+  await expect(read({ chapterIndex: 2 })).rejects.toThrow("is beyond the reader's position");
 });
 
 test("a long chapter is read in whole sentences with the address to continue from", async () => {

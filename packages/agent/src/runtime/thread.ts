@@ -33,7 +33,6 @@ import { threadScopeKey, type ThreadScope } from "../thread-scope";
 import { visibleScopes } from "../tools/memory-tools";
 import { referenceFromToolDetails } from "../tools/present-tools";
 import { buildModelTools, createAgentTurnState } from "../tools/registry";
-import { hasExplicitSpoilerPermission } from "../tools/spoiler-permission";
 import { interactionFromToolDetails } from "../tools/user-interaction";
 import { AsyncQueue } from "./async-queue";
 import { elideStaleToolResults, releaseToolImages } from "./context-slim";
@@ -367,8 +366,9 @@ export class AgentThread {
       this.turnState.modelSupportsImages = false;
       this.turnState.modelImageCount = 0;
       this.turnState.modelImageBytes = 0;
-      this.turnState.spoilerPermissionGranted = hasExplicitSpoilerPermission(input.text);
-      this.turnState.spoilerGranted = false;
+      // A spoiler approval answers one reply; a retry of that reply keeps it.
+      this.turnState.spoilersAllowed = false;
+      this.turnState.spoilerAccessDeclined = false;
     }
     this.turnState.readingContextPermissions = call.permissions;
     try {
@@ -438,8 +438,9 @@ export class AgentThread {
           ? { selection: { chapterIndex: selection.chapterIndex, start: selection.start, end: selection.end } }
           : {}),
       };
-      // 剧透围栏：叙事书 + 未读完 + 本轮游标带章节 index → 正文工具越界需 confirmSpoiler
+      // 剧透围栏：叙事书 + 未读完 + 本轮游标带章节 index → 正文工具只返回读者位置之前的内容，读者在授权卡片上同意才放开（spoiler-access）
       this.turnState.spoilerFence = undefined;
+      this.turnState.spoilerProtected = false;
       this.turnState.bookMemoryBoundary = undefined;
       let narrativeUnfinished = false;
       let currentBook: BookOverview | undefined;
@@ -487,6 +488,7 @@ export class AgentThread {
         this.turnState.bookMemoryBoundary = chapterMemoryPolicy(book, cursor?.chapterIndex).boundary;
         narrativeUnfinished =
           !!book && (book.spoilerSensitive ?? book.narrativity === "narrative") && needsSpoilerProtection(book);
+        this.turnState.spoilerProtected = narrativeUnfinished;
         if (narrativeUnfinished && cursor?.chapterIndex !== undefined) {
           // 位置在章内（已定位，或宿主给了视口文本）→ 本章不整章开放：这一判断用宿主的
           // 真实采样，围栏不随隐私设置变宽。章内边界则只在位置对模型公开时才给——

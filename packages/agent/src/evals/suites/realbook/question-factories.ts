@@ -64,7 +64,7 @@ export interface BookQuestionOptions {
   turns: BookQuestionTurn[];
   /** narrative：内容级泄漏词（实证首现晚于最大游标章）。 */
   leakWords?: string[];
-  /** narrative：围栏纪律断言（confirmSpoiler 与越界 read_chapter）。 */
+  /** narrative：围栏纪律断言（未经请求的授权卡片与越界 read_chapter）。 */
   fence?: boolean;
   /** expository：断言无剧透机械与措辞。 */
   noFence?: boolean;

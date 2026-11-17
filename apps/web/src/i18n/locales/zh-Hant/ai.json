@@ -207,6 +207,12 @@
           "question": "提交這組變更？",
           "description": "顯示的本機變更只會在預覽仍有效時一起提交。復原同樣檢查條件，不會覆蓋後續修改。",
           "approve": "提交變更"
+        },
+        "revealSpoilers": {
+          "question": "要劇透後面的內容嗎？",
+          "description": "回答這個問題需要讀到你目前位置之後的內容：\n\n{{subject}}\n\n只對這一則回覆有效。",
+          "approve": "可以劇透",
+          "decline": "先不要"
         }
       }
     },

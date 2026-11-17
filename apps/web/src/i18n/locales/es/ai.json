@@ -186,6 +186,12 @@
           "question": "¿Aplicar estos cambios?",
           "description": "Los cambios locales se confirman juntos solo si la vista previa sigue vigente. Deshacer también comprueba las condiciones y no sobrescribe cambios posteriores.",
           "approve": "Aplicar cambios"
+        },
+        "revealSpoilers": {
+          "question": "¿Revelar lo que viene después?",
+          "description": "Para responder, el asistente tendría que leer más allá de donde vas en este libro:\n\n{{subject}}\n\nSolo se aplica a esta respuesta.",
+          "approve": "Revélalo",
+          "decline": "Ahora no"
         }
       }
     },

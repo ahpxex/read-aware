@@ -12,14 +12,31 @@ type InteractionResponder = (id: string, answer: ChatInteractionAnswer) => boole
 
 const CUSTOM_CHOICE = "__read_aware_custom_answer__";
 
+/**
+ * Consent the reader gives about their own experience rather than an operation
+ * on their data: the approve button is not a destructive one, and declining
+ * has its own words instead of "keep it".
+ */
+const consentDecline: Partial<
+  Record<ChatPermissionAction, "chat.interaction.skip" | "chat.interaction.permission.revealSpoilers.decline">
+> = {
+  "complete-onboarding": "chat.interaction.skip",
+  "reveal-spoilers": "chat.interaction.permission.revealSpoilers.decline",
+};
+
 const permissionKeys: Record<
   ChatPermissionAction,
   {
-    question: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "deleteBookmark" | "manageMemory" | "classifyBook" | "generateBookGraph" | "clearConversation" | "syncNow" | "manageSchedule" | "accessBookFile" | "importResource" | "mergeBooks" | "pluginTool" | "atomicTransaction" | "manageJob" | "downloadResource" | "updateProfile" | "manageEntity" | "completeOnboarding"}.question`;
-    description: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "deleteBookmark" | "manageMemory" | "classifyBook" | "generateBookGraph" | "clearConversation" | "syncNow" | "manageSchedule" | "accessBookFile" | "importResource" | "mergeBooks" | "pluginTool" | "atomicTransaction" | "manageJob" | "downloadResource" | "updateProfile" | "manageEntity" | "completeOnboarding"}.description`;
-    approve: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "deleteBookmark" | "manageMemory" | "classifyBook" | "generateBookGraph" | "clearConversation" | "syncNow" | "manageSchedule" | "accessBookFile" | "importResource" | "mergeBooks" | "pluginTool" | "atomicTransaction" | "manageJob" | "downloadResource" | "updateProfile" | "manageEntity" | "completeOnboarding"}.approve`;
+    question: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "deleteBookmark" | "manageMemory" | "classifyBook" | "generateBookGraph" | "clearConversation" | "syncNow" | "manageSchedule" | "accessBookFile" | "importResource" | "mergeBooks" | "pluginTool" | "atomicTransaction" | "manageJob" | "downloadResource" | "updateProfile" | "manageEntity" | "completeOnboarding" | "revealSpoilers"}.question`;
+    description: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "deleteBookmark" | "manageMemory" | "classifyBook" | "generateBookGraph" | "clearConversation" | "syncNow" | "manageSchedule" | "accessBookFile" | "importResource" | "mergeBooks" | "pluginTool" | "atomicTransaction" | "manageJob" | "downloadResource" | "updateProfile" | "manageEntity" | "completeOnboarding" | "revealSpoilers"}.description`;
+    approve: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "deleteBookmark" | "manageMemory" | "classifyBook" | "generateBookGraph" | "clearConversation" | "syncNow" | "manageSchedule" | "accessBookFile" | "importResource" | "mergeBooks" | "pluginTool" | "atomicTransaction" | "manageJob" | "downloadResource" | "updateProfile" | "manageEntity" | "completeOnboarding" | "revealSpoilers"}.approve`;
   }
 > = {
+  "reveal-spoilers": {
+    question: "chat.interaction.permission.revealSpoilers.question",
+    description: "chat.interaction.permission.revealSpoilers.description",
+    approve: "chat.interaction.permission.revealSpoilers.approve",
+  },
   "complete-onboarding": {
     question: "chat.interaction.permission.completeOnboarding.question",
     description: "chat.interaction.permission.completeOnboarding.description",
@@ -264,6 +281,7 @@ function PermissionPrompt({ part, onRespond }: { part: ChatInteractionPart; onRe
   const request = part.request.kind === "permission" ? part.request : null;
   if (!request) return null;
   const keys = permissionKeys[request.action];
+  const consentDeclineKey = consentDecline[request.action];
 
   function settle(answer: ChatInteractionAnswer): void {
     setSubmitting(true);
@@ -293,7 +311,7 @@ function PermissionPrompt({ part, onRespond }: { part: ChatInteractionPart; onRe
       <div className="flex flex-wrap items-center gap-2">
         <Button
           size="sm"
-          variant={request.action === "complete-onboarding" ? "solid" : "danger"}
+          variant={consentDeclineKey ? "solid" : "danger"}
           disabled={submitting}
           onClick={() => settle({ optionId: "approve", text: "Approved" })}
         >
@@ -305,9 +323,7 @@ function PermissionPrompt({ part, onRespond }: { part: ChatInteractionPart; onRe
           disabled={submitting}
           onClick={() => settle({ optionId: "decline", text: "Declined" })}
         >
-          {t(
-            request.action === "complete-onboarding" ? "chat.interaction.skip" : "chat.interaction.permission.decline",
-          )}
+          {t(consentDeclineKey ?? "chat.interaction.permission.decline")}
         </Button>
       </div>
     </div>

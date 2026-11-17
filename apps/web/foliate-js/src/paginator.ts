@@ -1252,7 +1252,8 @@ export class Paginator extends HTMLElement {
         Math.max(0, offset + this.start - this.#viewOffset()) / (this.#view?.sourceFullSize || this.viewSize);
     else if (this.pages > 0) {
       const { page, pages } = this;
-      this.#header.style.visibility = page > 1 ? "visible" : "hidden";
+      // Hidden on the first page only; otherwise inherit, so a hidden host hides it too.
+      this.#header.style.visibility = page > 1 ? "" : "hidden";
       const fullContentSize = this.#view?.sourceSize || (pages - 2) * this.size;
       detail.fraction = (offset + (page - 1) * this.size) / fullContentSize;
       detail.size = this.size / fullContentSize;

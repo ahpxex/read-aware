@@ -293,5 +293,85 @@ export async function runLayoutRegressions(modules: Modules): Promise<Result[]> 
       URL.revokeObjectURL(url);
     }
   });
+
+  // The app keeps a reader warm behind the shelf under a `visibility: hidden`
+  // host. Nothing the engine renders may override that and paint through.
+  const paintsThrough = (doc: Document) => {
+    const frame = doc.defaultView?.frameElement;
+    if (!frame) throw new Error("Missing frame element");
+    const painted: string[] = [];
+    let root: Node = frame.getRootNode();
+    while (root instanceof ShadowRoot) {
+      for (const element of root.querySelectorAll("*"))
+        if (getComputedStyle(element).visibility !== "hidden") painted.push(element.id || element.localName);
+      root = root.host.getRootNode();
+    }
+    return painted;
+  };
+  const hiddenHost = () => {
+    const host = document.createElement("div");
+    host.style.visibility = "hidden";
+    document.body.append(host);
+    const view = mount();
+    host.append(view);
+    return { host, view };
+  };
+
+  await check("fixed pages inherit a hidden host's visibility, paged and scrolled", async () => {
+    const urls = [0, 1, 2].map(page);
+    const { host, view } = hiddenHost();
+    try {
+      await view.open({
+        rendition: { layout: "pre-paginated", viewport: "width=600,height=800" },
+        sections: urls.map((url, id) => ({ id, size: 1000, load: () => url })),
+      });
+      const renderer = view.renderer;
+      if (!(renderer instanceof modules.fixed.FixedLayout)) throw new Error("Wrong renderer");
+      renderer.setLayout("paginated", 1);
+      await view.goTo(1);
+      const paged = renderer.getContents()[0]?.doc;
+      if (!paged) throw new Error("Missing fixed page");
+      equal(paintsThrough(paged).join(), "");
+      renderer.setLayout("scrolled", 1);
+      await view.goTo(2);
+      await waitFor(() => renderer.getContents().some((content) => content.index === 2));
+      const scrolled = renderer.getContents().find((content) => content.index === 2)?.doc;
+      if (!scrolled) throw new Error("Missing scrolled page");
+      equal(paintsThrough(scrolled).join(), "");
+      // The other side: once the host shows, the current page shows with it.
+      host.style.visibility = "";
+      equal(getComputedStyle(scrolled.defaultView!.frameElement!.parentElement!).visibility, "visible");
+    } finally {
+      await dispose(view);
+      host.remove();
+      urls.forEach((url) => URL.revokeObjectURL(url));
+    }
+  });
+
+  await check("a paginated header past the first page inherits a hidden host's visibility", async () => {
+    const paragraphs = Array.from({ length: 120 }, (_, index) => `<p>Paragraph ${index} of a long chapter.</p>`);
+    const url = URL.createObjectURL(
+      new Blob([`<!doctype html><html><head><title>Long</title></head><body>${paragraphs.join("")}</body></html>`], {
+        type: "text/html",
+      }),
+    );
+    const { host, view } = hiddenHost();
+    try {
+      await view.open({ sections: [{ id: 0, size: 1000, linear: "yes", load: () => url }] });
+      const renderer = rendererOf(view);
+      renderer.setAttribute("flow", "paginated");
+      await view.goTo(0);
+      await view.next();
+      const doc: Document | undefined = renderer.getContents()[0]?.doc;
+      if (!doc) throw new Error("Missing chapter");
+      equal(paintsThrough(doc).join(), "");
+      host.style.visibility = "";
+      if (!paintsThrough(doc).includes("header")) throw new Error("Header stays hidden on a shown host");
+    } finally {
+      await dispose(view);
+      host.remove();
+      URL.revokeObjectURL(url);
+    }
+  });
   return results;
 }

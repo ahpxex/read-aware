@@ -488,14 +488,16 @@ export class FixedLayout extends HTMLElement {
   // READAWARE: cached spreads stay in the DOM; only the current one
   // participates in layout and paints. `visibility` (not `display`) so the
   // compositor keeps the hidden page's layers — revealing is then a
-  // property flip, never a repaint flash.
+  // property flip, never a repaint flash. Revealing clears the frame's own
+  // `hidden` rather than writing `visible`, which would override a hidden
+  // ancestor (the app keeps a reader warm behind the shelf that way).
   #setFrameHidden(frame: FixedFrame, hidden: boolean) {
     frame.hidden = hidden;
     Object.assign(
       frame.element.style,
       hidden
         ? { visibility: "hidden", position: "absolute", top: "0", left: "0", pointerEvents: "none" }
-        : { visibility: "visible", position: "relative", top: "", left: "", pointerEvents: "" },
+        : { visibility: "", position: "relative", top: "", left: "", pointerEvents: "" },
     );
   }
   // ─── Paged flows (single page / spreads) ─────────────────────────────────
@@ -901,7 +903,8 @@ export class FixedLayout extends HTMLElement {
         position: "absolute",
         top: "0",
         left: "0",
-        visibility: "visible",
+        // Inherit, as #setFrameHidden does: a hidden ancestor stays hidden.
+        visibility: "",
       });
       frame.hidden = false;
       if (frame.doc)

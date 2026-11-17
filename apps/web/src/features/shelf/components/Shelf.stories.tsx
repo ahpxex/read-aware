@@ -254,9 +254,15 @@ const collections: CollectionTileData[] = [
     id: "c1",
     name: "Italian Fiction",
     count: 4,
-    coverUrls: [fakeCover("1c1917"), fakeCover("44403c"), fakeCover("78716c")],
+    covers: ["1c1917", "44403c", "78716c"].map((fill, index) => ({
+      id: `c1-${index}`,
+      title: `Member ${index + 1}`,
+      author: "Author",
+      format: "epub" as const,
+      coverUrl: fakeCover(fill),
+    })),
   },
-  { id: "c2", name: "To Read in 2026", count: 2, coverUrls: [] },
+  { id: "c2", name: "To Read in 2026", count: 0, covers: [] },
 ];
 
 const meta: Meta<typeof Shelf> = {

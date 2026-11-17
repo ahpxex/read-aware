@@ -144,7 +144,7 @@ export const LibraryWorkspace = memo(function LibraryWorkspace({
 
   const sections = deriveShelfView(visible, shelfView, t);
 
-  // Collection tiles (top level only): true member counts and a cover montage.
+  // Collection tiles (top level only): true member counts and the first members for the cover stack.
   const collectionTiles: CollectionTileData[] = useMemo(() => {
     if (activeCollectionId) return [];
     const members = new Map<string, LibraryBook[]>();
@@ -160,10 +160,9 @@ export const LibraryWorkspace = memo(function LibraryWorkspace({
         id: collection.id,
         name: collection.name,
         count: inside.length,
-        coverUrls: inside
-          .map((b) => b.coverUrl)
-          .filter((url): url is string => Boolean(url))
-          .slice(0, 4),
+        covers: inside
+          .slice(0, 3)
+          .map(({ id, title, author, format, coverUrl }) => ({ id, title, author, format, coverUrl })),
       };
     });
   }, [activeCollectionId, books, collections]);

@@ -50,7 +50,12 @@ test("context menus select their target and forward only a fresh public metadata
     if (calls[0].surface === "book") calls[0].book.title = "Changed by callback";
     bookItems[0].onClick();
     expect(calls[1]).toEqual({ surface: "book", book: { id: "b", title: "Book", author: "Author" } });
-    const collection = { id: "c", name: "Collection", coverUrls: ["private"], count: 45 };
+    const collection = {
+      id: "c",
+      name: "Collection",
+      covers: [{ id: "b", title: "Private", author: "Private", format: "epub" as const, coverUrl: "private" }],
+      count: 45,
+    };
     contextActionItems(actions, { surface: "collection", collection })[0].onClick();
     expect(calls[2]).toEqual({ surface: "collection", collection: { id: "c", name: "Collection" } });
     expect(context.domains.library).toBeUndefined();

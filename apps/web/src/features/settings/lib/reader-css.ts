@@ -20,6 +20,7 @@ import {
 } from "./reader-settings";
 import { curatedFallback, getCuratedFont, type CuratedFontKind } from "./curated-fonts";
 import type { ReaderPalette } from "./reader-theme";
+import { INLINE_FOOTNOTE_SELECTOR } from "../../reader/lib/inline-footnote";
 
 // Trailing fallbacks after a user-picked system family, so a missing glyph (or a
 // font that was later uninstalled) lands on a readable default.
@@ -584,9 +585,7 @@ ${textAlignCss(settings.textAlign)}${textIndentCss(typography.textIndent)}
     /* 掌阅式内联脚注（<img zy-footnote="注文" class="epub-footnote">）：这是
        正文里的角标记号,不是插图 —— 保持行内、缩到文字大小。注文本身在
        点击弹层里（见 FoliateReaderView 的 zy-footnote 点击接线）。 */
-    img[zy-footnote],
-    img.epub-footnote,
-    img.zhangyue-footnote {
+    ${INLINE_FOOTNOTE_SELECTOR} {
       display: inline-block !important;
       width: auto !important;
       height: 0.85em !important;

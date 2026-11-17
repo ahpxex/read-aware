@@ -1,8 +1,9 @@
 import type { FoliateBook } from "../../reader/lib/foliate-engine";
 import { ContentBudgetError } from "../../../../foliate-js/src/content-budget";
+import { isInlineFootnote, NON_FOOTNOTE_IMAGE_SELECTOR } from "../../reader/lib/inline-footnote";
 
 export type ImageCandidate = { element: Element; src: string; original: boolean };
-const selector = "img:not([zy-footnote]):not(.epub-footnote):not(.zhangyue-footnote), image";
+const selector = `${NON_FOOTNOTE_IMAGE_SELECTOR}, image`;
 const source = (element: Element) =>
   element.getAttribute("src") ??
   element.getAttribute("href") ??
@@ -120,7 +121,7 @@ export async function imageCandidates(
   // Preserve all existing img/SVG descriptor ordinals; append newly discovered candidates.
   for (const element of doc.querySelectorAll(selector)) add(element, source(element), true);
   for (const element of doc.querySelectorAll("img[srcset], picture > source[srcset]")) {
-    if (element.matches("[zy-footnote], .epub-footnote, .zhangyue-footnote")) continue;
+    if (isInlineFootnote(element)) continue;
     const anchor = element.localName === "source" ? element.parentElement?.querySelector("img") : element;
     if (anchor) for (const url of srcsetUrls(element.getAttribute("srcset") ?? "")) add(anchor, url);
   }

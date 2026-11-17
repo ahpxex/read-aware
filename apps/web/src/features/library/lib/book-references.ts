@@ -18,12 +18,13 @@ import {
   ContentBudgetError,
   CONTENT_QUERY_MAX_SOURCE_BYTES,
 } from "../../../../foliate-js/src/content-budget";
+import { INLINE_FOOTNOTE_SELECTOR, inlineFootnoteText } from "../../reader/lib/inline-footnote";
 
-const selector = "a[href], a[*|href], img[zy-footnote], img.epub-footnote, img.zhangyue-footnote";
+const selector = `a[href], a[*|href], ${INLINE_FOOTNOTE_SELECTOR}`;
 const inlineNote = (element: Element) => element.localName === "img";
 const label = (element: Element) =>
   (inlineNote(element) ? element.getAttribute("title") || "" : element.textContent || "").trim().slice(0, 300);
-const noteText = (element: Element) => element.getAttribute("zy-footnote") ?? element.getAttribute("alt") ?? "";
+const noteText = inlineFootnoteText;
 
 function sectionFor(book: FoliateBook, index: number, allowed: Set<number> | undefined, signal?: AbortSignal) {
   signal?.throwIfAborted();

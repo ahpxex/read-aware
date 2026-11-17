@@ -139,6 +139,7 @@ import { READER_STRIP_HEIGHT_PX } from "../lib/header-footer-layout";
 import { useVolumeKeySteps } from "../hooks/useVolumeKeySteps";
 import type { ReaderEngineSession } from "../lib/reader-engine-session";
 import { useReaderEngineSession } from "../hooks/useReaderEngineSession";
+import { INLINE_FOOTNOTE_SELECTOR, inlineFootnoteText } from "../lib/inline-footnote";
 
 type FoliateReaderViewProps = {
   selectedBook?: LibraryBook | null;
@@ -2051,9 +2052,9 @@ export function FoliateReaderView({
       "click",
       (event) => {
         const target = event.target instanceof Element ? event.target : null;
-        const marker = target?.closest?.("img[zy-footnote], img.epub-footnote, img.zhangyue-footnote");
+        const marker = target?.closest?.(INLINE_FOOTNOTE_SELECTOR);
         if (!marker) return;
-        const text = (marker.getAttribute("zy-footnote") ?? marker.getAttribute("alt") ?? "").trim();
+        const text = inlineFootnoteText(marker);
         if (!text) return;
         event.preventDefault();
         event.stopImmediatePropagation();

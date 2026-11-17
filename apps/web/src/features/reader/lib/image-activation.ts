@@ -1,3 +1,4 @@
+import { isInlineFootnote } from "./inline-footnote";
 /**
  * Click-to-view eligibility for images inside book sections (issue #13).
  * Decides whether a tap landed on a real illustration — as opposed to an
@@ -43,13 +44,7 @@ export function resolveActivatedImage(target: EventTarget | null): ActivatedImag
   if (!element) return null;
   // Footnote markers are images too; their own intercept runs first, but keep
   // the guard in case a book marks them without triggering that handler.
-  if (
-    element.hasAttribute("zy-footnote") ||
-    element.classList.contains("epub-footnote") ||
-    element.classList.contains("zhangyue-footnote")
-  ) {
-    return null;
-  }
+  if (isInlineFootnote(element)) return null;
   // A linked image is a control (footnote return, external reference): the
   // link's own behavior wins over the viewer.
   if (element.closest("a[href]")) return null;

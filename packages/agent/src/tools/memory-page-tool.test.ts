@@ -50,13 +50,7 @@ test("global book filters and book-thread boundaries are preserved across pages"
     (tool) => tool.name === "search_memory",
   )!;
   expect(JSON.stringify(await book.execute("book", {}))).not.toContain("Other book");
-  for (const input of [
-    { bookId: "other" },
-    { scopes: ["book:other"] },
-    { offset: 20 },
-    { limit: 0 },
-    { bookId: null },
-  ]) {
+  for (const input of [{ bookId: "other" }, { offset: 20 }, { limit: 0 }, { bookId: null }]) {
     await expect(book.execute("invalid", input)).rejects.toMatchObject({ code: "memory/invalid-query" });
   }
 });

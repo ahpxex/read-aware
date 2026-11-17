@@ -93,13 +93,7 @@ export function buildConversationTools(scope: ThreadScope, deps: RuntimeDeps, st
     execute: async (_id, params, signal) => {
       signal?.throwIfAborted();
       const input = params as { bookId?: string; threadId?: string };
-      if (
-        !input ||
-        typeof input !== "object" ||
-        Array.isArray(input) ||
-        Object.keys(input).some((key) => key !== "bookId" && key !== "threadId") ||
-        (input.bookId !== undefined && input.threadId !== undefined)
-      )
+      if (input.bookId !== undefined && input.threadId !== undefined)
         throw new AppError("ui/invalid-target", "Choose one conversation target");
       const target = normalizeConversationTarget(
         input.bookId !== undefined

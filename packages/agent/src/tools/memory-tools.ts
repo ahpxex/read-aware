@@ -58,14 +58,6 @@ export function buildMemoryTools(scope: ThreadScope, deps: RuntimeDeps): AgentTo
       expectedRevision: opt(str({ pattern: "^mpg[12]:[a-f0-9]{64}$" })),
     }),
     execute: async (_id, params) => {
-      if (
-        !params ||
-        typeof params !== "object" ||
-        Array.isArray(params) ||
-        Object.keys(params).some((key) => !["query", "bookId", "limit", "offset", "expectedRevision"].includes(key))
-      ) {
-        throw new AppError("memory/invalid-query", "Invalid memory search parameters");
-      }
       const { bookId, ...page } = params as Omit<MemoryPageQuery, "scopes"> & { bookId?: string };
       if (
         bookId !== undefined &&

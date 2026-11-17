@@ -139,7 +139,6 @@ test("discovery validates its own boundary and honors cancellation", async () =>
     { limit: 1.5 },
     { query: "x".repeat(121) },
     { revision: "old" },
-    { bookId: "other" },
   ]) {
     await expect(tool.execute("invalid", input)).rejects.toMatchObject({ code: "ai/invalid-capability-query" });
   }

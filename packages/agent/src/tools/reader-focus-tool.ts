@@ -18,8 +18,6 @@ export function buildReaderFocusTool(scope: ThreadScope, deps: RuntimeDeps): Age
       execute: async (_id, params, signal) => {
         signal?.throwIfAborted();
         const input = params as { target: unknown };
-        if (!input || typeof input !== "object" || Object.keys(input).some((key) => key !== "target"))
-          throw new AppError("reader/invalid-target", "Expected one semantic focus target");
         assertReaderFocusTarget(input.target);
         const target = input.target;
         const current = await deps.reader.getSession();

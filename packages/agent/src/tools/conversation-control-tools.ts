@@ -62,13 +62,6 @@ export function buildConversationControlTools(scope: ThreadScope, deps: RuntimeD
       execute: async (toolCallId, params, signal, onUpdate) => {
         signal?.throwIfAborted();
         const input = params as { action: string; target?: ConversationTarget };
-        if (
-          !input ||
-          typeof input !== "object" ||
-          Array.isArray(input) ||
-          Object.keys(input).some((key) => key !== "action" && key !== "target")
-        )
-          throw new AppError("ui/invalid-target", "Invalid conversation command");
         if (input.action === "create") {
           if (scope.kind !== "global" || input.target !== undefined)
             throw new AppError("ui/invalid-target", "Only global threads create drafts without a target");
@@ -122,13 +115,6 @@ export function buildConversationControlTools(scope: ThreadScope, deps: RuntimeD
       execute: async (_id, params, signal) => {
         signal?.throwIfAborted();
         const input = params as { action: string; target?: ConversationTarget; text?: string; requestId?: string };
-        if (
-          !input ||
-          typeof input !== "object" ||
-          Array.isArray(input) ||
-          Object.keys(input).some((key) => !["action", "target", "text", "requestId"].includes(key))
-        )
-          throw new AppError("ui/invalid-target", "Invalid conversation request");
         if (input.action === "cancel") {
           if (!input.requestId || input.target !== undefined || input.text !== undefined)
             throw new AppError("ui/invalid-target", "Cancel requires only requestId");

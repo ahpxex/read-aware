@@ -22,12 +22,6 @@ const invalid = () => new AppError("ai/invalid-capability-query", "Invalid capab
 function normalizeQuery(input: unknown): Query {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw invalid();
   const raw = input as Record<string, unknown>;
-  if (
-    Object.keys(raw).some(
-      (key) => !["catalog", "family", "query", "offset", "limit", "revision", "includeUnavailable"].includes(key),
-    )
-  )
-    throw invalid();
   const catalog = raw.catalog === undefined ? "host" : raw.catalog;
   if (catalog !== "host" && catalog !== "tools") throw invalid();
   if (raw.includeUnavailable !== undefined && (catalog !== "tools" || typeof raw.includeUnavailable !== "boolean"))

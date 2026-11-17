@@ -25,15 +25,13 @@ export function buildSelectionTools(scope: ThreadScope, deps: RuntimeDeps): Agen
           signal?.throwIfAborted();
           const input = params as { action: "select" | "clear"; range?: BookTextRange; selectionId?: string };
           if (
-            !input ||
-            Object.keys(input).some((key) => !["action", "range", "selectionId"].includes(key)) ||
-            (input.action === "select"
+            input.action === "select"
               ? !input.range || input.selectionId !== undefined
               : input.action !== "clear" ||
                 input.range !== undefined ||
                 typeof input.selectionId !== "string" ||
                 !input.selectionId.trim() ||
-                input.selectionId.length > 256)
+                input.selectionId.length > 256
           ) {
             throw new AppError("reader/invalid-target", "Use select with range or clear with an observed selectionId");
           }

@@ -80,7 +80,6 @@ test("invalid action combinations and foreign books cannot dispatch; stale clear
     { action: "clear", selectionId: "x", range },
     { action: "select", range, selectionId: "x" },
     { action: "toggle" },
-    { action: "select", range, arbitrary: true },
   ]) {
     await expect(tool().execute("invalid", input)).rejects.toMatchObject({ code: "reader/invalid-target" });
   }

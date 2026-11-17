@@ -157,7 +157,13 @@ export function buildAgentTools(
         return [...loaded];
       }
     : undefined;
-  const catalog = buildCapabilityTool(scope, prepared.enabled, extensions, prepared.all, discover);
+  // Built after the others because it lists them; it takes the same host path.
+  const [catalog] = prepareHostTools(
+    [buildCapabilityTool(scope, prepared.enabled, extensions, prepared.all, discover)],
+    scope,
+    deps,
+    turnState,
+  ).all;
   return [...prepared.enabled, catalog, ...extensions].filter(
     (tool) =>
       !modelFacing ||

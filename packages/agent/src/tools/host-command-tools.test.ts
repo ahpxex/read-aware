@@ -29,7 +29,7 @@ test("both Agent scopes discover and execute the same finite commands with guard
     expect(calls).toEqual([abort.signal, [{ id: "layout-list", expectedWorkspaceRevision: 4 }, abort.signal]]);
     const schema = execute.parameters as { properties: { id: { enum: string[] } } };
     expect(schema.properties.id.enum).toEqual([...HOST_COMMAND_IDS]);
-    await expect(execute.execute("test", { id: "import" })).rejects.toMatchObject({ code: "ui/invalid-target" });
+    await expect(execute.execute("test", { id: "import" })).rejects.toThrow("Validation failed");
     const error = new AppError("plugin/cancelled", "cancelled");
     abort.abort(error);
     await expect(execute.execute("test", { id: "go-stats" }, abort.signal)).rejects.toBe(error);

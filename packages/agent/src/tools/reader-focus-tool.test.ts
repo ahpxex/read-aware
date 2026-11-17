@@ -24,9 +24,6 @@ test("both scopes focus only their current ready reader and retain a non-success
     await expect(tool.execute("invalid", { target: "#input" })).rejects.toMatchObject({
       code: "reader/invalid-target",
     });
-    await expect(tool.execute("extra", { target: "chat", force: true })).rejects.toMatchObject({
-      code: "reader/invalid-target",
-    });
     await expect(tool.execute("cancelled", { target: "chat" }, AbortSignal.abort())).rejects.toBeDefined();
     if (scope.kind === "book") {
       await deps.reader.openBook("other");

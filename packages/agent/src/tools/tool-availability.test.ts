@@ -98,3 +98,16 @@ test("turn-captured selection privacy is not widened by later preferences", () =
   expect(names).not.toContain("explain_selection");
   expect(names).toContain("get_reading_session");
 });
+
+test("the host path holds every tool to its schema, unknown keys included", async () => {
+  const { deps } = createInMemoryDeps();
+  deps.reader.toolContext = ready;
+  const tools = buildAgentTools({ kind: "book", bookId: "book" }, deps);
+  const tool = (name: string) => tools.find((item) => item.name === name)!;
+  for (const [name, input] of [
+    ["focus_reader", { target: "chat", force: true }],
+    ["search_memory", { scopes: ["book:other"] }],
+    ["get_host_capabilities", { bookId: "other" }],
+  ] as const)
+    await expect(tool(name).execute("extra", input)).rejects.toThrow("Validation failed");
+});

@@ -1,4 +1,5 @@
 import type { AgentTool } from "@earendil-works/pi-agent-core";
+import { validateToolArguments, type JsonObject } from "@earendil-works/pi-ai";
 import { AppError } from "@read-aware/core";
 import type { ReaderToolContext, RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
@@ -112,12 +113,20 @@ export function prepareHostTools(
     const need = readiness.get(tool);
     const wrapped: AgentTool = {
       ...tool,
-      execute: async (...args) => {
-        args[2]?.throwIfAborted();
+      execute: async (id, params, signal, onUpdate) => {
+        signal?.throwIfAborted();
         const current = check(need, scope, deps, readContext(deps), turnState);
         if (current.state === "unavailable")
           throw new AppError("ui/unavailable", `Tool is currently unavailable: ${current.reason}`);
-        return tool.execute(...args);
+        // The tool's schema is its whole argument contract, on every path the
+        // model's calls already take; tools keep only rules a schema cannot state.
+        const args = validateToolArguments(tool, {
+          type: "toolCall",
+          id,
+          name: tool.name,
+          arguments: params as JsonObject,
+        });
+        return tool.execute(id, args, signal, onUpdate);
       },
     };
     metadata.set(wrapped, check(need, scope, deps, context, turnState));

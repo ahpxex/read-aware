@@ -29,9 +29,7 @@ test("both Agent scopes use the same window port, strict intents and cancellatio
     expect(JSON.stringify(await query.execute("q", {}))).toContain("maximized");
     await control.execute("c", { request: { action: "fullscreen", enabled: true } });
     expect(calls).toEqual([{ action: "fullscreen", enabled: true }]);
-    await expect(control.execute("c", { request: { action: "close" } })).rejects.toMatchObject({
-      code: "ui/invalid-target",
-    });
+    await expect(control.execute("c", { request: { action: "close" } })).rejects.toThrow("Validation failed");
     const abort = new AbortController();
     abort.abort(new AppError("plugin/cancelled", "Cancelled"));
     await expect(control.execute("c", { request: { action: "restore" } }, abort.signal)).rejects.toMatchObject({

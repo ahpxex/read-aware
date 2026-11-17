@@ -97,7 +97,7 @@ function response(data: Record<string, unknown>, hasMore = false) {
 const run = (deps: Awaited<ReturnType<typeof fixture>>["deps"], complete: CompleteFn) =>
   runIdentityConsolidation({ deps, complete, model });
 
-test("a large registry and an oversized class are fully partitioned, resumed and hydrated before conditional publication", async () => {
+test("a large registry and an oversized class are fully partitioned and hydrated in one pass before conditional publication", async () => {
   const { deps } = await fixture(),
     snapshot = await deps.identityConsolidation.snapshot();
   expect(await readIdentityInput(snapshot, deps.entityRegistry, 48000)).toBeNull();
@@ -109,42 +109,32 @@ test("a large registry and an oversized class are fully partitioned, resumed and
     if (input) queries.push(input);
     return query(input, signal);
   };
-  let calls = 0,
-    finalCalls = 0,
-    result;
-  for (let pass = 0; pass < 50; pass++) {
-    calls = 0;
-    result = await run(deps, async (_model, context) => {
-      calls++;
-      const json = context.messages[0]!.content as string,
-        data = JSON.parse(json);
-      expect(identityBytes(json)).toBeLessThan(48000);
-      if (data.partition) {
-        const p = data.partition as RegistryPartition,
-          key = `${p.root.id}:${p.kind}:${p.offset}`;
-        expect(visited.has(key)).toBe(false);
-        visited.add(key);
-        for (const item of p.items) if ("alias" in item) aliasNames.add(item.alias);
-      } else if (data.identities) {
-        finalCalls++;
-        expect(data.registryScan).toMatchObject({ hasMore: false });
-        expect(data.identities).toEqual([
-          {
-            id: "keeper",
-            definition: { kind: "person", canonicalName: "Keeper Alex" },
-            members: [{ id: "zz-member", definition: { kind: "person", canonicalName: "Original Alex" } }],
-            aliases: [],
-          },
-        ]);
-      }
-      return response(data);
-    });
-    expect(calls).toBeLessThanOrEqual(4);
-    if (result.status === "complete") break;
-    expect(result.status).toBe("pending");
-    expect((await deps.identityConsolidation.snapshot()).derived).toBeNull();
-  }
-  expect(result?.status).toBe("complete");
+  let finalCalls = 0;
+  const result = await run(deps, async (_model, context) => {
+    const json = context.messages[0]!.content as string,
+      data = JSON.parse(json);
+    expect(identityBytes(json)).toBeLessThan(48000);
+    if (data.partition) {
+      const p = data.partition as RegistryPartition,
+        key = `${p.root.id}:${p.kind}:${p.offset}`;
+      expect(visited.has(key)).toBe(false);
+      visited.add(key);
+      for (const item of p.items) if ("alias" in item) aliasNames.add(item.alias);
+    } else if (data.identities) {
+      finalCalls++;
+      expect(data.registryScan).toMatchObject({ hasMore: false });
+      expect(data.identities).toEqual([
+        {
+          id: "keeper",
+          definition: { kind: "person", canonicalName: "Keeper Alex" },
+          members: [{ id: "zz-member", definition: { kind: "person", canonicalName: "Original Alex" } }],
+          aliases: [],
+        },
+      ]);
+    }
+    return response(data);
+  });
+  expect(result.status).toBe("complete");
   expect(finalCalls).toBe(1);
   for (let i = 0; i < 40; i++) expect(visited.has(`other-${i}:members:0`)).toBe(true);
   expect(aliasNames.size).toBe(340); // Includes all 105 merged-member names and 192 accumulated aliases.
@@ -157,14 +147,10 @@ test("a large registry and an oversized class are fully partitioned, resumed and
 
 test("unretained required registry work forces partial publication even if the final model claims complete", async () => {
   const { deps } = await fixture();
-  let result;
-  for (let pass = 0; pass < 50; pass++) {
-    result = await run(deps, async (_model, context) =>
-      response(JSON.parse(context.messages[0]!.content as string), true),
-    );
-    if (result.status !== "pending") break;
-  }
-  expect(result?.status).toBe("partial");
+  const result = await run(deps, async (_model, context) =>
+    response(JSON.parse(context.messages[0]!.content as string), true),
+  );
+  expect(result.status).toBe("partial");
   expect((await deps.identityConsolidation.snapshot()).settled).toBe(false);
 });
 

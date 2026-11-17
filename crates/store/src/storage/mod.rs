@@ -73,8 +73,6 @@ pub mod identity_consolidation;
 pub use identity_consolidation::*;
 pub mod identity_consolidation_commit;
 pub use identity_consolidation_commit::*;
-pub mod identity_work;
-pub use identity_work::*;
 pub mod memories;
 pub mod memory_page;
 pub use memories::*;

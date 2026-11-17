@@ -2,9 +2,6 @@ import {
   AppError,
   identityProfileContext,
   normalizeIdentityConsolidationPlan,
-  normalizeIdentityWorkQuery,
-  normalizeIdentityWorkAppend,
-  normalizeIdentityWorkCompact,
   normalizeProfileInspectionQuery,
   profileInspectionPage,
   type IdentityConsolidationPort,
@@ -25,10 +22,6 @@ export function createIdentityConsolidationFixture(
   let derived: unknown = null,
     settled: string | null = null,
     sequence = 0;
-  let workRevision: string | undefined;
-  const pages: string[] = [];
-  let baseIndex = 0,
-    checkpoint: string | null = null;
   const readSources = async () =>
     (await deps().memory.snapshotMemories())
       .filter(
@@ -74,62 +67,8 @@ export function createIdentityConsolidationFixture(
         ? []
         : (await readSources()).map((source) => ({ memoryId: source.memory.id, revision: source.revision })),
   });
-  const work: IdentityConsolidationPort["work"] = {
-    compact: async (raw, signal) => {
-      const input = normalizeIdentityWorkCompact(raw);
-      if (
-        (await snapshot(signal)).revision !== input.expectedRevision ||
-        workRevision !== input.expectedRevision ||
-        input.expectedPageCount !== baseIndex + pages.length
-      )
-        throw new AppError("memory/conflict", "Work changed");
-      if (!pages.length) {
-        if (checkpoint !== input.json) throw new AppError("memory/conflict", "Checkpoint changed");
-        return { revision: input.expectedRevision, pageCount: baseIndex, status: "retained" };
-      }
-      baseIndex += pages.length;
-      pages.length = 0;
-      checkpoint = input.json;
-      return { revision: input.expectedRevision, pageCount: baseIndex, status: "compacted" };
-    },
-    read: async (raw, signal) => {
-      const input = normalizeIdentityWorkQuery(raw);
-      if ((await snapshot(signal)).revision !== input.expectedRevision)
-        throw new AppError("memory/conflict", "Source changed");
-      const current = workRevision === input.expectedRevision;
-      if (current && input.index !== 0 && input.index < baseIndex)
-        throw new AppError("memory/conflict", "Work compacted");
-      return {
-        revision: input.expectedRevision,
-        index: input.index,
-        pageCount: current ? baseIndex + pages.length : 0,
-        baseIndex: current ? baseIndex : 0,
-        checkpoint: current ? checkpoint : null,
-        json: current ? (pages[input.index - baseIndex] ?? null) : null,
-      };
-    },
-    append: async (raw, signal) => {
-      const input = normalizeIdentityWorkAppend(raw);
-      if ((await snapshot(signal)).revision !== input.expectedRevision)
-        throw new AppError("memory/conflict", "Source changed");
-      if (workRevision !== input.expectedRevision) {
-        if (input.index !== 0) throw new AppError("memory/conflict", "Work changed");
-        workRevision = input.expectedRevision;
-        pages.length = 0;
-        baseIndex = 0;
-        checkpoint = null;
-      }
-      if (input.index < baseIndex) throw new AppError("memory/conflict", "Work compacted");
-      if (input.index < baseIndex + pages.length && pages[input.index - baseIndex] === input.json)
-        return { revision: input.expectedRevision, pageCount: baseIndex + pages.length, status: "retained" };
-      if (input.index !== baseIndex + pages.length) throw new AppError("memory/conflict", "Work changed");
-      pages.push(input.json);
-      return { revision: input.expectedRevision, pageCount: baseIndex + pages.length, status: "appended" };
-    },
-  };
   return {
     snapshot,
-    work,
     context: async () => identityProfileContext(await contextSnapshot()),
     inspect: async (input, signal) => {
       const query = normalizeProfileInspectionQuery(input);
@@ -177,12 +116,6 @@ export function createIdentityConsolidationFixture(
       registry.adopt(nextRegistry, before.entitiesRevision);
       derived = nextDerived;
       settled = input.complete ? next : null;
-      if (input.complete) {
-        pages.length = 0;
-        baseIndex = 0;
-        checkpoint = null;
-        workRevision = undefined;
-      }
       return { revision: next, emittedEventIds, settled: input.complete };
     },
   };

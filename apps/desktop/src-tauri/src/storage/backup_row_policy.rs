@@ -108,7 +108,6 @@ pub(super) fn table(name: &str) -> Result<RowPolicy, CommandError> {
         | "capability_change_cursors"
         | "restored_credential_publications"
         | "book_import_cleanup" => PreserveDevice,
-        "identity_consolidation_work" | "identity_consolidation_pages" => ReviewRuntimeHistory,
         "identity_consolidation_checkpoint"
         | "context_bundle_source_clock"
         | "plugin_document_generations"

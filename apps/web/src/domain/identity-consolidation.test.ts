@@ -154,15 +154,10 @@ test("partial/no-op receipt is not inflated, and invalid derived data is logged 
   expect(host.warnings).toHaveLength(1);
 });
 
-test("backup fences consolidation and its scratch writes while snapshot reads stay available", async () => {
+test("backup fences consolidation commits while snapshot reads stay available", async () => {
   const host = identityHost();
   await withDomainBackup(async () => {
-    for (const write of [
-      () => host.service.commit(identityPlan()),
-      () => host.service.work.append({ expectedRevision: identityRevision, index: 0, json: "{}" }),
-      () => host.service.work.compact({ expectedRevision: identityRevision, expectedPageCount: 1, json: "{}" }),
-    ])
-      await expect(write()).rejects.toMatchObject({ code: "backup/busy" });
+    await expect(host.service.commit(identityPlan())).rejects.toMatchObject({ code: "backup/busy" });
     expect(host.calls).toHaveLength(0);
     expect(host.minted).toHaveLength(0);
     expect(await host.service.snapshot()).toEqual(host.controls.snapshot);

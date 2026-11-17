@@ -2,15 +2,9 @@ import { runDomainWrite } from "../platform/domain-write-gate";
 import {
   identityProfileContext,
   normalizeIdentityConsolidationPlan,
-  normalizeIdentityWorkQuery,
-  normalizeIdentityWorkAppend,
-  normalizeIdentityWorkCompact,
   normalizeProfileInspectionQuery,
   profileInspectionPage,
   type ProfileInspectionQuery,
-  type IdentityWorkPort,
-  type IdentityWorkPage,
-  type IdentityWorkReceipt,
   type IdentityConsolidationPort,
   type IdentityConsolidationReceipt,
   type IdentityConsolidationSnapshot,
@@ -36,37 +30,6 @@ type IdentityHost = {
 
 /** Internal production port; neither model output nor a plugin chooses event authority. */
 export function createIdentityConsolidationService(host: IdentityHost) {
-  const work: IdentityWorkPort = {
-    compact: async (raw, signal) => {
-      const input = normalizeIdentityWorkCompact(raw);
-      signal?.throwIfAborted();
-      await host.initialize();
-      signal?.throwIfAborted();
-      return runDomainWrite(() => {
-        signal?.throwIfAborted();
-        return host.invoke<IdentityWorkReceipt>("identity_work_compact", input);
-      });
-    },
-    read: async (raw, signal) => {
-      const input = normalizeIdentityWorkQuery(raw);
-      signal?.throwIfAborted();
-      await host.initialize();
-      signal?.throwIfAborted();
-      const page = await host.invoke<IdentityWorkPage>("identity_work_read", input);
-      signal?.throwIfAborted();
-      return page;
-    },
-    append: async (raw, signal) => {
-      const input = normalizeIdentityWorkAppend(raw);
-      signal?.throwIfAborted();
-      await host.initialize();
-      signal?.throwIfAborted();
-      return runDomainWrite(() => {
-        signal?.throwIfAborted();
-        return host.invoke<IdentityWorkReceipt>("identity_work_append", input);
-      });
-    },
-  };
   const snapshot: IdentityConsolidationPort["snapshot"] = async (signal) => {
     signal?.throwIfAborted();
     await host.initialize();
@@ -149,7 +112,6 @@ export function createIdentityConsolidationService(host: IdentityHost) {
   return {
     snapshot,
     commit,
-    work,
     context: async (signal?: AbortSignal) => checkContext(await readContextSnapshot(signal)),
     inspect: async (input?: ProfileInspectionQuery, signal?: AbortSignal) => {
       const query = normalizeProfileInspectionQuery(input);
@@ -171,7 +133,6 @@ const service = createIdentityConsolidationService({
 export const identityConsolidationPort: IdentityConsolidationPort = {
   snapshot: service.snapshot,
   commit: service.commit,
-  work: service.work,
 };
 export const readProfileContext = service.context;
 export const inspectProfileContext = service.inspect;

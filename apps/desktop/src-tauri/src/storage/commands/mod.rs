@@ -45,8 +45,6 @@ mod identity_consolidation;
 pub use identity_consolidation::*;
 mod identity_consolidation_commit;
 pub use identity_consolidation_commit::*;
-mod identity_work;
-pub use identity_work::*;
 mod import_cleanup;
 pub use import_cleanup::*;
 mod library;

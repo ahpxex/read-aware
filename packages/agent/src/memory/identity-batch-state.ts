@@ -42,69 +42,7 @@ export const initialBatchState = (): BatchState => ({
   root: null,
   foldLevel: null,
 });
-const exact = (value: Record<string, unknown>, keys: string[]) =>
-  Object.keys(value).length === keys.length && keys.every((key) => Object.prototype.hasOwnProperty.call(value, key));
-const index = (value: unknown): value is number => Number.isSafeInteger(value) && (value as number) >= 0;
-export function readBatchState(json: string | null, snapshot: IdentityConsolidationSnapshot): BatchState {
-  if (json === null) return initialBatchState();
-  const value: unknown = JSON.parse(json);
-  if (
-    !record(value) ||
-    !exact(value, ["version", "cursor", "levels", "current", "root", "foldLevel"]) ||
-    value.version !== 2 ||
-    !record(value.cursor) ||
-    !exact(value.cursor, ["sourceIndex", "start"]) ||
-    !index(value.cursor.sourceIndex) ||
-    value.cursor.sourceIndex > snapshot.sources.length ||
-    !index(value.cursor.start) ||
-    !Array.isArray(value.levels) ||
-    value.levels.length > 53
-  )
-    return invalid();
-  const source = snapshot.sources[value.cursor.sourceIndex]?.memory.content;
-  if (
-    source === undefined
-      ? value.cursor.start !== 0
-      : value.cursor.start > source.length ||
-        (value.cursor.start > 0 &&
-          value.cursor.start < source.length &&
-          /[\uDC00-\uDFFF]/.test(source[value.cursor.start]!))
-  )
-    return invalid();
-  const eligible = new Set(snapshot.sources.map((source) => source.memory.id));
-  const levels = value.levels.map((item) => (item === null ? null : digest(item, eligible)));
-  let current: BatchState["current"] = null;
-  if (value.current !== null) {
-    if (
-      !record(value.current) ||
-      !exact(value.current, ["digest", "level"]) ||
-      !index(value.current.level) ||
-      value.current.level >= 53
-    )
-      return invalid();
-    current = { digest: digest(value.current.digest, eligible), level: value.current.level };
-  }
-  if (
-    value.foldLevel !== null &&
-    (!Number.isInteger(value.foldLevel) ||
-      (value.foldLevel as number) < -1 ||
-      (value.foldLevel as number) >= levels.length ||
-      current !== null ||
-      value.cursor.sourceIndex !== snapshot.sources.length)
-  )
-    return invalid();
-  if (value.root !== null && value.foldLevel === null) return invalid();
-  return {
-    version: 2,
-    cursor: { sourceIndex: value.cursor.sourceIndex, start: value.cursor.start },
-    levels,
-    current,
-    root: value.root === null ? null : digest(value.root, eligible),
-    foldLevel: value.foldLevel as number | null,
-  };
-}
-
-/** Resume at the first unread code unit, preserving the original leaf grouping. */
+/** The next leaf at the first unread code unit, preserving leaf grouping. */
 export function nextIdentityLeaf(
   snapshot: IdentityConsolidationSnapshot,
   cursor: SourceCursor,

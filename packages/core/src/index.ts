@@ -69,7 +69,6 @@ export * from "./user-profile";
 export * from "./onboarding";
 export * from "./entity-registry";
 export * from "./identity-consolidation";
-export * from "./identity-work";
 export * from "./profile-inspection";
 export * from "./memory-candidate";
 export * from "./memory-page";

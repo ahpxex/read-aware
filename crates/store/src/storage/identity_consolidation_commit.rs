@@ -125,8 +125,6 @@ pub fn identity_commit_inner(
     let after = identity::read_snapshot(&tx)?;
     if complete {
         tx.execute("INSERT INTO identity_consolidation_checkpoint (id,revision) VALUES (1,?1) ON CONFLICT(id) DO UPDATE SET revision=excluded.revision", [&after.revision])?;
-        tx.execute("DELETE FROM identity_consolidation_pages", [])?;
-        tx.execute("DELETE FROM identity_consolidation_work", [])?;
     } else {
         tx.execute(
             "DELETE FROM identity_consolidation_checkpoint WHERE id=1",

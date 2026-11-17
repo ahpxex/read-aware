@@ -85,11 +85,6 @@ export async function runMemoryBuild<T>(
             completeOnboarding: commit((input) => original.profile.completeOnboarding(input, call.signal)),
           },
           identityConsolidation: {
-            work: {
-              compact: commit((input) => original.identityConsolidation.work.compact(input, call.signal)),
-              read: guard((input) => original.identityConsolidation.work.read(input, call.signal)),
-              append: commit((input) => original.identityConsolidation.work.append(input, call.signal)),
-            },
             snapshot: guard(() => original.identityConsolidation.snapshot(call.signal)),
             commit: commit((input) => original.identityConsolidation.commit(input, call.signal)),
           },

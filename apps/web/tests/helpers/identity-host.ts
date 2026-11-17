@@ -113,18 +113,6 @@ export function identityHost() {
         await controls.beforeRead();
         return structuredClone(controls.snapshot) as T;
       }
-      if (command === "identity_work_read") {
-        await controls.beforeRead();
-        return { revision: identityRevision, index: 0, pageCount: 0, baseIndex: 0, checkpoint: null, json: null } as T;
-      }
-      if (command === "identity_work_compact") {
-        await controls.beforeCommit();
-        return { revision: identityRevision, pageCount: 1, status: "compacted" } as T;
-      }
-      if (command === "identity_work_append") {
-        await controls.beforeCommit();
-        return { revision: identityRevision, pageCount: 1, status: "appended" } as T;
-      }
       if (command === "profile_context") {
         await controls.beforeRead();
         const value = controls.snapshot;

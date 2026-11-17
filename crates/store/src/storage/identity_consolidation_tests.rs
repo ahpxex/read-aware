@@ -6,9 +6,6 @@ use super::super::{
 use super::*;
 use serde_json::json;
 
-#[path = "identity_work_tests.rs"]
-mod work_tests;
-
 fn prepare(conn: &mut Connection) {
     apply_connection_pragmas(conn).unwrap();
     register_sql_functions(conn).unwrap();

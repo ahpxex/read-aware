@@ -994,6 +994,9 @@ pub const MIGRATIONS: &[(i64, &str, &str)] = &[
     // agent after the first exchange). NULL until then; the thread list falls
     // back to the first user message. A clear resets it with the transcript.
     (60, "ai_conversation_title", "ALTER TABLE ai_conversations ADD COLUMN title TEXT;"),
+    // Identity consolidation batches an oversized input in memory within one
+    // pass; its resumable model-page log (v39/v40) is retired.
+    (61, "retire_identity_work_log", "DROP TABLE IF EXISTS identity_consolidation_pages; DROP TABLE IF EXISTS identity_consolidation_work;"),
 ];
 
 /// Rebuild the annotation FTS index from the table. Required after any VACUUM
@@ -1012,7 +1015,7 @@ pub fn rebuild_annotations_fts(conn: &Connection) -> Result<(), CommandError> {
 /// The schema version a projection checkpoint is stamped with. Restoring one
 /// is only sound when the derived tables' shapes match exactly, so a
 /// checkpoint from a different version is ignored in favour of the log.
-pub const SCHEMA_VERSION: i64 = 60;
+pub const SCHEMA_VERSION: i64 = 61;
 
 /// The migration after which `materialize_legacy_covers` must run: the cover
 /// projection columns exist, the inline data-URL column still does.

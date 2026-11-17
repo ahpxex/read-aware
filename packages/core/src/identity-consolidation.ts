@@ -22,7 +22,6 @@ export type IdentityConsolidationPlan = {
 };
 export type IdentityConsolidationReceipt = { revision: string; emittedEventIds: string[]; settled: boolean };
 export type IdentityConsolidationPort = {
-  work: import("./identity-work").IdentityWorkPort;
   snapshot(signal?: AbortSignal): Promise<IdentityConsolidationSnapshot>;
   commit(input: IdentityConsolidationPlan, signal?: AbortSignal): Promise<IdentityConsolidationReceipt>;
 };

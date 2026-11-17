@@ -336,7 +336,7 @@ export function ChatInteractionPrompt({
   }
 
   return (
-    <Card padding="sm" className="rounded-control bg-transparent" aria-live="polite">
+    <Card padding="sm" className="bg-transparent" aria-live="polite">
       {permission ? (
         <div className="grid grid-cols-[18px_minmax(0,1fr)] gap-x-2.5">
           <Warning size={18} className="self-center text-fg-muted" aria-hidden="true" />

@@ -7,6 +7,7 @@ const collection: Collection = {
   id: "c1",
   name: "Philosophy",
   createdAt: "2026-01-14T10:00:00.000Z",
+  lastOpenedAt: null,
 };
 
 const meta = {

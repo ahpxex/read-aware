@@ -70,8 +70,8 @@ const books: LibraryBook[] = [
 ];
 
 const collections: Collection[] = [
-  { id: "c1", name: "Russian classics", createdAt: "2026-05-01T00:00:00.000Z" },
-  { id: "c2", name: "To read next", createdAt: "2026-06-12T00:00:00.000Z" },
+  { id: "c1", name: "Russian classics", createdAt: "2026-05-01T00:00:00.000Z", lastOpenedAt: null },
+  { id: "c2", name: "To read next", createdAt: "2026-06-12T00:00:00.000Z", lastOpenedAt: null },
 ];
 
 /** The pages "Go to" offers — in the app, every destination the menus know. */

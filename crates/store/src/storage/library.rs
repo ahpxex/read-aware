@@ -80,6 +80,8 @@ pub struct Collection {
     pub id: String,
     pub name: String,
     pub created_at: String,
+    /// When the collection itself was last opened (`collection.opened`).
+    pub last_opened_at: Option<String>,
 }
 
 pub fn row_to_library_book(row: &rusqlite::Row) -> rusqlite::Result<LibraryBook> {

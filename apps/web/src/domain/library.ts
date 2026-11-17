@@ -37,6 +37,7 @@ import {
   retryLibraryBookFileRelease,
   listLibraryRemovalCleanup,
   renameCollection,
+  markCollectionOpened,
   setBooksCollection,
   setLibraryBookStarred,
   updateBookMetadata,
@@ -223,6 +224,8 @@ export type LibraryCommands = {
   collections: {
     create(name: string): Promise<CollectionSummary>;
     rename(collectionId: string, name: string): Promise<void>;
+    /** The reader opened the collection on the shelf. */
+    open(collectionId: string): Promise<void>;
     remove(collectionId: string): Promise<void>;
     assignBooks(bookIds: string[], collectionId: string | null): Promise<void>;
   };
@@ -375,6 +378,10 @@ export function createLibraryDomain(
       },
       rename: async (collectionId, name) => {
         await renameCollection(String(collectionId), String(name), origin);
+        notifyLibraryChanged(origin);
+      },
+      open: async (collectionId) => {
+        await markCollectionOpened(String(collectionId), origin);
         notifyLibraryChanged(origin);
       },
       remove: async (collectionId) => {

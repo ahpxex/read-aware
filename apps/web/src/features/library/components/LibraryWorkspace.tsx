@@ -35,6 +35,8 @@ type LibraryWorkspaceProps = {
   onBulkRemove: (ids: string[]) => void;
   onCreateCollection: (name: string) => Promise<Collection | null>;
   onRenameCollection: (id: string, name: string) => void;
+  /** The reader opened a collection on the shelf (recorded; the view itself opens here). */
+  onOpenCollection: (id: string) => void;
   onDeleteCollection: (id: string) => void;
   onSetBooksCollection: (ids: string[], collectionId: string | null) => void;
 };
@@ -60,6 +62,7 @@ export const LibraryWorkspace = memo(function LibraryWorkspace({
   onBulkRemove,
   onCreateCollection,
   onRenameCollection,
+  onOpenCollection,
   onDeleteCollection,
   onSetBooksCollection,
 }: LibraryWorkspaceProps) {
@@ -252,7 +255,10 @@ export const LibraryWorkspace = memo(function LibraryWorkspace({
               openingBookId={openingBookId}
               getDragIds={dragIdsFor}
               onDropBooksOnCollection={(collectionId, droppedIds) => assignDraggedBooks(droppedIds, collectionId)}
-              onOpenCollection={(id) => setActiveCollectionId(id)}
+              onOpenCollection={(id) => {
+                setActiveCollectionId(id);
+                onOpenCollection(id);
+              }}
               selecting={active}
               selectedIds={selectedIds}
               onSelect={onOpenBook}

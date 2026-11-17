@@ -117,6 +117,8 @@ export interface Collection {
   id: string;
   name: string;
   createdAt: string;
+  /** When the collection itself was last opened; null until it is. */
+  lastOpenedAt: string | null;
 }
 
 /** One item on the shelf: a book, or a collection standing among the books. */

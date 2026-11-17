@@ -49,8 +49,8 @@ function book(index: number, patch: Partial<LibraryBook> = {}): LibraryBook {
 const books = Array.from({ length: 8 }, (_, i) => book(i));
 
 const collections: Collection[] = [
-  { id: "c1", name: "Philosophy", createdAt: "2026-01-14T10:00:00.000Z" },
-  { id: "c2", name: "To read", createdAt: "2026-02-03T10:00:00.000Z" },
+  { id: "c1", name: "Philosophy", createdAt: "2026-01-14T10:00:00.000Z", lastOpenedAt: null },
+  { id: "c2", name: "To read", createdAt: "2026-02-03T10:00:00.000Z", lastOpenedAt: null },
 ];
 
 const inCollection = books.map((entry, i) => (i < 3 ? { ...entry, collectionId: "c1" } : entry));
@@ -76,10 +76,12 @@ const meta = {
     onToggleStar: () => {},
     onUpdateBookMetadata: () => {},
     onBulkRemove: () => {},
+    onOpenCollection: () => {},
     onCreateCollection: async (name) => ({
       id: `new-${name}`,
       name,
       createdAt: "2026-06-28T10:00:00.000Z",
+      lastOpenedAt: null,
     }),
     onRenameCollection: () => {},
     onDeleteCollection: () => {},

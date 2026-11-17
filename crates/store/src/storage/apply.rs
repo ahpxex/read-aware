@@ -481,6 +481,14 @@ pub fn apply_event(tx: &Transaction<'_>, ev: &EventRow) -> Result<bool, CommandE
                 params![require(p, "collectionId", t)?, require(p, "name", t)?],
             )?;
         }
+        "collection.opened" => {
+            // Latest wins whatever order the openings arrive in: a sync can
+            // deliver an older opening after a newer one.
+            tx.execute(
+                "UPDATE collections SET last_opened_at = MAX(COALESCE(last_opened_at, ?2), ?2) WHERE id = ?1",
+                params![require(p, "collectionId", t)?, at],
+            )?;
+        }
         "collection.removed" => {
             let id = require(p, "collectionId", t)?;
             tx.execute(

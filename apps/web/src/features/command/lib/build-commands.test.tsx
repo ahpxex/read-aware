@@ -67,7 +67,7 @@ describe("buildCommands", () => {
   test("native actions carry typed requests; book and collection render IDs never become command IDs", () => {
     const ctx = context(null);
     ctx.books = [{ id: "b-1", title: "Book", updatedAt: "2026-09-10" }] as never;
-    ctx.collections = [{ id: "c-1", name: "Collection", createdAt: "2026-09-10" }];
+    ctx.collections = [{ id: "c-1", name: "Collection", createdAt: "2026-09-10", lastOpenedAt: null }];
     const commands = buildCommands(ctx, t);
     expect(commands.find((c) => c.id === "book-b-1")?.hostCommand).toEqual({
       id: "open-book",

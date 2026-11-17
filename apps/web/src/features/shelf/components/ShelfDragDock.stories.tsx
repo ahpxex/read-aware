@@ -3,8 +3,8 @@ import type { Collection } from "../../library/lib/library-types";
 import { ShelfDragDock } from "./ShelfDragDock";
 
 const collections: Collection[] = [
-  { id: "c1", name: "Philosophy", createdAt: "2026-01-14T10:00:00.000Z" },
-  { id: "c2", name: "To read", createdAt: "2026-02-03T10:00:00.000Z" },
+  { id: "c1", name: "Philosophy", createdAt: "2026-01-14T10:00:00.000Z", lastOpenedAt: null },
+  { id: "c2", name: "To read", createdAt: "2026-02-03T10:00:00.000Z", lastOpenedAt: null },
 ];
 
 /**

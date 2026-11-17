@@ -42,6 +42,7 @@ const eventAreas: Record<DomainEventType, readonly ChangeArea[]> = {
   "book.removed": EVERYTHING_OF_A_BOOK,
   "collection.created": LIBRARY,
   "collection.renamed": LIBRARY,
+  "collection.opened": LIBRARY,
   "collection.removed": LIBRARY,
   "book.addedToCollection": LIBRARY,
   "book.removedFromCollection": LIBRARY,

@@ -4,9 +4,9 @@ import type { Collection } from "../../library/lib/library-types";
 import { AddToCollectionDialog } from "./AddToCollectionDialog";
 
 const collections: Collection[] = [
-  { id: "c1", name: "Philosophy", createdAt: "2026-01-14T10:00:00.000Z" },
-  { id: "c2", name: "To read", createdAt: "2026-02-03T10:00:00.000Z" },
-  { id: "c3", name: "Essays", createdAt: "2026-03-21T10:00:00.000Z" },
+  { id: "c1", name: "Philosophy", createdAt: "2026-01-14T10:00:00.000Z", lastOpenedAt: null },
+  { id: "c2", name: "To read", createdAt: "2026-02-03T10:00:00.000Z", lastOpenedAt: null },
+  { id: "c3", name: "Essays", createdAt: "2026-03-21T10:00:00.000Z", lastOpenedAt: null },
 ];
 
 const meta = {
@@ -23,6 +23,7 @@ const meta = {
       id: `new-${name}`,
       name,
       createdAt: "2026-06-28T10:00:00.000Z",
+      lastOpenedAt: null,
     }),
   },
 } satisfies Meta<typeof AddToCollectionDialog>;
@@ -50,6 +51,7 @@ export const ManyCollections: Story = {
       id: `c${i}`,
       name: `Collection ${i + 1}`,
       createdAt: "2026-01-01T00:00:00.000Z",
+      lastOpenedAt: null,
     })),
   },
 };

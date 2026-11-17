@@ -34,7 +34,10 @@ export function useLibraryCommands({ reportError, reload }: LibraryCommandOption
   const handleCreateCollection = useCallback(
     async (name: string): Promise<Collection | null> => {
       try {
-        const collection = await userDomain.library.commands.collections.create(name);
+        const collection: Collection = {
+          ...(await userDomain.library.commands.collections.create(name)),
+          lastOpenedAt: null,
+        };
         setCollections((current) => sortCollections([...current, collection]));
         return collection;
       } catch (error) {
@@ -56,6 +59,27 @@ export function useLibraryCommands({ reportError, reload }: LibraryCommandOption
       });
     },
     [reload, reportError, setCollections],
+  );
+
+  /** Opening a collection is recorded like opening a book: it moves the collection forward on the shelf. */
+  const handleOpenCollection = useCallback(
+    (id: string) => {
+      const previous = { lastOpenedAt: null as string | null };
+      setCollections((current) =>
+        current.map((c) => {
+          if (c.id !== id) return c;
+          previous.lastOpenedAt = c.lastOpenedAt;
+          return { ...c, lastOpenedAt: new Date().toISOString() };
+        }),
+      );
+      void userDomain.library.commands.collections.open(id).catch((error) => {
+        setCollections((current) =>
+          current.map((c) => (c.id === id ? { ...c, lastOpenedAt: previous.lastOpenedAt } : c)),
+        );
+        reportError(error);
+      });
+    },
+    [reportError, setCollections],
   );
 
   const handleDeleteCollection = useCallback(
@@ -136,6 +160,7 @@ export function useLibraryCommands({ reportError, reload }: LibraryCommandOption
   return {
     handleCreateCollection,
     handleRenameCollection,
+    handleOpenCollection,
     handleDeleteCollection,
     handleSetBooksCollection,
     handleToggleStar,

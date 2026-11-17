@@ -215,6 +215,7 @@ export type DomainEvent =
   // --- Collections (set semantics → reconstructable as many-to-many later) -
   | DomainEventEnvelope<"collection.created", { collectionId: Id; name: string }>
   | DomainEventEnvelope<"collection.renamed", { collectionId: Id; name: string }>
+  | DomainEventEnvelope<"collection.opened", { collectionId: Id }>
   | DomainEventEnvelope<"collection.removed", { collectionId: Id }>
   | DomainEventEnvelope<"book.addedToCollection", { bookId: Id; collectionId: Id }>
   | DomainEventEnvelope<"book.removedFromCollection", { bookId: Id; collectionId: Id }>

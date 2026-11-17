@@ -11,15 +11,18 @@ function recentTime(book: LibraryBook): number {
   return new Date(book.lastOpenedAt ?? book.updatedAt).getTime();
 }
 
-// A collection takes its place from what is inside it: it was read when its
-// most recently read member was, and is as far along as its furthest member.
-// It has no author, so it files under its own name; it was added when it was
-// made. An empty collection falls back to when it was made, with no progress.
+// A collection takes its place from itself and what is inside it: it was
+// read when it was last opened or its most recently read member was,
+// whichever is later, and is as far along as its furthest member. It has no
+// author, so it files under its own name; it was added when it was made. A
+// collection never opened and holding nothing read falls back to when it was
+// made, with no progress.
 function entryRecent(entry: Entry): number {
   if (entry.kind === "book") return recentTime(entry.book);
-  return entry.members.length > 0
-    ? Math.max(...entry.members.map(recentTime))
-    : new Date(entry.collection.createdAt).getTime();
+  const { collection, members } = entry;
+  const times = members.map(recentTime);
+  if (collection.lastOpenedAt) times.push(new Date(collection.lastOpenedAt).getTime());
+  return times.length > 0 ? Math.max(...times) : new Date(collection.createdAt).getTime();
 }
 const entryAdded = (entry: Entry) =>
   new Date(entry.kind === "book" ? entry.book.createdAt : entry.collection.createdAt).getTime();

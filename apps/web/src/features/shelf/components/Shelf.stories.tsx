@@ -252,7 +252,7 @@ const asEntries = (books: LibraryBook[]): ShelfEntry[] => books.map((book) => ({
 
 const italianFiction: ShelfEntry = {
   kind: "collection",
-  collection: { id: "c1", name: "Italian Fiction", createdAt: "2026-03-13T00:00:00.000Z" },
+  collection: { id: "c1", name: "Italian Fiction", createdAt: "2026-03-13T00:00:00.000Z", lastOpenedAt: null },
   members: ["1c1917", "44403c", "78716c", "a8a29e"].map((fill, index) => ({
     ...allBooks[index],
     id: `c1-${index}`,
@@ -262,7 +262,7 @@ const italianFiction: ShelfEntry = {
 };
 const toRead: ShelfEntry = {
   kind: "collection",
-  collection: { id: "c2", name: "To Read in 2026", createdAt: "2026-03-13T00:00:00.000Z" },
+  collection: { id: "c2", name: "To Read in 2026", createdAt: "2026-03-13T00:00:00.000Z", lastOpenedAt: null },
   members: [],
 };
 

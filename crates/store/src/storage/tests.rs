@@ -860,6 +860,68 @@ fn rust_and_sqlite_agree_on_event_timestamps() {
 }
 
 #[test]
+fn collection_opened_keeps_the_latest_opening_whatever_order_it_arrives_in() {
+    let mut conn = migrated_conn();
+    let opened = |id: &str, wall: i64| {
+        ev(
+            id,
+            wall,
+            "collection.opened",
+            serde_json::json!({ "collectionId": "c1" }),
+        )
+    };
+    let created = ev(
+        "e0",
+        1_000,
+        "collection.created",
+        serde_json::json!({ "collectionId": "c1", "name": "科幻" }),
+    );
+    commit_events_inner(&mut conn, &[created]).unwrap();
+    let last_opened = |conn: &Connection| -> Option<String> {
+        conn.query_row(
+            "SELECT last_opened_at FROM collections WHERE id = 'c1'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap()
+    };
+    // Never opened: no recency of its own.
+    assert_eq!(last_opened(&conn), None);
+
+    commit_events_inner(&mut conn, &[opened("e1", 3_000)]).unwrap();
+    assert_eq!(
+        last_opened(&conn).as_deref(),
+        Some(apply::iso_from_millis(3_000).as_str())
+    );
+    // An older opening synced in later does not move it back.
+    commit_events_inner(&mut conn, &[opened("e2", 2_000)]).unwrap();
+    assert_eq!(
+        last_opened(&conn).as_deref(),
+        Some(apply::iso_from_millis(3_000).as_str())
+    );
+    commit_events_inner(&mut conn, &[opened("e3", 4_000)]).unwrap();
+    assert_eq!(
+        last_opened(&conn).as_deref(),
+        Some(apply::iso_from_millis(4_000).as_str())
+    );
+    // Opening a collection that is gone changes nothing.
+    commit_events_inner(
+        &mut conn,
+        &[ev(
+            "e4",
+            5_000,
+            "collection.opened",
+            serde_json::json!({ "collectionId": "missing" }),
+        )],
+    )
+    .unwrap();
+    let rows: i64 = conn
+        .query_row("SELECT COUNT(*) FROM collections", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(rows, 1);
+}
+
+#[test]
 fn commit_derives_projections_from_events_alone() {
     let mut conn = migrated_conn();
     let report = commit_events_inner(

@@ -428,6 +428,7 @@ fn revert_to_v53(conn: &Connection) {
          DROP TABLE user_fonts;
          DROP TABLE bookmarks;
          ALTER TABLE ai_conversations DROP COLUMN title;
+         ALTER TABLE collections DROP COLUMN last_opened_at;
          DELETE FROM schema_migrations WHERE version >= 54;",
     )
     .unwrap();

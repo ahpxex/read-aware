@@ -1016,6 +1016,11 @@ pub const MIGRATIONS: &[(i64, &str, &str)] = &[
          END;
          DELETE FROM memories_fts;
          INSERT INTO memories_fts (id, content) SELECT id, ra_fts_segment(content) FROM memories;"),
+    // Opening a collection is a reading fact like opening a book: the shelf
+    // orders a collection by the later of its own last opening and its most
+    // recently read member. `collection.opened` (projected by apply.rs)
+    // keeps it; a collection never opened since has none.
+    (63, "collection_last_opened", "ALTER TABLE collections ADD COLUMN last_opened_at TEXT;"),
 ];
 
 /// Rebuild the annotation FTS index from the table. Required after any VACUUM
@@ -1034,7 +1039,7 @@ pub fn rebuild_annotations_fts(conn: &Connection) -> Result<(), CommandError> {
 /// The schema version a projection checkpoint is stamped with. Restoring one
 /// is only sound when the derived tables' shapes match exactly, so a
 /// checkpoint from a different version is ignored in favour of the log.
-pub const SCHEMA_VERSION: i64 = 62;
+pub const SCHEMA_VERSION: i64 = 63;
 
 /// The migration after which `materialize_legacy_covers` must run: the cover
 /// projection columns exist, the inline data-URL column still does.

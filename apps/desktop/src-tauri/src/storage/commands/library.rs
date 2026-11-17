@@ -118,12 +118,14 @@ pub async fn library_list_collections(
     crate::storage::blocking("library_list_collections", move || {
         let db = tauri::Manager::state::<Db>(&app);
         let conn = db.0.lock()?;
-        let mut stmt = conn.prepare("SELECT id, name, created_at FROM collections")?;
+        let mut stmt =
+            conn.prepare("SELECT id, name, created_at, last_opened_at FROM collections")?;
         let rows = stmt.query_map([], |row| {
             Ok(Collection {
                 id: row.get(0)?,
                 name: row.get(1)?,
                 created_at: row.get(2)?,
+                last_opened_at: row.get(3)?,
             })
         })?;
         let mut out = Vec::new();

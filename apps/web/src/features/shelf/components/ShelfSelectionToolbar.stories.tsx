@@ -4,8 +4,8 @@ import type { Collection } from "../../library/lib/library-types";
 import { ShelfSelectionToolbar } from "./ShelfSelectionToolbar";
 
 const collections: Collection[] = [
-  { id: "c1", name: "Philosophy", createdAt: "2026-01-14T10:00:00.000Z" },
-  { id: "c2", name: "To read", createdAt: "2026-02-03T10:00:00.000Z" },
+  { id: "c1", name: "Philosophy", createdAt: "2026-01-14T10:00:00.000Z", lastOpenedAt: null },
+  { id: "c2", name: "To read", createdAt: "2026-02-03T10:00:00.000Z", lastOpenedAt: null },
 ];
 
 /**
@@ -28,6 +28,7 @@ const meta = {
       id: `new-${name}`,
       name,
       createdAt: "2026-06-28T10:00:00.000Z",
+      lastOpenedAt: null,
     }),
     onRemove: () => {},
     onDone: () => {},

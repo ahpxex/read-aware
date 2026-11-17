@@ -30,8 +30,13 @@ function book(id: string, fields: Partial<LibraryBook> = {}): LibraryBook {
     ...fields,
   };
 }
-const collection = (id: string, members: LibraryBook[], createdAt = day(1)): ShelfCollection => ({
-  collection: { id, name: id, createdAt } satisfies Collection,
+const collection = (
+  id: string,
+  members: LibraryBook[],
+  createdAt = day(1),
+  lastOpenedAt: string | null = null,
+): ShelfCollection => ({
+  collection: { id, name: id, createdAt, lastOpenedAt } satisfies Collection,
   members,
 });
 const order = (sections: ShelfSection[]) =>
@@ -52,12 +57,32 @@ test("a collection stands among the books where its most recently read member pu
   expect(entry.kind === "collection" && entry.members.map((member) => member.id)).toEqual(["m-b", "m-a"]);
 });
 
+test("opening a collection brings it forward, as reading one of its books does", () => {
+  const books = [book("read", { lastOpenedAt: day(5) })];
+  const members = [book("m", { lastOpenedAt: day(2) })];
+  const ids = (opened: string | null) =>
+    order(deriveShelfView(books, [collection("c", members, day(1), opened)], view({}), t))[0][1];
+  // Never opened: placed by its most recently read member.
+  expect(ids(null)).toEqual(["read", "[c]"]);
+  // Opened after the book was read: it leads.
+  expect(ids(day(8))).toEqual(["[c]", "read"]);
+  // An opening older than a member's reading changes nothing.
+  expect(ids(day(1))).toEqual(["read", "[c]"]);
+  // Empty but opened: placed by the opening, not by when it was made.
+  expect(order(deriveShelfView(books, [collection("e", [], day(1), day(9))], view({}), t))[0][1]).toEqual([
+    "[e]",
+    "read",
+  ]);
+});
+
 test("every sort places a collection by its own counterpart of the book's key", () => {
   const books = [
     book("Beta", { author: "Zed", createdAt: day(5), progressPercent: 40 }),
     book("Delta", { author: "Abe", createdAt: day(2), progressPercent: 10 }),
   ];
-  const shelf = [collection("Charlie", [book("m", { progressPercent: 70 }), book("n", { progressPercent: 5 })], day(3))];
+  const shelf = [
+    collection("Charlie", [book("m", { progressPercent: 70 }), book("n", { progressPercent: 5 })], day(3)),
+  ];
   const ids = (sort: ShelfView["sort"]) => order(deriveShelfView(books, shelf, view({ sort }), t))[0][1];
   expect(ids("title")).toEqual(["Beta", "[Charlie]", "Delta"]);
   // No author: it files under its own name.

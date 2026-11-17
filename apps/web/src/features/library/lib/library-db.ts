@@ -329,6 +329,7 @@ export async function createCollection(name: string, origin?: DomainActor): Prom
     id: crypto.randomUUID(),
     name: name.trim() || "Untitled collection",
     createdAt: new Date().toISOString(),
+    lastOpenedAt: null,
   };
   await commitDomainEvents({
     type: "collection.created",
@@ -349,6 +350,11 @@ export async function renameCollection(id: string, name: string, origin?: Domain
     origin,
   });
   return next;
+}
+
+/** Record that the reader opened a collection: the shelf orders it by its last opening too. */
+export async function markCollectionOpened(id: string, origin?: DomainActor) {
+  await commitDomainEvents({ type: "collection.opened", payload: { collectionId: id }, origin });
 }
 
 /**

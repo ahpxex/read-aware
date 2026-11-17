@@ -554,6 +554,7 @@ function App() {
                   onBulkRemove={library.handleRemoveMany}
                   onCreateCollection={library.handleCreateCollection}
                   onRenameCollection={library.handleRenameCollection}
+                  onOpenCollection={library.handleOpenCollection}
                   onDeleteCollection={library.handleDeleteCollection}
                   onSetBooksCollection={library.handleSetBooksCollection}
                 />

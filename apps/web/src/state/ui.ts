@@ -185,7 +185,7 @@ const readerBookLanguagesBaseAtom = atom(stampEventCause(getReaderBookLanguages(
 export const readerBookLanguagesAtom = atom((get) => get(readerBookLanguagesBaseAtom));
 
 /** How each fixed-layout book was last viewed here — zoom and place on the page (see `domain/reading-zoom.ts`). */
-const fixedLayoutViewsBaseAtom = atom(stampEventCause(getFixedLayoutViews()));
+const fixedLayoutViewsBaseAtom = atom(getFixedLayoutViews());
 export const fixedLayoutViewsAtom = atom((get) => get(fixedLayoutViewsBaseAtom));
 
 export const readerPreferencesAtom = atom(
@@ -290,7 +290,7 @@ onLocalKVChange((key, _value, origin) => {
       store.set(readerBookLanguagesBaseAtom, stampEventCause(getReaderBookLanguages(), origin));
       break;
     case FIXED_LAYOUT_ZOOM_KEY:
-      store.set(fixedLayoutViewsBaseAtom, stampEventCause(getFixedLayoutViews(), origin));
+      store.set(fixedLayoutViewsBaseAtom, getFixedLayoutViews());
       break;
     case READER_OVERRIDES_KEY:
       store.set(readerOverridesBaseAtom, stampEventCause(getReaderOverrides(), origin));

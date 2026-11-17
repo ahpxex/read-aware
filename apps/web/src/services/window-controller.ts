@@ -48,7 +48,6 @@ export class HostWindowService implements HostWindowPort {
   private revision = 0;
   private previous = "";
   private observed?: HostWindowSnapshot;
-  private viewport: WindowViewport | null = null;
   private commandRevision = 0;
   private inputRevision: number | null = null;
   private layoutCommand?: { revision: number; origin: DomainActor };
@@ -140,9 +139,7 @@ export class HostWindowService implements HostWindowPort {
           focused: native.focused,
         }
       : { supported: false as const };
-    const viewport = native?.viewport;
     const command = this.layoutCommand;
-    const inputChanged = native?.inputRevision != null && native.inputRevision !== this.inputRevision;
     this.inputRevision = native?.inputRevision ?? null;
     if (this.layoutCommand && this.layoutCommand.revision !== this.inputRevision) this.layoutCommand = undefined;
     const source = causalActor(
@@ -150,17 +147,6 @@ export class HostWindowService implements HostWindowPort {
         ? "system"
         : (origin ?? this.layoutCommand?.origin ?? "system"),
     );
-    if (
-      viewport &&
-      Number.isFinite(viewport.width) &&
-      Number.isFinite(viewport.height) &&
-      viewport.width > 0 &&
-      viewport.height > 0
-    ) {
-      if (inputChanged || viewport.width !== this.viewport?.width || viewport.height !== this.viewport?.height) {
-        this.viewport = stampEventCause({ width: viewport.width, height: viewport.height }, source);
-      }
-    } else this.viewport = null;
     const key = JSON.stringify(state);
     if (key !== this.previous) {
       this.previous = key;

@@ -40,7 +40,7 @@
     "translate": "bun packages/agent/src/translate-run.ts",
     "storybook": "turbo run storybook --filter=@read-aware/web",
     "build-storybook": "turbo run build-storybook --filter=@read-aware/web",
-    "lint": "oxlint && bun scripts/check-swallowed-rejections.ts",
+    "lint": "oxlint && bun scripts/check-swallowed-rejections.ts && bun scripts/check-radius-classes.ts",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "lint:deps": "turbo run lint:deps",

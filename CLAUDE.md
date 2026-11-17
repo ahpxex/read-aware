@@ -89,6 +89,10 @@ TanStack Router, Jotai, Tailwind CSS v4, Vite, and Tauri 2.
   `text-eyebrow`, `text-caption`, and `leading-display`. Keep the interface quiet:
   no gradients, decorative badges or ornamental highlights. Use serif for display
   and sans for other text; `stone-600` is the minimum body text color on paper.
+- Corners are restrained and named by role (`packages/ui/src/radius.css`):
+  `rounded-mark` 4px, `rounded-control` 6px, `rounded-surface` 8px, `rounded-fine`
+  2px for glyph-sized marks. Anything attached to a window edge stays square.
+  `bun run lint` rejects Tailwind's stock radius classes in product code.
 - Keep keyboard navigation, ARIA and ref behavior consistent with shared components.
   Product icons come from the icon library, not hand-drawn SVG in feature code.
 
@@ -167,7 +171,8 @@ automatically once `core.hooksPath` is set to `.githooks`, which the root
 `prepare` script wires on `bun install`). Select relevant commands; package
 scripts provide focused checks, such as `test:runtime` in `apps/web` for the reader
 suites in headless Chrome. `bun run lint` is type-aware oxlint (`.oxlintrc.json`)
-plus a check that no promise rejection is discarded without a log or a comment.
+plus checks that no promise rejection is discarded without a log or a comment and
+that corners use the design system's named radii.
 `bun run format` applies Biome (`biome.json`); Rust uses `cargo fmt` with the toolchain
 pinned in `rust-toolchain.toml` (bump it together with the workflows' `toolchain:`).
 The Rust crates form one Cargo workspace at the repo root (build output in `target/`):

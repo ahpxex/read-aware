@@ -26,7 +26,7 @@ import {
 } from "../../state/plugin-store";
 import { registerPluginVoiceProvider } from "../plugin-voice-provider";
 import { registerPluginContentProvider } from "../plugin-content-provider";
-import { pluginObjectAccessDenied } from "../../../../domain/plugin-object-access";
+import { pluginObjectAccessDenied, runFenced } from "../../../../domain/plugin-object-access";
 import { NAMESPACE_KEY, normalizeDefaultShortcut } from "./helpers";
 import type { PluginActorKit } from "./kit";
 
@@ -367,21 +367,19 @@ export function contributionsFacet(kit: PluginActorKit, self: () => PluginContex
                         propose: async (input) => {
                           if (input.scope.kind !== "book")
                             throw pluginObjectAccessDenied("memory candidate provider global scope");
-                          const fence = await objectAccess.beginBook(input.scope.bookId, "memory candidate provider");
-                          try {
-                            const proposals = await provider.propose(input);
-                            await fence.assertUnchanged();
-                            if (
-                              !Array.isArray(proposals) ||
-                              proposals.some((candidate) => candidate.scope !== "book")
-                            ) {
-                              throw pluginObjectAccessDenied("memory candidate provider result");
-                            }
-                            return proposals;
-                          } catch (error) {
-                            fence.dispose();
-                            throw error;
-                          }
+                          return runFenced(
+                            objectAccess.beginBook(input.scope.bookId, "memory candidate provider"),
+                            async () => provider.propose(input),
+                            {
+                              verify: (proposals) => {
+                                if (
+                                  !Array.isArray(proposals) ||
+                                  proposals.some((candidate) => candidate.scope !== "book")
+                                )
+                                  throw pluginObjectAccessDenied("memory candidate provider result");
+                              },
+                            },
+                          );
                         },
                         bookAccess: grantedBookAccess,
                         assertBookAccess: assertBookScope,

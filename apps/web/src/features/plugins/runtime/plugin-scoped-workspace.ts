@@ -17,6 +17,7 @@ import {
 import type { PluginContext } from "@read-aware/plugin-types";
 import {
   pluginObjectAccessDenied,
+  runFenced,
   type CurrentBookSnapshot,
   type PluginBookAccessPolicy,
 } from "../../../domain/plugin-object-access";
@@ -224,14 +225,7 @@ export function scopePluginWorkspace(
           id = bookId();
         if (query.selectionAfter !== undefined) policy.assertBook(query.selectionAfter, "workspace selection cursor");
         if (id === null) return capture(query);
-        const fence = await policy.beginBook(id, "workspace.snapshot");
-        try {
-          const state = capture(query);
-          await fence.assertUnchanged();
-          return state;
-        } finally {
-          fence.dispose();
-        }
+        return runFenced(policy.beginBook(id, "workspace.snapshot"), async () => capture(query));
       },
       observe(input, handler) {
         const query = normalizeWorkspaceQuery(input);

@@ -217,14 +217,13 @@ Fetch 每次读取一个公开域名网址，TinyFish / Exa 默认接受一小�
 
 Agent 和插件消费同一套宿主业务能力，各自拥有独立权限和作用域。插件可以提供
 工具、上下文和记忆候选，但不能直接访问数据库、操作系统或其他插件私有数据。
-详细规则见 [插件系统](../plugins/plugin-system.md) 与
-[能力模型](../capabilities/host-capability-model.md)。
+详细规则见 [插件系统](../plugins/plugin-system.md)，能力与权限的唯一目录是
+[`capabilities.ts`](../../packages/core/src/capabilities.ts)。
 
 ## 验证与历史
 
-当前能力接线查 [能力矩阵](../capabilities/host-capability-matrix.md)；剩余真实组合
-场景查 [集中验收](../capabilities/host-capability-acceptance.md)。模型行为评测和桌面
-操作验收是不同证据，任何一个都不能代替另一个。
+模型行为评测和桌面操作验收是不同证据，任何一个都不能代替另一个。旧的能力矩阵与
+集中验收清单已归档（[历史档案](../archive/README.md)），不是当前待办。
 
 [早期设计](../archive/designs/agent-architecture.md) 保留 SDK 选型、初始方案和迁移讨论；
 其中“实现未开始”等状态只属于当时，不作为现在的待办。

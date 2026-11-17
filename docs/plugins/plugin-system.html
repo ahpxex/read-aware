@@ -176,10 +176,9 @@
           插件动态加载，但权力边界由宿主定义。
         </p>
         <div class="status"><strong>架构参考：</strong>保留 2026-08-23 的三类划分；入口存在不证明完整语义、持久性、生命周期安全或桌面验收。</div>
-        <p>文档导航更新于 2026-09-15。下列版本说明保留各自的实现与验证边界；当前接线查
-        <a href="../capabilities/host-capability-matrix.html">能力矩阵</a>，当前执行范围只看
-        <a href="../capabilities/host-capability-acceptance.md">C01–C09 集中验收</a>，当前阶段查
-        <a href="../capabilities/host-capability-delivery.md">当前交接</a>。旧版本的待验说明不自动成为新待办；原始验收报告和运行工件只保留在 Git 历史中。2026-09-16：Listening Desk 已整体移除（原生阅读器已提供播放/模式控制，Reading 2.5 控制器仍由原生阅读器与 Agent 消费），Annotation Desk 更名为 Annotations，其余四个组合插件（Annotations、Reading Goals、Workspace Profiles、Jumper）重写为单一任务界面；下文引用旧版本号的说明属于历史组合证据。2026-11-09：Jumper 已下架——跳转框并入阅读器目录面板的搜索（章节、页码、书签、高亮与笔记、正文），前进/后退改为阅读器快捷键，书签改为随事件同步的书库原生书签与宿主 Agent 工具（list_bookmarks / save_bookmark / manage_bookmark），旧书签在启动时一次性迁入；下文提到 Jumper 的段落为历史记录。
+        <p>文档导航更新于 2026-09-15。下列版本说明保留各自的实现与验证边界；能力与权限的唯一目录是
+        <a href="../../packages/core/src/capabilities.ts">capabilities.ts</a>，旧的能力矩阵和集中验收清单已
+        <a href="../archive/README.md">归档</a>，不是当前待办。旧版本的待验说明不自动成为新待办；原始验收报告和运行工件只保留在 Git 历史中。2026-09-16：Listening Desk 已整体移除（原生阅读器已提供播放/模式控制，Reading 2.5 控制器仍由原生阅读器与 Agent 消费），Annotation Desk 更名为 Annotations，其余四个组合插件（Annotations、Reading Goals、Workspace Profiles、Jumper）重写为单一任务界面；下文引用旧版本号的说明属于历史组合证据。2026-11-09：Jumper 已下架——跳转框并入阅读器目录面板的搜索（章节、页码、书签、高亮与笔记、正文），前进/后退改为阅读器快捷键，书签改为随事件同步的书库原生书签与宿主 Agent 工具（list_bookmarks / save_bookmark / manage_bookmark），旧书签在启动时一次性迁入；下文提到 Jumper 的段落为历史记录。
         <a href="../archive/capabilities/plugin-capability-baseline.html">早期基线</a> 已归档，不能据此直接判断旧 GAP 当前是否关闭。</p>
         <div class="search-row"><label for="search">查找架构条目<input id="search" type="search" placeholder="Domain、权限、更新…"></label><button id="search-clear" aria-label="清空搜索" title="清空搜索"><i data-lucide="x"></i></button></div>
         <p id="search-result" aria-live="polite"></p>
@@ -663,7 +662,7 @@
           <p>Network 2.1 提供先响应头、后分块拉取的下载流，每块最多1 MiB、每流最多1 GiB；普通fetch和上传仍最多64 MiB。两种请求共用每激活8个、全部插件32个并发槽和120秒绝对寿命，原生收尾结束才退槽；不是总内存预算。policy可查询授权和硬上限。</p>
           <p>句柄仅本激活，读取必须顺序且不可重放；未读到结尾须显式关闭，开流的signal只管取得句柄之前。结束/关闭/到期/停用释放资源，不回滚已交付字节或服务端效果。来源范围仍缺省拒绝、逐跳检查，拒HTTPS降级、禁共享Cookie；第一方自定义端点显式全网含本地，TTS密钥请求禁跳转。累计额度和重试协调仍缺。</p>
           <p>Agent 全局会话已接 download_resource：每次确认准确 HTTPS URL 与文件名，只做无凭据 GET，重定向另行确认。最多64 MiB/120秒，会话1个、全局4个并发，清理期间保留槽位；不提供 DNS/私网隔离。下载封口后只返回临时资源元数据，读取文本、检查、导入和保存另行调用；不自动执行、导入或持久保存。基础测试已过，真实下载组合留集中 Tauri 验收。</p>
-          <p>基础检查不代表新原生链路已验；集中 Tauri 组合和生产 CSP 仍待验证。取消不撤销远端已发生的副作用，见 <a href="../capabilities/host-capability-delivery.md">实现与桌面证据</a>。</p>
+          <p>基础检查不代表新原生链路已验；集中 Tauri 组合和生产 CSP 仍待验证。取消不撤销远端已发生的副作用，见 <a href="../archive/capabilities/host-capability-delivery.md">归档的实现与桌面证据</a>。</p>
           <ul>
             <li>任意 React、HTML、CSS、DOM、iframe 或 WebView 注入</li>
             <li>原始文件系统路径、SQLite、Tauri 命令与进程执行</li>

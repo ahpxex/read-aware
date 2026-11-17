@@ -2,7 +2,7 @@
 
 这里保留当时的设计、审查和验收范围。正文中的日期、版本、“尚未实现”“已经完成”
 或“唯一权威”都是历史陈述，不能代表当前产品状态。归档时保留原文，只修正文件链接。
-当前入口是 [文档目录](../README.md)，当前工作范围是 [集中验收](../capabilities/host-capability-acceptance.md)。
+当前入口是 [文档目录](../README.md)。
 
 ## 早期设计
 
@@ -23,7 +23,8 @@
 | [架构与代码质量体检](./reviews/architecture-review-2026-09.html) | 2026-09-27 快速迭代后的分层、单体、契约与守门缺口快照及治理路线 |
 | [阅读引擎体检](./reviews/reader-engine-audit-2026-11.html) | 2026-11-11 对阅读引擎与宿主集成的性能、状态机、竞态排查：31 条发现及建议的修复顺序，排查时未改代码 |
 | [历史实施记录](./reviews/implementation-history.md) | 从根指令抽出的旧版本迁移背景 |
-| [插件能力基线](./capabilities/plugin-capability-baseline.md) / [HTML](./capabilities/plugin-capability-baseline.html) | 原 129 项、32 个场景与 GAP 的历史契约，供生成器反查；不是当前待办 |
+| [插件能力基线](./capabilities/plugin-capability-baseline.md) / [HTML](./capabilities/plugin-capability-baseline.html) | 原 129 项、32 个场景与 GAP 的历史契约；不是当前待办 |
+| [宿主能力账本](./capabilities/host-capability-matrix.md) | 2026-11-17 归档：能力矩阵、责任模型、集中验收 C01–C09、交接和场景库（含 `.data.ts` 原始数据与生成的 HTML）。它是工具注册表与插件 API 的手工副本，已与代码漂移；生成和核对脚本已删除。当前能力目录是 [`capabilities.ts`](../../packages/core/src/capabilities.ts) |
 
 ## 旧验收计划
 

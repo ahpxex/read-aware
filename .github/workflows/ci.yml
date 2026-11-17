@@ -1,8 +1,5 @@
 # Pull-request and main gate for every workspace, including the native Rust
 # test suite on all three desktop platforms.
-#
-# The capability-matrix bookkeeping (`bun run check:capabilities`) is a manual
-# audit, not a gate: run it when taking stock of host/Agent/plugin coverage.
 name: ci
 
 on:

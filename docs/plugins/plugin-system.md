@@ -11,12 +11,11 @@
 >
 > Concise human-facing version: [plugin-system.html](./plugin-system.html).
 
-> Navigation updated 2026-09-15: this is the detailed contract reference. The
-> [matrix](../capabilities/host-capability-matrix.md) records current wiring;
-> [C01–C09](../capabilities/host-capability-acceptance.md) is the only current
-> execution list, and the [current handoff](../capabilities/host-capability-delivery.md)
-> records the current phase. Versioned implementation notes below describe their
-> stated scope and evidence; their old pending items are not a second work queue.
+> This is the detailed contract reference; the capability and permission
+> catalogue is [`capabilities.ts`](../../packages/core/src/capabilities.ts).
+> Versioned implementation notes below describe their stated scope and
+> evidence; their old pending items are not a work queue. The former capability
+> matrix and acceptance list are [archived](../archive/README.md).
 > Original acceptance reports and runtime artifacts are retained only in Git history.
 >
 > 2026-09-15: the four capability-matrix consumer fixtures (Library Desk,
@@ -198,7 +197,7 @@ most 64 MiB per body in each direction. Stopping a realm cancels its native HTTP
 requests. Cancellation does not undo server-side effects or already committed
 domain writes. General callback ownership, cancellation of other host tasks,
 wire-envelope validation and packaged CSP remain separate acceptance work; see
-[implementation and desktop evidence](../capabilities/host-capability-delivery.md).
+the [archived delivery evidence](../archive/capabilities/host-capability-delivery.md).
 
 ### Book Object Access
 
@@ -4558,7 +4557,7 @@ channel changes and rollback. macOS debug Tauri evidence covers both actors,
 real FB2 alignment/highlights, PDF canvas colors, typography, permission
 rejection, and injected SQLite failure; post-update relaunch behavior,
 other desktop platforms, and packaged validation of these nine paths remain
-unverified. See [delivery evidence](../capabilities/host-capability-delivery.md).
+unverified. See the [archived delivery evidence](../archive/capabilities/host-capability-delivery.md).
 
 ### Shelf preferences and workspace profiles
 

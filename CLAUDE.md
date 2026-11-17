@@ -156,7 +156,6 @@ historical material, not current status or an automatic work queue.
 | Storage or restore | [Data model](docs/architecture/data-model.md), [full backup](docs/features/full-backup.md) |
 | Sync behavior | [Sync engine](docs/architecture/sync-engine.md) |
 | Plugin boundaries | [Plugin system](docs/plugins/plugin-system.md) |
-| Host/Agent/plugin capability delivery | Start with the finite [acceptance list](docs/capabilities/host-capability-acceptance.md); inspect affected rows in `docs/capabilities/host-capability-matrix.data.ts` / `docs/capabilities/host-capability-model.data.ts` and the [current handoff](docs/capabilities/host-capability-delivery.md). Generated MD/HTML are outputs |
 | Agent behavior evals | `.agents/skills/evals/SKILL.md` |
 | Authorized release work | `.agents/skills/publishing/SKILL.md` |
 
@@ -186,9 +185,7 @@ the plugins first, and a bare `cargo` build or test of `read-aware-desktop` need
 `bun run --filter @read-aware/desktop prepare:plugins` once in a fresh checkout.
 `.github/workflows/ci.yml` gates PRs and `main` on typecheck, lint, formatting, tests, `lint:deps`,
 docs, the runtime suites, rustfmt/clippy, and the native Rust tests on macOS, Linux and
-Windows. `bun run check:capabilities` (capability-matrix bookkeeping) is a manual audit,
-not a gate: `check:docs` and `typecheck` skip `docs/capabilities`, its archived baseline
-and the audit scripts, which it checks itself. `lint:deps` only accepts a shrinking
+Windows. `lint:deps` only accepts a shrinking
 `.dependency-cruiser-known-violations.json`; after fixing violations, run
 `bun run lint:deps:baseline` in that workspace and commit the smaller file.
 

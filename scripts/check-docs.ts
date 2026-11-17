@@ -37,14 +37,11 @@ function documentAnchors(path: string): Set<string> {
   return ids;
 }
 
-// The capability matrix and its archived baseline belong to the manual capability
-// audit (`check:capabilities` passes --with-capabilities): they link hundreds of
-// source files and are not kept current on every commit, so a rename must not
-// fail CI here.
-const capabilityDocs = [join("docs", "capabilities") + sep, join("docs", "archive", "capabilities") + sep];
-const withCapabilities = process.argv.includes("--with-capabilities");
+// The archived capability ledger links hundreds of source files as they were;
+// it is history, not kept current, so a rename must not fail CI here.
+const capabilityArchive = join("docs", "archive", "capabilities") + sep;
 const files = [
-  ...documents("docs").filter((path) => withCapabilities || !capabilityDocs.some((dir) => path.startsWith(dir))),
+  ...documents("docs").filter((path) => !path.startsWith(capabilityArchive)),
   "README.md",
   "README.zh-CN.md",
   "README.ja.md",

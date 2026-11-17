@@ -60,5 +60,4 @@ ReadAware 的结构化数据保存在桌面 SQLite，书籍和其他大文件放
 ## 验证与历史
 
 本页核对了当前源码职责；没有在文档整理中执行数据库迁移或重新验收产品。
-当前能力工作阶段见 [当前交接](../capabilities/host-capability-delivery.md)。
 [早期数据设计](../archive/designs/data-model.md) 保留旧表结构和迁移讨论，不作为当前 schema。

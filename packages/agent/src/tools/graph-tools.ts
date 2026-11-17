@@ -22,7 +22,13 @@ export function buildGraphTools(scope: ThreadScope, deps: RuntimeDeps, turnState
       description:
         "Query this edition's distilled chapter memory: characters or concepts, aliases, relationships and zero-based provenance chapter indices. In replies use original chapter titles from get_toc, not these raw indices. FIRST STOP for identity/relationship questions. This graph is a summary, not source text; verify quotations with read_chapter/search_book_text at the provenance chapter. Pass names for profiles, chapterIndex for one chapter, or neither for an overview. bookId defaults to the current book. Missing or withheld digests are not proof that an entity does not occur in the book.",
       parameters: obj({
-        names: opt(arr(str({ minLength: 1, maxLength: 256 }), { minItems: 1, maxItems: MAX_GRAPH_NAMES })),
+        names: opt(
+          arr(str({ minLength: 1, maxLength: 256 }), {
+            minItems: 1,
+            maxItems: MAX_GRAPH_NAMES,
+            description: `At most ${MAX_GRAPH_NAMES} names per call; ask about a longer list in several calls`,
+          }),
+        ),
         chapterIndex: opt(int({ minimum: 0 })),
         bookId: opt(str()),
       }),

@@ -180,7 +180,7 @@ export function buildBookTextTools(scope: ThreadScope, deps: RuntimeDeps, turnSt
         int({
           minimum: 0,
           maximum: MAX_AROUND_CONTEXT_BLOCKS,
-          description: `With around: blocks to include before and after it (default ${AROUND_CONTEXT_BLOCKS}).`,
+          description: `With around: blocks to include before and after it (default ${AROUND_CONTEXT_BLOCKS}, at most ${MAX_AROUND_CONTEXT_BLOCKS}).`,
         }),
       ),
       bookId: opt(str()),

@@ -132,7 +132,6 @@ test("discovery validates its own boundary and honors cancellation", async () =>
     [],
     { catalog: "private" },
     { catalog: "tools", family: "schemas" },
-    { offset: 1 },
     { offset: -1 },
     { limit: 0 },
     { limit: 21 },
@@ -168,4 +167,22 @@ test("escaped extension metadata is paged by actual JSON size and oversized entr
   await expect(
     oversized.execute("oversized", { catalog: "tools", offset: first.nextOffset, revision: first.revision }),
   ).rejects.toMatchObject({ code: "ai/capability-catalog-unavailable" });
+});
+
+test("a later page needs no revision; a revision from another query is refused with what to do", async () => {
+  const extensions = Array.from({ length: 15 }, (_, index) => extension(`plugin_page_${index}`));
+  const tool = buildCapabilityTool(scopes[0], [], extensions);
+  // Models page with the offset alone; that reads the current ranking rather than failing.
+  const second = parse(await tool.execute("second", { catalog: "tools", query: "plugin", offset: 10 }));
+  expect(second.items).toHaveLength(5);
+  expect(second.nextOffset).toBeNull();
+  const other = parse(await tool.execute("other", { catalog: "tools", query: "page" }));
+  await expect(
+    tool.execute("stale", {
+      catalog: "tools",
+      query: "plugin",
+      offset: 10,
+      revision: other.revision.replace(/.$/, "0"),
+    }),
+  ).rejects.toMatchObject({ code: "ai/capability-catalog-changed" });
 });

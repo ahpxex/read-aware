@@ -246,7 +246,7 @@ export function Select({
               cn("border-b pb-2", hasError ? "border-red-400 focus:border-red-600" : "border-border focus:border-fg"),
             variant === "outlined" &&
               cn(
-                "border px-3 py-2",
+                "rounded-control border px-3 py-2",
                 hasError ? "border-red-400 focus:border-red-600" : "border-border focus:border-fg",
               ),
           )}
@@ -278,7 +278,7 @@ export function Select({
               }}
               className={cn("ra-motion-overlay-pop", position.placeBelow ? "origin-top" : "origin-bottom")}
             >
-              <div className="w-full rounded-md border border-border bg-[var(--ra-main-surface-color)] p-1">
+              <div className="w-full rounded-surface border border-border bg-[var(--ra-main-surface-color)] p-1">
                 {popupHeader?.(() => setOpen(false))}
                 <ScrollArea style={{ maxHeight: position.maxHeight }} className="w-full">
                   <ul ref={listboxRef} id={`${id}-listbox`} role="listbox" aria-labelledby={`${id}-label`}>
@@ -291,7 +291,7 @@ export function Select({
                         onMouseEnter={() => setActiveIndex(i)}
                         onClick={() => select(opt.value)}
                         className={cn(
-                          "flex cursor-pointer items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-sm transition-colors",
+                          "flex cursor-pointer items-center justify-between gap-2 rounded-control px-2.5 py-1.5 text-sm transition-colors",
                           i === activeIndex && "bg-fill",
                           opt.value === currentValue ? "font-medium text-fg" : "text-fg-muted",
                         )}

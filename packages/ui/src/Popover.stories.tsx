@@ -82,7 +82,7 @@ export const AutoFlipsUpward: Story = {
     children: (
       <ul className="flex flex-col text-sm">
         {Array.from({ length: 12 }, (_, index) => (
-          <li key={index} className="rounded-md px-2 py-1.5">
+          <li key={index} className="rounded-control px-2 py-1.5">
             Menu item {index + 1}
           </li>
         ))}

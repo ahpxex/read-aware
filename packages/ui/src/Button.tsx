@@ -32,7 +32,7 @@ export function buttonClassName(options?: {
 }): string {
   return cn(
     // Rounded like the menus, popovers and fields around them.
-    "inline-flex items-center justify-center rounded-md font-sans font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg disabled:pointer-events-none disabled:opacity-40",
+    "inline-flex items-center justify-center rounded-control font-sans font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg disabled:pointer-events-none disabled:opacity-40",
     variantClasses[options?.variant ?? "solid"],
     sizeClasses[options?.size ?? "md"],
     options?.className,

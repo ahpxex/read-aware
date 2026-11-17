@@ -122,7 +122,7 @@ export function Palette({
         aria-label={searchLabel}
         aria-busy={busy}
         className={cn(
-          "flex max-h-full w-full max-w-xl flex-col rounded-md border border-border bg-[var(--ra-main-surface-color)]",
+          "flex max-h-full w-full max-w-xl flex-col overflow-hidden rounded-surface border border-border bg-[var(--ra-main-surface-color)]",
           "shadow-[0_12px_32px_rgba(28,25,23,0.15)]",
           "animate-in fade-in slide-in-from-top-2 duration-200",
         )}

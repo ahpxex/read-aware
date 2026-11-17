@@ -43,7 +43,7 @@ export function Stepper({
   className,
 }: StepperProps) {
   const button =
-    "inline-flex h-10 w-12 shrink-0 items-center justify-center rounded-md text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg disabled:pointer-events-none disabled:opacity-35";
+    "inline-flex h-10 w-12 shrink-0 items-center justify-center rounded-control text-fg-muted transition-colors hover:text-fg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg disabled:pointer-events-none disabled:opacity-35";
   return (
     <div role="group" aria-label={label} className={cn("flex items-center", disabled && "opacity-50", className)}>
       <button

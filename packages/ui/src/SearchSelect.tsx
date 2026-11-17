@@ -126,7 +126,7 @@ export function SearchSelect({
               aria-label={label}
               data-ui-portal=""
               style={{ ...picker.floatingStyles, zIndex: 80 }}
-              className="flex min-h-0 flex-col overflow-hidden rounded-md border border-border bg-[var(--ra-main-surface-color)] text-fg shadow-lg"
+              className="flex min-h-0 flex-col overflow-hidden rounded-surface border border-border bg-[var(--ra-main-surface-color)] text-fg shadow-lg"
               {...picker.getFloatingProps()}
             >
               <div className="shrink-0 border-b border-border px-3 py-2">

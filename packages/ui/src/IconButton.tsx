@@ -31,7 +31,7 @@ export function iconButtonClassName({
   tone?: keyof typeof toneClasses;
 } = {}): string {
   return cn(
-    "inline-flex items-center justify-center rounded-md bg-transparent transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg disabled:pointer-events-none disabled:opacity-40",
+    "inline-flex items-center justify-center rounded-control bg-transparent transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg disabled:pointer-events-none disabled:opacity-40",
     sizeClasses[size],
     toneClasses[tone],
   );

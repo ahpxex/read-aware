@@ -73,7 +73,7 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function T
               ),
             variant === "outlined" &&
               cn(
-                "rounded-md border px-3 py-2",
+                "rounded-control border px-3 py-2",
                 hasError ? "border-red-400 focus:border-red-600" : "border-border focus:border-fg",
               ),
             leadingIcon && (variant === "underline" ? "pl-6" : "pl-9"),

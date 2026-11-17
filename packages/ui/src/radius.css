@@ -1,0 +1,30 @@
+/*
+ * Corner radii — the design system's whole vocabulary of corners. Restrained
+ * rounding in three steps by role, plus one for glyph-sized marks:
+ *
+ *   rounded-fine     2px  marks smaller than a line of text: heatmap cells,
+ *                         the selection highlight, thumbnail covers
+ *   rounded-mark     4px  small inline marks: checkboxes, keys, tags, badges,
+ *                         tooltips, inline code — and book covers
+ *   rounded-control  6px  things you press or type in: buttons, fields,
+ *                         selects, menu items, tabs, list rows that highlight,
+ *                         and wells set inside a surface (code, previews)
+ *   rounded-surface  8px  things that hold other things: cards, menus,
+ *                         popovers, dialogs, alerts, toasts, panels
+ *   rounded-full          pills, switches, avatars, progress tracks
+ *
+ * Square, on purpose: anything attached to a window edge (headers, sidebars,
+ * bottom bars, sheets' attached sides, full-screen overlays), one-sided rules
+ * and dividers, underline fields, and rows separated by hairlines. Joined
+ * groups round only their outer corners.
+ *
+ * Use these names, not Tailwind's stock scale (rounded-sm/md/lg/…), which is
+ * left in place only for third-party markup (Streamdown); `bun run lint`
+ * rejects stock radius classes in product code.
+ */
+@theme {
+  --radius-fine: 0.125rem;
+  --radius-mark: 0.25rem;
+  --radius-control: 0.375rem;
+  --radius-surface: 0.5rem;
+}

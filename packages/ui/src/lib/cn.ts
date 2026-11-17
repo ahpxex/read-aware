@@ -11,6 +11,10 @@ import { extendTailwindMerge } from "tailwind-merge";
  *   heights at all, so a caller's `leading-*` could never replace them and
  *   both reached the DOM, the stylesheet's order picking the winner.
  *
+ * - The corner radii (`rounded-fine` / `-mark` / `-control` / `-surface`,
+ *   from `radius.css`) are not t-shirt sizes, so without registering them a
+ *   caller's `rounded-*` could never replace a component's.
+ *
  * The line-height tokens get their own group rather than joining `leading`:
  * tailwind-merge lets a later font size (`text-sm`) drop a stock `leading-*`,
  * which would strip the token from every Body/Display given a size. In
@@ -19,6 +23,9 @@ import { extendTailwindMerge } from "tailwind-merge";
  */
 const twMerge = extendTailwindMerge<"leading-token">({
   extend: {
+    theme: {
+      radius: ["fine", "mark", "control", "surface"],
+    },
     classGroups: {
       "font-size": ["text-eyebrow", "text-caption"],
       "leading-token": ["leading-body", "leading-display"],

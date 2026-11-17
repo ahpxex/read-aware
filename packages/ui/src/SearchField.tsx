@@ -32,10 +32,10 @@ export const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(functi
         "flex items-center gap-2 transition-colors",
         variant === "outlined" &&
           cn(
-            "rounded-none border border-border bg-[var(--ra-main-surface-color)] focus-within:border-fg-subtle",
+            "rounded-control border border-border bg-[var(--ra-main-surface-color)] focus-within:border-fg-subtle",
             size === "sm" ? "px-2.5 py-1.5" : "px-3 py-2",
           ),
-        variant === "plain" && "rounded-none border-0 bg-transparent p-0",
+        variant === "plain" && "border-0 bg-transparent p-0",
         className,
       )}
     >

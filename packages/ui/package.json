@@ -7,7 +7,8 @@
     ".": "./src/index.ts",
     "./cn": "./src/lib/cn.ts",
     "./state": "./src/lib/useLocalAtom.ts",
-    "./media": "./src/lib/useMediaQuery.ts"
+    "./media": "./src/lib/useMediaQuery.ts",
+    "./radius.css": "./src/radius.css"
   },
   "scripts": {
     "typecheck": "tsc --noEmit"

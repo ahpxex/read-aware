@@ -142,7 +142,7 @@ export function ToastProvider({
               key={entry.id}
               role="status"
               className={cn(
-                "ra-motion-overlay-pop pointer-events-auto flex items-start gap-2 rounded-md border px-4 py-3 text-sm shadow-sm",
+                "ra-motion-overlay-pop pointer-events-auto flex items-start gap-2 rounded-surface border px-4 py-3 text-sm shadow-sm",
                 variantClasses[entry.variant ?? "default"],
               )}
             >

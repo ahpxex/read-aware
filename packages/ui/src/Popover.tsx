@@ -161,7 +161,7 @@ export function Popover({
             id={panelId}
             role="dialog"
             className={cn(
-              "min-h-0 min-w-[200px] max-w-full overflow-y-auto rounded-md border border-border bg-[var(--ra-main-surface-color)] p-4",
+              "min-h-0 min-w-[200px] max-w-full overflow-y-auto rounded-surface border border-border bg-[var(--ra-main-surface-color)] p-4",
               resolvedSide === "top" ? "ra-motion-overlay-pop-up" : "ra-motion-overlay-pop",
               resolvedSide === "top"
                 ? align === "left"

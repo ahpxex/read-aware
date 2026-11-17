@@ -47,7 +47,10 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(function 
           variant === "underline" &&
             cn("border-b pb-2", hasError ? "border-red-400 focus:border-red-600" : "border-border focus:border-fg"),
           variant === "outlined" &&
-            cn("border px-3 py-2", hasError ? "border-red-400 focus:border-red-600" : "border-border focus:border-fg"),
+            cn(
+              "rounded-control border px-3 py-2",
+              hasError ? "border-red-400 focus:border-red-600" : "border-border focus:border-fg",
+            ),
         )}
         {...props}
       />

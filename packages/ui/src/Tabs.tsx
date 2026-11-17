@@ -151,7 +151,7 @@ export function Tabs({
           usesUnderlineIndicator && "relative",
           stretch && "w-full",
           (variant === "underline" || variant === "nav") && "gap-6 border-b border-border",
-          variant === "pill" && "gap-1 rounded bg-fill p-1",
+          variant === "pill" && "gap-1 rounded-control bg-fill p-1",
           tabListClassName,
         )}
       >
@@ -192,7 +192,7 @@ export function Tabs({
                 variant === "underline" && cn("pb-3", isActive ? "text-fg" : "text-fg-muted hover:text-fg"),
                 variant === "nav" && cn("pb-3", isActive ? "text-fg" : "text-fg-subtle hover:text-fg"),
                 variant === "pill" &&
-                  cn("rounded px-3 py-1.5", isActive ? "bg-surface text-fg" : "text-fg-muted hover:text-fg"),
+                  cn("rounded-mark px-3 py-1.5", isActive ? "bg-surface text-fg" : "text-fg-muted hover:text-fg"),
               )}
             >
               {item.label}

@@ -65,7 +65,7 @@ export const GroupedWithFooter: Story = {
       <button
         type="button"
         onClick={close}
-        className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm text-fg-muted transition-colors hover:bg-fill hover:text-fg"
+        className="flex w-full items-center gap-2 rounded-control px-3 py-2 text-left text-sm text-fg-muted transition-colors hover:bg-fill hover:text-fg"
       >
         Import font…
       </button>

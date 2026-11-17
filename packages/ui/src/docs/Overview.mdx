@@ -35,6 +35,28 @@ interface stays visually spare because the type system handles structure.
   `shadow-sm`; everything else separates with hairline borders and fills.
 - No gradients, no ornamental highlights, no decorative icons.
 
+## Corners
+
+Corners are rounded, with restraint, and the radius follows the element's role --
+never a per-component taste. The names live in `packages/ui/src/radius.css`:
+
+| Class | Radius | For |
+| --- | --- | --- |
+| `rounded-fine` | 2px | marks smaller than a line of text: heatmap cells, the selection highlight, thumbnail covers |
+| `rounded-mark` | 4px | checkboxes, keys, tags, badges, tooltips, inline code, book covers |
+| `rounded-control` | 6px | buttons, fields, selects, menu items, tabs, rows that highlight, wells inside a surface |
+| `rounded-surface` | 8px | cards, menus, popovers, dialogs, alerts, toasts, floating bars and panels |
+| `rounded-full` | -- | pills, switches, avatars, progress tracks |
+
+- **Square where it touches the window.** Headers, sidebars, bottom bars, a sheet's
+  attached edge and full-screen overlays stay square, as do one-sided rules,
+  dividers, underline fields and rows separated by hairlines.
+- **Inner corners are smaller than outer ones.** A control inside a surface uses
+  the control radius; a rounded surface clips flush content (`overflow-hidden`).
+- **Joined groups round only their outer corners.**
+- Tailwind's stock scale (`rounded-sm`, `rounded-md`, …) is not part of the
+  vocabulary; `bun run lint` rejects it in product code.
+
 ## When in doubt
 
 Choose the quieter option. If two approaches achieve the same goal, pick the one

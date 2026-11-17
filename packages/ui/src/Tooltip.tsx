@@ -90,7 +90,7 @@ export function Tooltip({ content, side = "top", align = "center", children, cla
         className={cn(
           // pointer-coarse: touch has no hover, and a tap's lingering focus
           // would pin the tooltip open — suppress it entirely there.
-          "pointer-events-none absolute z-50 whitespace-nowrap rounded bg-fg px-2 py-1 text-xs text-inverse-fg opacity-0 transition-opacity group-focus-within:opacity-100 pointer-coarse:hidden",
+          "pointer-events-none absolute z-50 whitespace-nowrap rounded-mark bg-fg px-2 py-1 text-xs text-inverse-fg opacity-0 transition-opacity group-focus-within:opacity-100 pointer-coarse:hidden",
           hoverOpen && "opacity-100",
           sideClasses[side],
           (side === "top" || side === "bottom") && alignClasses[align],

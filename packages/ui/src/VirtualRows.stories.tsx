@@ -28,7 +28,7 @@ function row(index: number): VirtualRow {
  * meta decorator would still be found by `closest()` from inside the story.
  */
 const scrolled: Decorator = (Story) => (
-  <ScrollArea className="h-96 max-w-xl rounded-md border border-border">
+  <ScrollArea className="h-96 max-w-xl rounded-surface border border-border">
     <Story />
   </ScrollArea>
 );
@@ -108,7 +108,7 @@ export const NoScrollHost: Story = {
   args: { rows: Array.from({ length: 500 }, (_, i) => row(i)) },
   decorators: [
     (Story) => (
-      <div className="h-96 max-w-xl overflow-auto rounded-md border border-dashed border-border">
+      <div className="h-96 max-w-xl overflow-auto rounded-surface border border-dashed border-border">
         <Story />
       </div>
     ),

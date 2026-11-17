@@ -28,7 +28,11 @@ export function Alert({ variant = "default", title, children, action, className 
   return (
     <div
       role="alert"
-      className={cn("flex items-start gap-3 border px-4 py-3 text-sm", variantClasses[variant], className)}
+      className={cn(
+        "flex items-start gap-3 rounded-surface border px-4 py-3 text-sm",
+        variantClasses[variant],
+        className,
+      )}
     >
       <div className="flex-1">
         {title && <p className={cn("mb-1 font-medium", titleClasses[variant])}>{title}</p>}

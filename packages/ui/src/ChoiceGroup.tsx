@@ -71,7 +71,7 @@ export function ChoiceGroup<T extends string>({
                 aria-pressed={active}
                 onClick={() => onChange(option.value)}
                 className={cn(
-                  "flex items-center justify-between gap-2 rounded-md px-1.5 py-1.5 text-left font-sans text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
+                  "flex items-center justify-between gap-2 rounded-control px-1.5 py-1.5 text-left font-sans text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-fg",
                   active ? "font-medium text-fg" : "text-fg-muted hover:bg-fg/5 hover:text-fg",
                 )}
               >

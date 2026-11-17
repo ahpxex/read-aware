@@ -28,7 +28,9 @@ export function Card<T extends ElementType = "div">({
   ...props
 }: CardProps<T>) {
   const Tag = (as || "div") as ElementType;
-  return <Tag className={cn(variantClasses[variant], paddingClasses[padding], className)} {...props} />;
+  return (
+    <Tag className={cn("rounded-surface", variantClasses[variant], paddingClasses[padding], className)} {...props} />
+  );
 }
 
 function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {

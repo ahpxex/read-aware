@@ -17,7 +17,7 @@ export function Skeleton({ variant = "text", width, height, lines = 1, className
         {Array.from({ length: lines }).map((_, i) => (
           <div
             key={i}
-            className={cn("h-4 animate-pulse rounded bg-fill-strong", i === lines - 1 && "w-3/4")}
+            className={cn("h-4 animate-pulse rounded-mark bg-fill-strong", i === lines - 1 && "w-3/4")}
             style={{ width: i < lines - 1 ? width : undefined }}
           />
         ))}
@@ -31,9 +31,9 @@ export function Skeleton({ variant = "text", width, height, lines = 1, className
       aria-label={t("loading")}
       className={cn(
         "animate-pulse bg-fill-strong",
-        variant === "text" && "h-4 rounded",
+        variant === "text" && "h-4 rounded-mark",
         variant === "circular" && "rounded-full",
-        variant === "rectangular" && "rounded",
+        variant === "rectangular" && "rounded-mark",
         className,
       )}
       style={{ width, height }}

@@ -122,7 +122,7 @@ export const WithPopupHeaderAndAccessories: Story = {
       <button
         type="button"
         onClick={close}
-        className="mb-1 flex w-full items-center gap-2 rounded-md border-b border-border px-2.5 pb-2 pt-1.5 text-left text-sm text-fg-muted transition-colors hover:bg-fill hover:text-fg"
+        className="mb-1 flex w-full items-center gap-2 rounded-control border-b border-border px-2.5 pb-2 pt-1.5 text-left text-sm text-fg-muted transition-colors hover:bg-fill hover:text-fg"
       >
         Import font…
       </button>

@@ -1,5 +1,7 @@
 @import "tailwindcss";
 @import "./fonts.css";
+/* The design system's corner radii (rounded-fine/-mark/-control/-surface). */
+@import "@read-aware/ui/radius.css";
 
 /* @read-aware/ui resolves through a node_modules symlink, which Tailwind v4
    skips by default — scan its source explicitly so utility classes used only

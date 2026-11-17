@@ -68,7 +68,10 @@ export function InlineError({
   }
 
   return (
-    <div role="alert" className={cn("max-w-full rounded-sm border border-border bg-fill/60 px-3.5 py-2.5", className)}>
+    <div
+      role="alert"
+      className={cn("max-w-full rounded-surface border border-border bg-fill/60 px-3.5 py-2.5", className)}
+    >
       {(title || retry) && (
         <div className="flex items-center justify-between gap-3">
           {title && <p className="text-sm font-medium leading-5 text-fg">{title}</p>}

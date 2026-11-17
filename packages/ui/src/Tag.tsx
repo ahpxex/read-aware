@@ -16,7 +16,7 @@ export function Tag({ children, variant = "default", onRemove, removeLabel, clas
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 font-sans text-caption",
+        "inline-flex items-center gap-1 rounded-mark font-sans text-caption",
         variant === "default" && "bg-fill px-2 py-0.5 text-fg-muted",
         variant === "outline" && "border border-border px-2 py-0.5 text-fg-muted",
         className,

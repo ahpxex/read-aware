@@ -175,7 +175,7 @@ export function DropdownMenu({
           style={positionStyle}
           onKeyDown={handleMenuKeyDown}
           className={cn(
-            "ra-motion-overlay-pop absolute z-50 min-w-[184px] max-w-[calc(100vw-1rem)] rounded-md border border-border bg-[var(--ra-main-surface-color)] p-1",
+            "ra-motion-overlay-pop absolute z-50 min-w-[184px] max-w-[calc(100vw-1rem)] rounded-surface border border-border bg-[var(--ra-main-surface-color)] p-1",
             side === "top" ? "bottom-full mb-1.5" : "top-full mt-1.5",
             align === "left" ? "left-0" : "right-0",
             side === "top"
@@ -203,7 +203,7 @@ export function DropdownMenu({
               }}
               onMouseEnter={() => setActiveIndex(i)}
               className={cn(
-                "flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left text-sm outline-none transition-colors",
+                "flex w-full items-center gap-2.5 rounded-control px-2.5 py-1.5 text-left text-sm outline-none transition-colors",
                 item.destructive
                   ? cn(
                       "text-red-700 dark:text-red-400",

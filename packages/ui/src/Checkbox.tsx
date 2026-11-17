@@ -24,7 +24,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Che
             .filter(Boolean)
             .join(" ") || undefined
         }
-        className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer appearance-none border border-border-strong bg-transparent checked:border-fg checked:bg-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg"
+        className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer appearance-none rounded-mark border border-border-strong bg-transparent checked:border-fg checked:bg-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-fg"
         {...props}
         aria-invalid={error ? true : props["aria-invalid"]}
       />

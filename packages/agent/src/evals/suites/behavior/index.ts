@@ -14,6 +14,7 @@ import { memoryEvalSuite } from "./memory";
 import { personalizationEvalSuite } from "./personalization";
 import { readingEvalSuite } from "./reading";
 import { settingsEvalSuite } from "./settings";
+import { shelfEvalSuite } from "./shelf";
 import { toolsEvalSuite } from "./tools";
 import { searchEvalSuite } from "./search";
 
@@ -25,6 +26,7 @@ export const behaviorSuites = {
   annotations: annotationsEvalSuite,
   interactions: interactionsEvalSuite,
   settings: settingsEvalSuite,
+  shelf: shelfEvalSuite,
   tools: toolsEvalSuite,
   search: searchEvalSuite,
   crossbook: crossbookEvalSuite,

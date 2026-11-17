@@ -140,6 +140,13 @@ deltas print next to per-scenario regressions.
   multi-turn recall via `get_recent_turns`.
 - `settings` (S16): generic discovery and mutation, book scope, ambiguous
   scope, and the credential boundary.
+- `shelf` (S19): shelf management by what the files allow. Removing entries
+  whose file can no longer be fetched while keeping books that are on the
+  device, still held by sync, or virtual; refusing to remove anything when the
+  sync backend cannot be asked; pointing out an unopenable entry that shares a
+  file with one that opens; starring several books in one call; and finding
+  books by condition. File states come from the scenario's `setup`, standing in
+  for the sync backend behind `check_book_files`.
 - `tools` (S17): shelf presentation, humane reading stats, trajectory economy
   (batched search variants, targeted chapter reads), no-false-success on
   missing books, presentation restraint, and plugin tool scope exposure.

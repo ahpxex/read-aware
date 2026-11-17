@@ -58,6 +58,7 @@ provider 错误，再启动下一个。
 | crossbook | 全局线程跨书 |
 | search | search/fetch、provider 差异、图片依据、并发与失败恢复；核对来源、图片匹配和延迟，不以调用次数代替效果 |
 | memory / annotations / grounding / reading / interactions / settings / tools | 合成小书的基础行为面 |
+| shelf | 书架管理：按文件是否还能打开清理、批量加星、按条件查书架 |
 
 ## 独立 runner
 

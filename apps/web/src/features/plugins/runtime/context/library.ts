@@ -217,7 +217,15 @@ export function installLibraryDomain(
             operationActor,
           ),
       },
-      collections: library.commands.collections,
+      // The plugin contract's four collection commands, named one by one:
+      // passing the host's object through would hand plugins every command
+      // the host adds for itself (opening a collection is the shelf's own).
+      collections: {
+        create: library.commands.collections.create,
+        rename: library.commands.collections.rename,
+        remove: library.commands.collections.remove,
+        assignBooks: library.commands.collections.assignBooks,
+      },
     };
     ctx.domains.library.commands = guardMutationTree(
       commands,

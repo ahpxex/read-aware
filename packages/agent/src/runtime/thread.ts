@@ -120,12 +120,34 @@ const DEFAULT_WINDOW_TURNS = 12;
 /**
  * "Never use emoji" 是产品级绝对禁令（设计系统: editorial restraint）——
  * 在流层确定性执行,不赌模型自觉(低 thinking 档位实测会违禁)。
- * 只剥 emoji 图形符号、区域指示符(旗帜)与 VS16;刻意不动 ZWJ —— 阿拉伯
- * 语/印地语等书目正文合法依赖它,剥了会损坏引文。
+ * 只剥默认以 emoji 呈现的字符、区域指示符(旗帜)、VS16 与键帽组合符：© ® ™
+ * ↔ ▶ ✔ 这类默认按文字显示的符号是书目正文与引文里的正常字符，必须保留
+ * (带 VS16 时只去掉 VS16，退回文字形态)。刻意不动 ZWJ —— 阿拉伯语/印地语
+ * 等书目正文合法依赖它,剥了会损坏引文。
  */
-const EMOJI_PATTERN = /[\p{Extended_Pictographic}\p{Regional_Indicator}\uFE0F]/gu;
+const EMOJI_PATTERN = /[\p{Emoji_Presentation}\p{Regional_Indicator}\uFE0F\u20E3]/gu;
 function stripEmoji(text: string): string {
   return text.replace(EMOJI_PATTERN, "");
+}
+
+/**
+ * The emoji ban over a stream. A delta can end between the two halves of a
+ * surrogate pair, and neither half matches on its own, so a trailing high
+ * surrogate waits for the next delta.
+ */
+class EmojiFilter {
+  private pending = "";
+  push(delta: string): string {
+    const text = this.pending + delta;
+    const split = /[\uD800-\uDBFF]$/.test(text);
+    this.pending = split ? text.slice(-1) : "";
+    return stripEmoji(split ? text.slice(0, -1) : text);
+  }
+  flush(): string {
+    const rest = this.pending;
+    this.pending = "";
+    return stripEmoji(rest);
+  }
 }
 
 export class AgentThread {
@@ -653,6 +675,7 @@ export class AgentThread {
       let roundStartedAt = 0;
       let firstDeltaAt = 0;
       let checkpoint: RetryCheckpoint | undefined;
+      const emojiFilter = new EmojiFilter();
       for await (const event of queue) {
         switch (event.type) {
           case "model-checkpoint":
@@ -693,7 +716,8 @@ export class AgentThread {
           case "message_update":
             if (!firstDeltaAt) firstDeltaAt = performance.now();
             if (event.assistantMessageEvent.type === "text_delta") {
-              yield { type: "text", text: stripEmoji(event.assistantMessageEvent.delta) };
+              const text = emojiFilter.push(event.assistantMessageEvent.delta);
+              if (text) yield { type: "text", text };
             } else if (event.assistantMessageEvent.type === "thinking_delta") {
               yield { type: "thinking", text: event.assistantMessageEvent.delta };
             }
@@ -784,6 +808,8 @@ export class AgentThread {
             break;
         }
       }
+      const heldText = emojiFilter.flush();
+      if (heldText) yield { type: "text", text: heldText };
       await run;
       call.assertAllowed();
       // 结构化状态码在 pi-ai 层已折叠成文本 —— 在这里（结构最后可见处）分类出
@@ -806,7 +832,8 @@ export class AgentThread {
       // opaque tool trace is not a visible answer; only text and purpose-built
       // reference/interaction chunks can complete an otherwise empty turn.
       const runMessages = agent.state.messages.slice(runMessageStart);
-      const answer = lastAssistantText(runMessages);
+      // The same text the reader was shown: background memory reads it too.
+      const answer = stripEmoji(lastAssistantText(runMessages));
       if (!answer.trim() && !sawReference && !sawInteraction) {
         throw new AppError(ERR_AI_PROVIDER, "[ai/provider] Model returned an empty response", { retryable: true });
       }

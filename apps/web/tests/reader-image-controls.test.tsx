@@ -10,9 +10,15 @@ import { initI18n } from "../src/i18n";
 import { useImageViewer } from "../src/features/reader/hooks/useImageViewer";
 import { readerImageOpen } from "../src/services/reader-image-open";
 import type { BookImageData } from "../src/features/library/lib/book-images";
-import { actorCause, causalActor, eventCause, reactionActor, stampEventCause } from "../src/platform/domain-actor";
+import {
+  actorCause,
+  actorFromEvent,
+  actorOrigin,
+  causalActor,
+  eventCause,
+  stampEventCause,
+} from "../src/platform/domain-actor";
 import { buildPluginContext } from "../src/features/plugins/runtime/plugin-context";
-import { hostWindow } from "../src/services/window";
 
 if (process.env.READER_IMAGE_CONTROLS_CASE === "1") {
   test("native lightbox and public controls share zoom, pan, rotation, reset and committed close under StrictMode", async () => {
@@ -41,7 +47,6 @@ if (process.env.READER_IMAGE_CONTROLS_CASE === "1") {
     for (const [key, value] of Object.entries(values))
       Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
     const root = createRoot(dom.window.document.getElementById("root")!);
-    const readLayout = hostWindow.layout;
     const sessionId = readingRuntime.begin("image-book");
     const location = { bookId: "image-book", contentVersion: "v1", cfi: "start" };
     const detach = readingRuntime.attach(
@@ -49,10 +54,7 @@ if (process.env.READER_IMAGE_CONTROLS_CASE === "1") {
       { navigate: async () => location, step: async () => location },
       location,
     );
-    let rerender = () => {};
     function Surface() {
-      const [, redraw] = useState(0);
-      rerender = () => redraw((value) => value + 1);
       const [open, setOpen] = useState(true);
       return open ? (
         <ReaderImageLightbox
@@ -90,77 +92,22 @@ if (process.env.READER_IMAGE_CONTROLS_CASE === "1") {
       await control({ action: "pan", dx: 0.25, dy: -0.5 });
       expect(readerImage.snapshot()).toMatchObject({ panX: 0.25, panY: -0.5 });
       expect(img.style.transform).toContain("translate(150px, -200px)");
-      const resizeActor = reactionActor(
-        "plugin:window",
-        "resize-image",
-        eventCause(stampEventCause({}, causalActor("user")))!,
-      );
       const resize = () => {
         for (const observer of observers) if (observer.active && observer.element === stage) observer.callback();
       };
-      hostWindow.layout = async () => stampEventCause({ width: 900, height: 700 }, resizeActor);
+      // A stage resize republishes the transform in the observer callback, as
+      // the system's change; whoever resized the window has that command's receipt.
       await act(async () => {
         width = 300;
-        Object.defineProperties(dom.window, {
-          innerWidth: { value: 900, configurable: true },
-          innerHeight: { value: 700, configurable: true },
-        });
         resize();
-        await Promise.resolve();
       });
       expect(readerImage.snapshot()?.panX).toBe(0.5);
-      expect(eventCause(readerImage.snapshot()!)).toBe(actorCause(resizeActor));
-      expect(() => reactionActor("plugin:window", "resize-image", eventCause(readerImage.snapshot()!)!)).toThrow(
-        expect.objectContaining({ code: "plugin/event-cycle" }),
-      );
+      expect(actorOrigin(actorFromEvent(readerImage.snapshot()!))).toBe("system");
       const revision = readerImage.snapshot()!.revision;
       await act(async () => {
         resize();
-        await Promise.resolve();
       });
       expect(readerImage.snapshot()!.revision).toBe(revision);
-      const parentRender = Promise.withResolvers<{ width: number; height: number }>();
-      hostWindow.layout = () => parentRender.promise;
-      await act(async () => {
-        width = 350;
-        Object.defineProperty(dom.window, "innerWidth", { value: 950, configurable: true });
-        resize();
-        rerender();
-      });
-      expect(readerImage.snapshot()!.revision).toBe(revision);
-      await act(async () => {
-        parentRender.resolve(stampEventCause({ width: 950, height: 700 }, resizeActor));
-        await Promise.resolve();
-      });
-      expect(readerImage.snapshot()!.panX).toBe(150 / 350);
-      expect(eventCause(readerImage.snapshot()!)).toBe(actorCause(resizeActor));
-      const late = Promise.withResolvers<{ width: number; height: number }>();
-      hostWindow.layout = () => late.promise;
-      await act(async () => {
-        width = 400;
-        Object.defineProperty(dom.window, "innerWidth", { value: 1000, configurable: true });
-        resize();
-      });
-      const delivered: ReturnType<typeof eventCause>[] = [];
-      const stop = readerImage.observe((_value, source) => {
-        delivered.push(eventCause(source));
-      });
-      try {
-        let userZoom!: Promise<ReaderImageReceipt>;
-        await act(async () => {
-          userZoom = readerImage.control({ id, action: "zoom-in" });
-          // Resolve the older geometry while the new intent is admitted but its
-          // React render has not committed. It must not publish even transiently.
-          late.resolve(stampEventCause({ width: 1000, height: 700 }, resizeActor));
-          await Promise.resolve();
-          await Promise.resolve();
-        });
-        await userZoom;
-        expect(delivered.some((cause) => cause?.steps.includes("resize-image"))).toBe(false);
-        expect(eventCause(readerImage.snapshot()!)).not.toBe(actorCause(resizeActor));
-      } finally {
-        stop();
-      }
       await control({ action: "rotate" });
       expect(readerImage.snapshot()).toMatchObject({ scale: 1, rotation: 90, panX: 0, panY: 0 });
       await act(async () => (dom.window.document.querySelector('[aria-label="Zoom in"]') as HTMLButtonElement).click());
@@ -171,7 +118,6 @@ if (process.env.READER_IMAGE_CONTROLS_CASE === "1") {
       expect(readerImage.snapshot()).toBeNull();
       expect(dom.window.document.querySelector('[role="dialog"]')).toBeNull();
     } finally {
-      hostWindow.layout = readLayout;
       await act(async () => root.unmount());
       detach();
       dom.window.close();

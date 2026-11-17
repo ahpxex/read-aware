@@ -21,6 +21,4 @@ export type NativeInputBridge = {
   context(event: Event): object;
   selectionChanged(doc: Document, context: object): void;
   focusDocument(doc: Document, context: object): void;
-  resize?(before: RendererResizeSample, next: RendererResizeSample): Promise<object>;
 };
-export type RendererResizeSample = { width: number; height: number; viewport: { width: number; height: number } };

@@ -1,8 +1,6 @@
 import type { NativeInputBridge } from "../../../../foliate-js/src/renderer";
 import { causalActor, type DomainActor } from "../../../platform/domain-actor";
 import { readingRenderActor, readingRenderContext } from "./reading-render-context";
-import { resizeSource } from "./resize-source";
-import { createLogger } from "../../../platform/logger";
 
 type SelectionPosition = {
   anchor: Node | null;
@@ -203,14 +201,6 @@ function focusWithContext(element: Element, context: object, focus: () => void):
 export const readingNativeInput: NativeInputBridge = {
   context: readingInputContext,
   selectionChanged: rememberReadingSelection,
-  resize: async (before, next) => {
-    try {
-      return readingRenderContext(await resizeSource(before, next, undefined));
-    } catch (error) {
-      createLogger("reader-resize").warn("Native resize source unavailable", error);
-      return readingRenderContext(causalActor("system"));
-    }
-  },
   focusDocument: (doc, context) =>
     focusWithContext(doc.activeElement ?? doc.body, context, () => doc.defaultView?.focus()),
 };

@@ -2150,7 +2150,6 @@ export function FoliateReaderView({
 
   useReaderViewportResize({
     viewportRef,
-    viewRef,
     selectionRef,
     clearSelection,
     applyMaxInlineSize: applyReaderMaxInlineSize,

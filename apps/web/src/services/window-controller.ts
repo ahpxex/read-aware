@@ -17,7 +17,6 @@ import {
   stampEventCause,
   type DomainActor,
 } from "../platform/domain-actor";
-import { settled } from "../platform/write-settlement";
 
 export type WindowViewport = { width: number; height: number };
 
@@ -53,7 +52,6 @@ export class HostWindowService implements HostWindowPort {
   private commandRevision = 0;
   private inputRevision: number | null = null;
   private layoutCommand?: { revision: number; origin: DomainActor };
-  private layoutReading?: { revision: number; work: Promise<WindowViewport | null> };
   private reading?: Promise<HostWindowSnapshot>;
   private listeners = new Set<(source?: object) => void>();
   private stopWatch?: () => void;
@@ -170,47 +168,6 @@ export class HostWindowService implements HostWindowPort {
       this.observed = stampEventCause({ ...state, revision: this.revision }, source);
     }
     return copyEventCause(this.observed!, { ...this.observed! });
-  }
-
-  /** Exact observed client geometry, for delayed DOM resize feedback only.
-   * Callers must compare it with their still-current viewport after awaiting. */
-  async layout(signal?: AbortSignal): Promise<WindowViewport | null> {
-    signal?.throwIfAborted();
-    if (!this.layoutReading || this.layoutReading.revision !== this.commandRevision) {
-      const read = {
-        revision: this.commandRevision,
-        work: this.enqueue(async () => {
-          await this.read();
-          return this.viewport ? copyEventCause(this.viewport, { ...this.viewport }) : null;
-        }),
-      };
-      this.layoutReading = read;
-      void settled(read.work).then(() => {
-        if (this.layoutReading === read) this.layoutReading = undefined;
-      });
-    }
-    const value = await this.layoutReading.work;
-    signal?.throwIfAborted();
-    return value ? copyEventCause(value, { ...value }) : null;
-  }
-
-  /** A fresh native input generation can retain an already dispatched source
-   * even when geometry reads fail or lag a DOM animation frame. */
-  async layoutOrigin(): Promise<DomainActor | undefined> {
-    const command = this.layoutCommand;
-    if (!command || !this.adapter.inputRevision) return undefined;
-    try {
-      const revision = await this.adapter.inputRevision();
-      if (this.layoutCommand !== command) return undefined;
-      if (revision !== command.revision) {
-        this.layoutCommand = undefined;
-        return undefined;
-      }
-      return command.origin;
-    } catch (error) {
-      this.report(error);
-      return undefined;
-    }
   }
 
   async snapshot(signal?: AbortSignal): Promise<HostWindowSnapshot> {

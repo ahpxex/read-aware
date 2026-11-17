@@ -131,9 +131,7 @@ export class FixedLayout extends HTMLElement {
   static observedAttributes = ["flow", "max-column-count"];
   #root = this.attachShadow({ mode: "closed" });
   #observer = new RendererResizeObserver(
-    () => this.inputBridge,
     () => this.#positionContext,
-    () => this.#navigation,
     (context) => this.#onResize(context),
   );
   #spreads: FixedSpread[] = [];

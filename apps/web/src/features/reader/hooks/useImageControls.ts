@@ -4,10 +4,6 @@ import { readerImage, type ReaderImageService } from "../../../services/reader-i
 import type { useZoomPan } from "./useZoomPan";
 import { causalActor, type DomainActor } from "../../../platform/domain-actor";
 import type { ImageViewLifetime } from "./useImageViewer";
-import { resizeSource, sameResizeSample, sampleResize } from "../lib/resize-source";
-import { createLogger } from "../../../platform/logger";
-
-const log = createLogger("reader-image-layout");
 
 export function useImageControls(
   zoom: ReturnType<typeof useZoomPan>,
@@ -58,44 +54,21 @@ export function useImageControls(
     }
     binding.current = bound;
     const stage = current.current.zoom.stageRef.current;
-    let sample = stage ? sampleResize(stage) : undefined;
-    let generation = 0;
+    let width = stage?.clientWidth,
+      height = stage?.clientHeight;
+    // A stage resize republishes the transform at once, as the system's change.
     const resize =
       typeof ResizeObserver === "undefined"
         ? null
         : new ResizeObserver(() => {
-            if (!stage || !sample || binding.current !== bound) return;
-            const next = sampleResize(stage),
-              before = sample;
-            if (sameResizeSample(before, next)) return;
-            sample = next;
-            const request = ++generation,
-              view = current.current.zoom;
-            const intent = view.intentRevision.current;
-            void resizeSource(before, next, undefined)
-              .catch((error) => {
-                // Geometry remains observable when the OS state query fails. This is
-                // an uncorrelated layout change, not a claimed native-command effect.
-                log.warn("Image layout source unavailable", error);
-                return causalActor("system");
-              })
-              .then((origin) => {
-                if (
-                  generation !== request ||
-                  source.closedBy ||
-                  view.intentRevision.current !== intent ||
-                  binding.current !== bound ||
-                  current.current.zoom.snapshot !== view.snapshot ||
-                  current.current.zoom.origin !== view.origin ||
-                  !sameResizeSample(next, sampleResize(stage))
-                )
-                  return;
-                bound.publish(view.snapshot(), 0, origin);
-              });
+            if (!stage || binding.current !== bound || source.closedBy) return;
+            if (stage.clientWidth === width && stage.clientHeight === height) return;
+            width = stage.clientWidth;
+            height = stage.clientHeight;
+            bound.publish(current.current.zoom.snapshot(), 0, causalActor("system"));
           });
     if (stage) resize?.observe(stage);
     return () => {
-      generation++;
       resize?.disconnect();
       bound.dispose(source.closedBy ?? source.opening);
       if (binding.current === bound) binding.current = null;

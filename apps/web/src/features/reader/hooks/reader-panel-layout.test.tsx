@@ -22,7 +22,6 @@ import { getReaderPanelLayout, updateReaderPanelLayout } from "../lib/reader-pan
 import { useReaderControls } from "./useReaderControls";
 import { useReaderPanels } from "./useReaderPanels";
 import { useReaderResponsiveLayout } from "./useReaderResponsiveLayout";
-import { hostWindow } from "../../../services/window";
 import { readerPanelAcknowledgementsAtom, readerPanelIntentAtom } from "../state/panel-intent";
 import { askAiRequestAtom } from "../../ai/state/chat-intent";
 
@@ -187,64 +186,36 @@ if (process.env.PANEL_LAYOUT_CASE === "1") {
     expect(state.chat).toBe(false);
     expect(state.chatFocusRequestId).toBe(0);
   });
-  test("responsive panel publication retains matching window cause and retires a reversed breakpoint", async () => {
-    const original = hostWindow.layout;
+  test("crossing the phone breakpoint switches the panel layout at once, as the system's change", async () => {
     const media = new dom.window.EventTarget();
-    Object.defineProperty(media, "matches", { get: () => dom.window.innerWidth < 768 });
-    Object.assign(dom.window, { matchMedia: () => media, innerWidth: 1000, innerHeight: 800 });
-    const origin = reactionActor("plugin:responsive", "resize", actorCause(causalActor("user"))!);
-    type Viewport = Awaited<ReturnType<typeof hostWindow.layout>>;
-    const reads: Array<{ resolve(value: Viewport): void }> = [];
-    hostWindow.layout = () => {
-      const result = Promise.withResolvers<Viewport>();
-      reads.push(result);
-      return result.promise;
-    };
+    let narrow = false;
+    Object.defineProperty(media, "matches", { get: () => narrow });
+    Object.assign(dom.window, { matchMedia: () => media });
     function Responsive() {
       const layout = useReaderResponsiveLayout();
       return <Harness bookId="book" exclusive={layout.exclusive} layoutOrigin={layout.origin} />;
     }
-    const resize = (width: number) => {
-      Object.assign(dom.window, { innerWidth: width });
-      dom.window.dispatchEvent(new dom.window.Event("resize"));
-    };
-    try {
-      await act(async () => {
-        root.render(
-          <ToastProvider>
-            <Responsive />
-          </ToastProvider>,
-        );
-        await tick();
-      });
-      await act(async () => {
-        resize(600);
-        await tick();
-      });
-      await act(async () => {
-        reads.shift()!.resolve(stampEventCause({ width: 600, height: 800 }, origin));
-        await tick();
-      });
-      expect(readerPanels.snapshot()?.layout).toBe("exclusive");
-      const cause = eventCause(readerPanels.snapshot()!)!;
-      expect(cause.root).toBe(actorCause(origin)!.root);
-      expect(() => reactionActor("plugin:responsive", "resize", cause)).toThrow(
-        expect.objectContaining({ code: "plugin/event-cycle" }),
+    await act(async () => {
+      root.render(
+        <ToastProvider>
+          <Responsive />
+        </ToastProvider>,
       );
-      await act(async () => {
-        resize(1000);
-        resize(600);
-        await tick();
-      });
-      await act(async () => {
-        reads.shift()!.resolve(stampEventCause({ width: 1000, height: 800 }, causalActor("user")));
-        await tick();
-      });
-      expect(readerPanels.snapshot()?.layout).toBe("exclusive");
-      expect(eventCause(readerPanels.snapshot()!)!.root).toBe(cause.root);
-    } finally {
-      hostWindow.layout = original;
-    }
+      await tick();
+    });
+    await act(async () => {
+      narrow = true;
+      media.dispatchEvent(new dom.window.Event("change"));
+      await tick();
+    });
+    expect(readerPanels.snapshot()?.layout).toBe("exclusive");
+    expect(eventCause(readerPanels.snapshot()!)?.root).toBeDefined();
+    await act(async () => {
+      narrow = false;
+      media.dispatchEvent(new dom.window.Event("change"));
+      await tick();
+    });
+    expect(readerPanels.snapshot()?.layout).not.toBe("exclusive");
   });
   test("failed width writes roll back the atom and subsequent patches preserve settled sibling widths", async () => {
     const first = begin(() => readerPanels.setWidth("toc", 400)).catch((error) => error);

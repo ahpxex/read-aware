@@ -73,103 +73,16 @@ test("public event-bound window requests retain source in receipts and exact sam
       const actor = runtime.reactions.actor(reaction);
       const receipt = await runtime.context.withEvent({ reaction }).services.ui.window!.control({ action: "maximize" });
       expect(eventCause(receipt.snapshot)).toBe(actorCause(actor));
-      expect(eventCause((await f.service.layout())!)).toBe(actorCause(actor));
       expect(receipt.snapshot).not.toHaveProperty("viewport");
       await runtime.reactions.deliver(rule, receipt.snapshot, (next) => {
         expect(next.status).toBe("cycle");
       });
-      await f.service.control({ action: "maximize" }, undefined, causalActor("user"));
-      expect(eventCause((await f.service.layout())!)).toBe(actorCause(actor)); // no-op cannot relabel geometry
-    });
-    f.viewport.width = 1100;
-    f.state.maximized = false;
-    const user = await f.service.layout();
-    expect(user).toEqual({ width: 1100, height: 900 });
-    await runtime.reactions.deliver(rule, user!, (next) => {
-      expect(next.status).toBe("ready");
     });
   } finally {
     hostWindow.control = original;
     runtime.lifecycle.stop();
     await runtime.lifecycle.drainCleanups();
   }
-});
-
-test("layout reads wait behind native dispatch and cancelled or partially failed effects retain their source", async () => {
-  const f = fixture(),
-    held = Promise.withResolvers<void>(),
-    source = causalActor("plugin:window"),
-    abort = new AbortController();
-  const apply = f.adapter.apply;
-  f.adapter.apply = async (request) => {
-    await held.promise;
-    await apply(request);
-    abort.abort(new AppError("plugin/cancelled", "Retired"));
-  };
-  const request = f.service.control({ action: "maximize" }, abort.signal, source).catch((error) => error);
-  let complete = false;
-  const layout = f.service.layout().then((value) => {
-    complete = true;
-    return value;
-  });
-  await tick();
-  expect(complete).toBe(false);
-  held.resolve();
-  expect(await request).toMatchObject({ code: "plugin/cancelled" });
-  const observed = await layout;
-  expect(observed).toEqual({ width: 1200, height: 900 });
-  expect(eventCause(observed!)).toBe(actorCause(source));
-  const partial = causalActor("plugin:restore");
-  f.adapter.apply = async () => {
-    f.state.maximized = false;
-    f.viewport.width = 900;
-    throw new AppError("ipc/unknown", "Second native step failed");
-  };
-  await expect(f.service.control({ action: "restore" }, undefined, partial)).rejects.toMatchObject({
-    code: "ipc/unknown",
-  });
-  expect(eventCause((await f.service.layout())!)).toBe(actorCause(partial));
-});
-
-test("a layout read admitted after a new command never shares the earlier in-flight sample", async () => {
-  const f = fixture(),
-    firstRead = Promise.withResolvers<HostWindowState & { viewport: { width: number; height: number } }>();
-  const read = f.adapter.read;
-  let count = 0;
-  f.adapter.read = () => (++count === 1 ? firstRead.promise : read());
-  const before = f.service.layout();
-  await tick();
-  const source = causalActor("plugin:window");
-  const request = f.service.control({ action: "maximize" }, undefined, source);
-  const after = f.service.layout();
-  firstRead.resolve({ ...f.state, viewport: { width: 800, height: 600 } });
-  expect(await before).toEqual({ width: 800, height: 600 });
-  await request;
-  const current = await after;
-  expect(current).toEqual({ width: 1200, height: 900 });
-  expect(eventCause(current!)).toBe(actorCause(source));
-});
-
-test("native input generations retain delayed geometry and failure provenance until independent input", async () => {
-  const f = fixture(),
-    source = causalActor("plugin:window");
-  let inputRevision = 1;
-  const read = f.adapter.read;
-  f.adapter.read = async () => ({ ...(await read()), inputRevision });
-  f.adapter.inputRevision = async () => inputRevision;
-  await f.service.control({ action: "maximize" }, undefined, source);
-  f.viewport.width = 1190;
-  expect(eventCause((await f.service.layout())!)).toBe(actorCause(source));
-  f.adapter.read = async () => {
-    throw new AppError("ipc/unknown", "Geometry not available");
-  };
-  await expect(f.service.layout()).rejects.toMatchObject({ code: "ipc/unknown" });
-  expect(await f.service.layoutOrigin()).toBe(source);
-  inputRevision++;
-  expect(await f.service.layoutOrigin()).toBeUndefined();
-  f.adapter.read = async () => ({ ...(await read()), inputRevision });
-  // The user can return to the same dimensions between two samples.
-  expect(eventCause((await f.service.layout())!)).not.toBe(actorCause(source));
 });
 
 test("window intents are bounded, typed, ordered and return observed state rather than a paint claim", async () => {

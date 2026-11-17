@@ -84,9 +84,7 @@ export class Paginator extends HTMLElement {
   static observedAttributes = ["flow", "gap", "margin", "max-inline-size", "max-block-size", "max-column-count"];
   #root = this.attachShadow({ mode: "closed" });
   #observer = new RendererResizeObserver(
-    () => this.inputBridge,
     () => this.#anchorContext,
-    () => this.#navigation,
     (context) => this.#containerResized(context),
   );
   #top: HTMLElement;

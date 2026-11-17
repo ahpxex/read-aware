@@ -15,7 +15,7 @@
  * carried the unit.
  */
 
-import { afterLocalKVWrites, localKV, onLocalKVCommit, setLocalKVBatch } from "../../../platform/local-store";
+import { afterLocalKVWrites, localKV, setLocalKVBatch } from "../../../platform/local-store";
 import { createLogger } from "../../../platform/logger";
 import { readPluginSettingsValues, pluginSettingsKey } from "../../plugins/lib/plugin-settings";
 import type { PluginFormValues } from "@read-aware/plugin-types";
@@ -141,105 +141,6 @@ export function writeTextUnitModeState(
     return observedWrite(localKV.setItemAsync(textUnitModeStateKey(bookId), JSON.stringify(state), origin));
   } catch (error) {
     return observedWrite(Promise.reject(error));
-  }
-}
-
-/** One configuration intent cannot leave the book and provider preference disagreeing. */
-function configurationEntries(
-  bookId: string,
-  state: PersistedTextUnitModeState,
-  persistUnit: boolean,
-  entries = new Map<string, string | null>(),
-): Map<string, string | null> {
-  entries.set(textUnitModeStateKey(bookId), JSON.stringify(state));
-  if (persistUnit && state.modeKey && state.unitId) {
-    const pluginId = pluginIdOfModeKey(state.modeKey);
-    const current = modeSettingsWithLegacy(state.modeKey);
-    const values = entries.has(pluginSettingsKey(pluginId))
-      ? (JSON.parse(entries.get(pluginSettingsKey(pluginId)) ?? "{}") as PluginFormValues)
-      : current.values;
-    const consumeLegacy = current.consumeLegacy;
-    if (consumeLegacy || values.unitId !== state.unitId) {
-      entries.set(pluginSettingsKey(pluginId), JSON.stringify({ ...values, unitId: state.unitId }));
-    }
-    if (consumeLegacy) entries.set(LEGACY_BEHAVIOR_PREFS_KEY, null);
-  }
-  return entries;
-}
-
-/** Configuration compensation is scoped to an unfinished request and its own preference write. */
-export class ReadingModeConfigurationWrites {
-  private previous:
-    | { revision: number; key: string; before: string | null; written: string; valid: boolean; dispose(): void }
-    | undefined;
-
-  constructor(private readonly confirmed: (revision: number) => boolean) {}
-
-  async write(
-    revision: number,
-    bookId: string,
-    state: PersistedTextUnitModeState,
-    persistUnit: boolean,
-    origin: DomainActor = "system",
-  ): Promise<void> {
-    origin = causalActor(origin);
-    const old = this.previous;
-    const entries = new Map<string, string | null>();
-    if (old && !this.confirmed(old.revision) && old.valid && localKV.getItem(old.key) === old.written)
-      entries.set(old.key, old.before);
-    configurationEntries(bookId, state, persistUnit, entries);
-    const key = state.modeKey ? pluginSettingsKey(pluginIdOfModeKey(state.modeKey)) : null;
-    const written = key ? entries.get(key) : undefined;
-    let next: typeof this.previous;
-    if (key && written && persistUnit) {
-      // If a successor targets the same plugin, its rollback target predates the abandoned write.
-      const before =
-        old?.key === key &&
-        entries.has(old.key) &&
-        old.valid &&
-        !this.confirmed(old.revision) &&
-        localKV.getItem(old.key) === old.written
-          ? old.before
-          : localKV.getItem(key);
-      const restored = JSON.parse(written) as PluginFormValues;
-      const prior = before ? (JSON.parse(before) as PluginFormValues) : {};
-      if ("unitId" in prior) restored.unitId = prior.unitId;
-      else delete restored.unitId;
-      next = {
-        revision,
-        key,
-        before: Object.keys(restored).length ? JSON.stringify(restored) : null,
-        written,
-        valid: true,
-        dispose: () => {},
-      };
-      let ownCommit = true;
-      const owned = next;
-      owned.dispose = onLocalKVCommit((commit) => {
-        const entry = commit.entries.find((entry) => entry.key === key);
-        if (!entry) return;
-        if (ownCommit && entry.value === written) {
-          ownCommit = false;
-          return;
-        }
-        owned.valid = false;
-        owned.dispose();
-      });
-    }
-    this.previous = next; // Publish before dispatch: a queued successor can run at the native receipt microtask.
-    try {
-      await observedWrite(setLocalKVBatch(entries, origin));
-      old?.dispose();
-    } catch (error) {
-      next?.dispose();
-      if (this.previous === next) this.previous = old;
-      throw error;
-    }
-  }
-
-  release(): void {
-    this.previous?.dispose();
-    this.previous = undefined;
   }
 }
 

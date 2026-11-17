@@ -76,6 +76,8 @@ export class ReadingModeController {
     modeKey: string | null = null,
     private readonly preferredUnit: (key: string) => string | null = () => null,
     origin: DomainActor = "system",
+    /** A configuration the reader confirmed; the owner records lasting preferences here. */
+    private readonly confirmed: (request: ModeRequest) => void = () => {},
   ) {
     this.resultOrigin = causalActor(origin);
     this.request = { revision: 0, active, unitId, modeKey, origin: this.resultOrigin };
@@ -488,6 +490,7 @@ export class ReadingModeController {
         return;
       this.confirmedRevision = revision;
       this.rollback = undefined;
+      if (!failure && this.result.status !== "error") this.confirmed(this.request);
       const pending = this.pending;
       this.pending = undefined;
       pending?.cleanup();

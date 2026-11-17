@@ -11,6 +11,7 @@ import {
   updateTextUnitModeSettings,
 } from "../lib/text-unit-mode-state";
 import { readingRuntime } from "../../../domain/reading-runtime";
+import { flushLocalKV } from "../../../platform/local-store";
 import { sentenceReaderCopy, sentenceReaderUnits } from "../../../../../../plugins/sentence-reader/src/copy";
 import {
   actorCause,
@@ -169,6 +170,15 @@ test("provider replacement and external preferences converge without replaying a
     expect(() =>
       reactionActor("plugin:mode-owner", "replace-provider", eventCause(readingRuntime.snapshot())!),
     ).not.toThrow();
+    // The unit preference is recorded once the reader confirms the change.
+    await act(async () => {
+      state.controller.feedback(state.request.revision, state.request.modeKey, state.request.unitId, {
+        status: "inactive",
+        progress: null,
+        cfiRange: null,
+      });
+      await flushLocalKV();
+    });
     expect(readTextUnitModeSettings("mode-owner-b:reader").unitId).toBe("paragraph");
     const preferenceActor = reactionActor("plugin:preference-client", "update-unit", eventCause(stampEventCause({}))!);
     await act(async () => {
@@ -177,6 +187,15 @@ test("provider replacement and external preferences converge without replaying a
     expect(state.request.unitId).toBe("sentence");
     expect(actorCause(state.request.origin)).toBe(actorCause(preferenceActor));
     expect(eventCause(readingRuntime.snapshot())).toBe(actorCause(preferenceActor));
+    // The reader renders the preferred unit, confirming it.
+    await act(async () => {
+      state.controller.feedback(state.request.revision, state.request.modeKey, state.request.unitId, {
+        status: "inactive",
+        progress: null,
+        cfiRange: null,
+      });
+      await flushLocalKV();
+    });
     const layoutActor = reactionActor("plugin:layout-client", "switch-layout", eventCause(stampEventCause({}))!);
     await act(async () => {
       detachEngine(layoutActor);

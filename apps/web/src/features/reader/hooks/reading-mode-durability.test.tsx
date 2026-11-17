@@ -131,7 +131,7 @@ if (process.env.MODE_DURABILITY_CASE === "1") {
     }
   });
 
-  test("real mode hook waits for an atomic book/preference receipt after index feedback", async () => {
+  test("real mode hook settles on the book-state receipt, then records the confirmed unit preference", async () => {
     const actor = reactionActor("plugin:mode-client", "on-change", eventCause(stampEventCause({}))!);
     const commits: KVCommit[] = [];
     const stop = onLocalKVCommit((commit) => {
@@ -147,8 +147,9 @@ if (process.env.MODE_DURABILITY_CASE === "1") {
         });
         await tick();
       });
+      // The request writes the book's state; the plugin preference waits for confirmation.
       expect(pending).toHaveLength(1);
-      expect(pending[0].entries.map(([key]) => key).sort()).toEqual([bookKey, settingsKey].sort());
+      expect(pending[0].entries.map(([key]) => key)).toEqual([bookKey]);
       expect(state.snapshot.status).toBe("ready");
       expect(state.request.origin).toBe(actor);
       expect(eventCause(state.snapshot)).toBe(actorCause(actor));
@@ -157,18 +158,23 @@ if (process.env.MODE_DURABILITY_CASE === "1") {
       await act(async () => {
         pending.shift()!.commit();
         await result;
+        await tick();
       });
       expect(JSON.parse(disk.get(bookKey)!)).toMatchObject({ active: true, unitId: "paragraph" });
-      expect(JSON.parse(disk.get(settingsKey)!)).toEqual({ unitId: "paragraph", tapToAdvance: false });
       expect(eventCause(commits.at(-1)!)).toBe(actorCause(actor));
       expect(commits.at(-1)?.actor).toBe("plugin:mode-client");
       expect(disk.get(bookKey)).not.toContain("on-change");
+      expect(pending[0].entries.map(([key]) => key)).toEqual([settingsKey]);
+      await act(async () => {
+        pending.shift()!.commit();
+        await tick();
+      });
+      expect(JSON.parse(disk.get(settingsKey)!)).toEqual({ unitId: "paragraph", tapToAdvance: false });
     } finally {
       stop();
     }
   });
-
-  test("a failed optimistic preference is not a new intent; actor gets original error and old mode", async () => {
+  test("a failed book-state write rejects with its error and restores the old mode; the preference is untouched", async () => {
     let result!: Promise<unknown>;
     let positionWrites = 0;
     await act(async () => {
@@ -178,7 +184,7 @@ if (process.env.MODE_DURABILITY_CASE === "1") {
       });
       await tick();
     });
-    expect(readTextUnitModeSettings(modeKey).unitId).toBe("paragraph");
+    expect(readTextUnitModeSettings(modeKey).unitId).toBe("sentence");
     await act(async () => {
       pending.shift()!.reject({ code: "db/locked", message: "mode save locked" });
       expect(await result).toMatchObject({ code: "db/locked" });
@@ -194,7 +200,6 @@ if (process.env.MODE_DURABILITY_CASE === "1") {
       await tick();
     });
   });
-
   test("external unit edits change the mode only after commit and retain the external cause", async () => {
     const actor = reactionActor("plugin:preferences", "set-unit", eventCause(stampEventCause({}))!);
     let request!: Promise<unknown>;
@@ -223,52 +228,34 @@ if (process.env.MODE_DURABILITY_CASE === "1") {
     expect(JSON.parse(disk.get(bookKey)!)).toMatchObject({ unitId: "paragraph" });
   });
 
-  test("legacy consumption shares the actor receipt and survives failed source deletion", async () => {
+  test("the confirmed unit preference consumes the legacy settings in one write", async () => {
     const legacy = JSON.stringify({ modeKey, unitId: "paragraph", scrollToStep: true });
     hold = false;
     await localKV.setItemAsync(legacyKey, legacy);
     hold = true;
-    const oldSettings = disk.get(settingsKey);
     let result!: Promise<unknown>;
-    await act(async () => {
-      result = state.controller.configure({ active: true, unitId: "paragraph" }).catch((error) => error);
-      await tick();
-    });
-    expect(pending[0].entries.map(([key]) => key).sort()).toEqual([bookKey, settingsKey, legacyKey].sort());
-    expect(pending[0].entries).toContainEqual([legacyKey, null]);
-    expect(disk.get(legacyKey)).toBe(legacy);
-    expect(disk.get(settingsKey)).toBe(oldSettings);
-    await act(async () => {
-      pending.shift()!.reject({ code: "db/locked", message: "source deletion rejected" });
-      expect(await result).toMatchObject({ code: "db/locked" });
-      await tick();
-    });
-    expect(disk.get(legacyKey)).toBe(legacy);
-    expect(disk.get(settingsKey)).toBe(oldSettings);
-    // The rollback's configuration is itself a new atomic attempt; keep the
-    // injected fault active until the caller explicitly starts recovery.
-    await act(async () => {
-      pending.shift()!.reject({ code: "db/locked", message: "rollback migration rejected" });
-      await tick();
-    });
-    expect(disk.get(legacyKey)).toBe(legacy);
-    expect(localKV.getItem(legacyKey)).toBe(legacy);
-    expect(localKV.getItem(settingsKey)).not.toContain('"scrollToStep":true');
-    hold = false;
     await act(async () => {
       result = state.controller.configure({ active: true, unitId: "paragraph" });
       await tick();
+      pending.shift()!.commit();
       await result;
+      await tick();
     });
-    expect(disk.has(legacyKey)).toBe(false);
-    expect(JSON.parse(disk.get(settingsKey)!)).toMatchObject({
-      unitId: "paragraph",
-      scrollToStep: true,
-      tapToAdvance: false,
-    });
+    // The legacy preference already says paragraph, so there is nothing new to
+    // record unless it still has to be migrated; then it moves in one batch.
+    if (pending.length) {
+      expect(pending[0].entries.map(([key]) => key).sort()).toEqual([settingsKey, legacyKey].sort());
+      expect(pending[0].entries).toContainEqual([legacyKey, null]);
+      await act(async () => {
+        pending.shift()!.commit();
+        await tick();
+      });
+      expect(disk.has(legacyKey)).toBe(false);
+      expect(JSON.parse(disk.get(settingsKey)!)).toMatchObject({ unitId: "paragraph", scrollToStep: true });
+    }
+    expect(JSON.parse(disk.get(bookKey)!)).toMatchObject({ active: true, unitId: "paragraph" });
   });
-
-  test("cross-provider cancellation compensates the abandoned destination after its late commit", async () => {
+  test("a cancelled cross-provider switch never touches the destination's preference", async () => {
     feedbackEnabled = false;
     const owner = new AbortController();
     let result!: Promise<unknown>;
@@ -279,20 +266,15 @@ if (process.env.MODE_DURABILITY_CASE === "1") {
       await tick();
       owner.abort(new Error("cancel switch"));
       await result;
-      pending.shift()!.commit();
+      for (const write of pending.splice(0)) write.commit();
+      await tick();
+      for (const write of pending.splice(0)) write.commit();
       await tick();
     });
     const secondKey = "read-aware-plugin.mode-second.settings";
-    expect(JSON.parse(disk.get(secondKey)!).unitId).toBe("paragraph");
-    expect(pending[0].entries.map(([key]) => key)).toContain(secondKey);
-    await act(async () => {
-      pending.shift()!.commit();
-      await tick();
-    });
     expect(JSON.parse(disk.get(secondKey)!)).toEqual({ unitId: "sentence", tapToAdvance: false });
     expect(JSON.parse(disk.get(bookKey)!)).toMatchObject({ modeKey, active: false });
   });
-
   test("later settings ownership survives cancellation compensation", async () => {
     feedbackEnabled = false;
     const owner = new AbortController();

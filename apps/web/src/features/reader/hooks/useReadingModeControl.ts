@@ -10,14 +10,17 @@ import { selectContribution } from "../../plugins/state/contribution-registry";
 import { useRegisteredContribution } from "../../plugins/hooks/useRegisteredContribution";
 import { resolvePluginText } from "../../plugins/lib/plugin-i18n";
 import { ReadingModeController } from "../lib/reading-mode-controller";
+import { createLogger } from "../../../platform/logger";
 import {
   readTextUnitModeState,
   readTextUnitModeSettings,
-  ReadingModeConfigurationWrites,
+  updateTextUnitModeSettings,
+  writeTextUnitModeState,
   isTextUnitModeStateCompatible,
   textUnitModeStateKey,
 } from "../lib/text-unit-mode-state";
 
+const log = createLogger("reading-mode");
 /**
  * One mode owner for native controls and both external actors.
  *
@@ -34,23 +37,28 @@ export function useReadingModeControl(bookId: string, supported: boolean, readin
     const session = readingRuntime.snapshot();
     const origin =
       session.bookId === bookId && session.sessionId ? readingRuntime.openingActor(session.sessionId) : "system";
-    const controller = new ReadingModeController(
+    const controller: ReadingModeController = new ReadingModeController(
       saved.active,
       saved.modeKey ? (readTextUnitModeSettings(saved.modeKey).unitId ?? saved.unitId) : saved.unitId,
       35_000,
       saved.modeKey,
       (key) => readTextUnitModeSettings(key).unitId,
       origin,
+      // The plugin's unit preference changes only for a configuration the
+      // reader confirmed, so an abandoned request never needs undoing there.
+      ({ modeKey, unitId, origin }) => {
+        if (!modeKey || !unitId || !controller.snapshot().units.some((unit) => unit.id === unitId)) return;
+        if (readTextUnitModeSettings(modeKey).unitId === unitId) return;
+        updateTextUnitModeSettings(modeKey, { unitId }, origin).catch((error) =>
+          log.warn("Reading mode unit preference was not saved", error),
+        );
+      },
     );
     controller.requireDurability();
     return controller;
     // `reading`: a standing reader's controller is not carried into a session.
     // oxlint-disable-next-line react-hooks/exhaustive-deps
   }, [bookId, reading]);
-  const configurationWrites = useMemo(
-    () => new ReadingModeConfigurationWrites(controller.configurationConfirmed),
-    [controller],
-  );
   const request = useSyncExternalStore(controller.observe, controller.requested);
   const snapshot = useSyncExternalStore(controller.observe, controller.snapshot);
   const selected = useRegisteredContribution(readerModesAtom, request.modeKey ?? "");
@@ -80,8 +88,7 @@ export function useReadingModeControl(bookId: string, supported: boolean, readin
         if (controller.requested() !== requested) return;
         const { modeKey: key, unitId } = requested;
         const saved = readTextUnitModeState(bookId);
-        return configurationWrites.write(
-          requested.revision,
+        return writeTextUnitModeState(
           bookId,
           {
             ...saved,
@@ -96,12 +103,11 @@ export function useReadingModeControl(bookId: string, supported: boolean, readin
                 ? saved.resting
                 : null,
           },
-          controller.snapshot().units.some((unit) => unit.id === unitId),
           requested.origin,
         );
       }),
     );
-  }, [bookId, controller, configurationWrites]);
+  }, [bookId, controller]);
   const retire = useCallback(() => {
     // The navigator/subscription may already be unmounting. Retain cancellation.
     if (controller.retire()) persistRequest();
@@ -201,9 +207,8 @@ export function useReadingModeControl(bookId: string, supported: boolean, readin
       unobserve();
       release?.();
       retire();
-      void afterLocalKVWrites(() => configurationWrites.release());
     };
-  }, [bookId, controller, retire, configurationWrites, reading]);
+  }, [bookId, controller, retire, reading]);
 
   const setActive = useCallback((active: boolean) => controller.choose(active), [controller]);
   const setUnit = useCallback(

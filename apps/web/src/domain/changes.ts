@@ -12,77 +12,76 @@ import { isTauri } from "../platform/environment";
 import { runDomainWrite } from "../platform/domain-write-gate";
 import { withPluginDataWrites } from "../platform/plugin-data-access";
 
-const eventAreas: Partial<Record<DomainEventType, ChangeArea[]>> = {};
-const group = (types: DomainEventType[], areas: ChangeArea[]) => {
-  for (const type of types) eventAreas[type] = areas;
+const LIBRARY_READING: readonly ChangeArea[] = ["library", "reading"];
+const EVERYTHING_OF_A_BOOK: readonly ChangeArea[] = ["library", "reading", "annotations", "memory", "conversations"];
+const LIBRARY: readonly ChangeArea[] = ["library"];
+const ANNOTATIONS: readonly ChangeArea[] = ["annotations"];
+const CONVERSATIONS: readonly ChangeArea[] = ["conversations"];
+const MEMORY: readonly ChangeArea[] = ["memory"];
+const SETTINGS: readonly ChangeArea[] = ["settings"];
+/** Not a plugin-readable area, so no change notice is produced. */
+const NONE: readonly ChangeArea[] = [];
+
+/**
+ * Which change areas each domain event invalidates. Complete by type: a new
+ * event does not compile until it is placed, so no plugin cursor silently
+ * misses it.
+ */
+const eventAreas: Record<DomainEventType, readonly ChangeArea[]> = {
+  "book.imported": LIBRARY_READING,
+  "book.metadataEdited": LIBRARY_READING,
+  "book.metadataSettled": LIBRARY_READING,
+  "book.coverExtracted": LIBRARY_READING,
+  "book.starred": LIBRARY_READING,
+  "book.opened": LIBRARY_READING,
+  "book.finished": LIBRARY_READING,
+  "book.progressed": LIBRARY_READING,
+  "book.timeRecorded": LIBRARY_READING,
+  "book.sessionRecorded": LIBRARY_READING,
+  "book.merged": EVERYTHING_OF_A_BOOK,
+  "book.removed": EVERYTHING_OF_A_BOOK,
+  "collection.created": LIBRARY,
+  "collection.renamed": LIBRARY,
+  "collection.removed": LIBRARY,
+  "book.addedToCollection": LIBRARY,
+  "book.removedFromCollection": LIBRARY,
+  "userFont.imported": SETTINGS,
+  "userFont.removed": SETTINGS,
+  "highlight.created": ANNOTATIONS,
+  "highlight.recolored": ANNOTATIONS,
+  "highlight.removed": ANNOTATIONS,
+  "note.created": ANNOTATIONS,
+  "note.updated": ANNOTATIONS,
+  "note.removed": ANNOTATIONS,
+  "ask.recorded": ANNOTATIONS,
+  "ask.removed": ANNOTATIONS,
+  "aiConversation.started": CONVERSATIONS,
+  "aiConversation.cleared": CONVERSATIONS,
+  "aiConversation.titled": CONVERSATIONS,
+  "aiMessage.appended": CONVERSATIONS,
+  "aiMessage.removed": CONVERSATIONS,
+  "book.chapterDigested": MEMORY,
+  "book.narrativityClassified": MEMORY,
+  "context.bundlePublished": MEMORY,
+  "profile.onboarded": MEMORY,
+  "profile.updated": MEMORY,
+  "entity.resolved": MEMORY,
+  "entity.merged": MEMORY,
+  "memory.promoted": MEMORY,
+  "memory.revised": MEMORY,
+  "memory.superseded": MEMORY,
+  "memory.feedback": MEMORY,
+  "memory.forgotten": MEMORY,
+  // Bookmarks are a host surface, not a plugin capability domain.
+  "bookmark.created": NONE,
+  "bookmark.renamed": NONE,
+  "bookmark.removed": NONE,
+  // Settings notices come from the authorized settings keys, not from this event.
+  "preference.changed": NONE,
+  // A restore announces itself as a projection invalidation.
+  "backup.restoreChunk": NONE,
+  "backup.restored": NONE,
 };
-group(
-  [
-    "book.imported",
-    "book.metadataEdited",
-    "book.metadataSettled",
-    "book.coverExtracted",
-    "book.starred",
-    "book.opened",
-    "book.finished",
-    "book.progressed",
-    "book.timeRecorded",
-    "book.sessionRecorded",
-  ],
-  ["library", "reading"],
-);
-group(["book.merged", "book.removed"], ["library", "reading", "annotations", "memory", "conversations"]);
-group(
-  [
-    "collection.created",
-    "collection.renamed",
-    "collection.removed",
-    "book.addedToCollection",
-    "book.removedFromCollection",
-  ],
-  ["library"],
-);
-group(["userFont.imported", "userFont.removed"], ["settings"]);
-group(
-  [
-    "highlight.created",
-    "highlight.recolored",
-    "highlight.removed",
-    "note.created",
-    "note.updated",
-    "note.removed",
-    "ask.recorded",
-    "ask.removed",
-  ],
-  ["annotations"],
-);
-group(
-  [
-    "aiConversation.started",
-    "aiConversation.cleared",
-    "aiConversation.titled",
-    "aiMessage.appended",
-    "aiMessage.removed",
-  ],
-  ["conversations"],
-);
-group(
-  [
-    "book.chapterDigested",
-    "book.narrativityClassified",
-    "context.bundlePublished",
-    "profile.onboarded",
-    "profile.updated",
-    "entity.resolved",
-    "entity.merged",
-    "memory.promoted",
-    "memory.revised",
-    "memory.superseded",
-    "memory.feedback",
-    "memory.forgotten",
-  ],
-  ["memory"],
-);
 
 type RawChange = {
   kind: string;
@@ -119,7 +118,7 @@ export function createChangesPort(authority: ChangesAuthority): ChangesPort {
       const selector = {
         projectionKey: JSON.stringify(query),
         eventTypes: Object.entries(eventAreas)
-          .filter(([, areas]) => areas!.some((area) => query.areas.includes(area)))
+          .filter(([, areas]) => areas.some((area) => query.areas.includes(area)))
           .map(([type]) => type),
         settingsKeys: query.areas.includes("settings") ? [...lease.settingsKeys] : [],
         bookId: query.bookId ?? null,

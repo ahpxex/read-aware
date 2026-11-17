@@ -91,6 +91,22 @@ export async function getExtractedChapters(bookId: string, origin?: DomainActor)
 }
 
 /**
+ * The source documents a reading fence admits: every extracted chapter through
+ * `throughChapterIndex`, inclusive. No ceiling means no fence (undefined); a
+ * negative one admits nothing.
+ */
+export async function chapterHrefsThrough(
+  bookId: string,
+  throughChapterIndex: number | undefined,
+  origin?: DomainActor,
+): Promise<string[] | undefined> {
+  if (throughChapterIndex === undefined) return undefined;
+  return (await getExtractedChapters(bookId, origin))
+    .slice(0, Math.max(0, throughChapterIndex + 1))
+    .flatMap((chapter) => chapter.hrefs ?? []);
+}
+
+/**
  * Where a reader CFI (a viewport or a selection) lies in the book's extracted
  * text; null when the text is not ready or cannot place it. A host read beside
  * `getExtractedChapters`, not part of the queries plugins are granted.

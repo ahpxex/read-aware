@@ -4,7 +4,12 @@ import type { DomainActor } from "../../../../platform/domain-actor";
 import { type BookTextPort, type ChapterRef } from "@read-aware/agent";
 import { getDigestContentVersion } from "../../../../domain/book-digest";
 import { getDigestChapterSource } from "../../../library/lib/book-text-store";
-import { createLibraryDomain, getExtractedChapters, locateExtractedText } from "../../../../domain/library";
+import {
+  chapterHrefsThrough,
+  createLibraryDomain,
+  getExtractedChapters,
+  locateExtractedText,
+} from "../../../../domain/library";
 import { openBookImageResource } from "../../../../domain/library-book-images";
 import { agentResources } from "../../../../services/resources";
 
@@ -28,21 +33,11 @@ export function createBookTextPort(origin: DomainActor = "agent"): BookTextPort 
     getNavigationToc: library.getNavigationToc,
     listNavigationTargets: library.listNavigationTargets,
     listImages: async ({ throughChapterIndex, ...input }, signal) => {
-      const hrefs =
-        throughChapterIndex === undefined
-          ? undefined
-          : (await getExtractedChapters(input.bookId, origin))
-              .slice(0, Math.max(0, throughChapterIndex + 1))
-              .flatMap((chapter) => chapter.hrefs ?? []);
+      const hrefs = await chapterHrefsThrough(input.bookId, throughChapterIndex, origin);
       return library.listImages(input, signal, hrefs);
     },
     openImageResource: async (ownerKey, { throughChapterIndex, ...input }, signal) => {
-      const hrefs =
-        throughChapterIndex === undefined
-          ? undefined
-          : (await getExtractedChapters(input.image.bookId, origin))
-              .slice(0, Math.max(0, throughChapterIndex + 1))
-              .flatMap((chapter) => chapter.hrefs ?? []);
+      const hrefs = await chapterHrefsThrough(input.image.bookId, throughChapterIndex, origin);
       return openBookImageResource(
         agentResources(ownerKey, ownerKey.startsWith("book:") ? ownerKey.slice(5) : undefined),
         input,
@@ -51,12 +46,7 @@ export function createBookTextPort(origin: DomainActor = "agent"): BookTextPort 
       );
     },
     readImageInput: async (ownerKey, { throughChapterIndex, ...input }, signal) => {
-      const hrefs =
-        throughChapterIndex === undefined
-          ? undefined
-          : (await getExtractedChapters(input.image.bookId, origin))
-              .slice(0, Math.max(0, throughChapterIndex + 1))
-              .flatMap((chapter) => chapter.hrefs ?? []);
+      const hrefs = await chapterHrefsThrough(input.image.bookId, throughChapterIndex, origin);
       const owner = agentResources(ownerKey, ownerKey.startsWith("book:") ? ownerKey.slice(5) : undefined);
       const result = await openBookImageResource(owner, input, signal, hrefs);
       if (result.status !== "ready") return result;
@@ -71,39 +61,19 @@ export function createBookTextPort(origin: DomainActor = "agent"): BookTextPort 
       }
     },
     listReferences: async ({ throughChapterIndex, ...input }, signal) => {
-      const hrefs =
-        throughChapterIndex === undefined
-          ? undefined
-          : (await getExtractedChapters(input.bookId, origin))
-              .slice(0, Math.max(0, throughChapterIndex + 1))
-              .flatMap((chapter) => chapter.hrefs ?? []);
+      const hrefs = await chapterHrefsThrough(input.bookId, throughChapterIndex, origin);
       return library.listReferences(input, signal, hrefs);
     },
     readReference: async ({ throughChapterIndex, ...input }, signal) => {
-      const hrefs =
-        throughChapterIndex === undefined
-          ? undefined
-          : (await getExtractedChapters(input.reference.bookId, origin))
-              .slice(0, Math.max(0, throughChapterIndex + 1))
-              .flatMap((chapter) => chapter.hrefs ?? []);
+      const hrefs = await chapterHrefsThrough(input.reference.bookId, throughChapterIndex, origin);
       return library.readReference(input, signal, hrefs);
     },
     readRange: async ({ throughChapterIndex, ...input }, signal) => {
-      const hrefs =
-        throughChapterIndex === undefined
-          ? undefined
-          : (await getExtractedChapters(input.range.bookId, origin))
-              .slice(0, Math.max(0, throughChapterIndex + 1))
-              .flatMap((chapter) => chapter.hrefs ?? []);
+      const hrefs = await chapterHrefsThrough(input.range.bookId, throughChapterIndex, origin);
       return library.readRange(input, signal, hrefs);
     },
     searchLocations: async ({ throughChapterIndex, ...input }, signal) => {
-      const hrefs =
-        throughChapterIndex === undefined
-          ? undefined
-          : (await getExtractedChapters(input.bookId, origin))
-              .slice(0, Math.max(0, throughChapterIndex + 1))
-              .flatMap((chapter) => chapter.hrefs ?? []);
+      const hrefs = await chapterHrefsThrough(input.bookId, throughChapterIndex, origin);
       return library.searchLocations({ ...input, ...(hrefs ? { hrefs } : {}) }, signal);
     },
     getToc: async (bookId) =>

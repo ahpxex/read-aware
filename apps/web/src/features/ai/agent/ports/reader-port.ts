@@ -5,7 +5,7 @@ import { readerFocus } from "../../../../services/reader-focus";
 import { readerImage } from "../../../../services/reader-image";
 import { readerImageOpen } from "../../../../services/reader-image-open";
 import { readBookImage } from "../../../library/lib/book-images";
-import { getExtractedChapters } from "../../../../domain";
+import { chapterHrefsThrough } from "../../../../domain/library";
 import { readerReferencePreview } from "../../../../services/reader-reference-preview";
 import { createBookTextPort } from "./book-text-port";
 import { readingRuntime } from "../../../../domain/reading-runtime";
@@ -36,12 +36,7 @@ export function createReaderPort(): ReaderPort {
       readerImageOpen.open(
         query,
         async (input, requestSignal, origin) => {
-          const hrefs =
-            throughChapterIndex === undefined
-              ? undefined
-              : (await getExtractedChapters(input.image.bookId, origin))
-                  .slice(0, Math.max(0, throughChapterIndex + 1))
-                  .flatMap((chapter) => chapter.hrefs ?? []);
+          const hrefs = await chapterHrefsThrough(input.image.bookId, throughChapterIndex, origin);
           return readBookImage(input, requestSignal, hrefs);
         },
         signal,

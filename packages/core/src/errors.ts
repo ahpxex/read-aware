@@ -60,6 +60,8 @@ export const ERR_BACKUP_PASSWORD_POLICY = "backup/password-policy";
 export const ERR_BACKUP_RECOVERY_REQUIRED = "backup/recovery-required";
 /** The chosen file is a retired v1 JSON library backup, which cannot be restored. */
 export const ERR_BACKUP_LEGACY_FORMAT = "backup/legacy-format";
+/** The backup was written by a newer ReadAware than this one; update to restore it. */
+export const ERR_BACKUP_NEWER_VERSION = "backup/newer-version";
 /** Invalid plugin service arguments or a bounded service payload over quota. */
 export const ERR_PLUGIN_INVALID_ARGUMENT = "plugin/invalid-argument";
 export const ERR_PLUGIN_QUOTA_EXCEEDED = "plugin/quota-exceeded";

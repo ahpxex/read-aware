@@ -190,8 +190,8 @@ fn backup_preflight_rejects_forged_manifest_and_files_without_creating_keys() {
                 "table counts"
             }
             1 => {
-                archive.manifest.schema_version += 1;
-                "schema is not supported"
+                archive.manifest.schema_version -= 1;
+                "schema differs from its manifest"
             }
             2 => {
                 fs::remove_file(archive.directory().join("secret.key")).unwrap();
@@ -265,7 +265,6 @@ fn backup_preflight_cancellation_interrupts_sql_and_cleans_owned_files() {
     let cancelled = cancellation();
     let control = Control {
         cancelled: cancelled.clone(),
-        deadline: Instant::now() + Duration::from_secs(30),
     };
     let conn = open_source(&archive, &control).unwrap();
     cancelled.store(true, Ordering::Relaxed);
@@ -288,4 +287,73 @@ fn backup_preflight_rejects_unclosed_reading_facts_in_v2_even_with_valid_member_
         "backup/invalid-archive"
     );
     assert!(!path.exists());
+}
+
+/// An archive written by an older build: the schema as that build's own
+/// migrations produced it, holding a row that predates the newer migrations.
+fn older_archive(version: i64) -> AuthenticatedBackup {
+    let mut archive = fixture();
+    let path = archive.directory().join("database.sqlite");
+    fs::remove_file(&path).unwrap();
+    let mut conn = Connection::open(&path).unwrap();
+    storage::register_sql_functions(&conn).unwrap();
+    storage::run_migrations_up_to(&mut conn, version).unwrap();
+    conn.execute_batch("INSERT INTO memories(id,scope,kind,content,importance,evidence_count,created_at,updated_at) VALUES ('kept','global','fact','written before the upgrade',1,1,'now','now');").unwrap();
+    // The archive's file members stay registered, as the older build left them.
+    storage::put_blob_inner(
+        &conn,
+        archive.directory(),
+        "bookfile:one",
+        None,
+        b"book contents",
+    )
+    .unwrap();
+    drop(conn);
+    archive.manifest.schema_version = version;
+    edit(&mut archive, |_, _| {});
+    archive
+}
+
+#[test]
+fn backup_preflight_brings_an_older_archive_to_this_schema_and_keeps_its_rows() {
+    let version = storage::SCHEMA_VERSION - 6;
+    let archive = older_archive(version);
+    let preflighted = preflight(archive, cancellation()).unwrap();
+    let conn = preflighted.connection();
+    assert_eq!(
+        storage::schema_version(conn).unwrap(),
+        storage::SCHEMA_VERSION
+    );
+    let kept: String = conn
+        .query_row("SELECT content FROM memories WHERE id='kept'", [], |row| {
+            row.get(0)
+        })
+        .unwrap();
+    assert_eq!(kept, "written before the upgrade");
+}
+
+#[test]
+fn backup_preflight_checks_an_older_archive_against_its_own_version_before_migrating() {
+    let version = storage::SCHEMA_VERSION - 6;
+    let mut archive = older_archive(version);
+    // A trigger no build of that version would create must never get to run.
+    edit(&mut archive, |conn, _| {
+        conn.execute_batch(
+            "CREATE TRIGGER planted AFTER INSERT ON memories BEGIN DELETE FROM memories; END;",
+        )
+        .unwrap();
+    });
+    let error = preflight(archive, cancellation()).unwrap_err();
+    assert_eq!(error.code, super::super::CODE_INVALID);
+    assert!(format!("{error:?}").contains("planted"), "{error:?}");
+}
+
+#[test]
+fn backup_preflight_names_an_archive_from_a_newer_build() {
+    let mut archive = fixture();
+    archive.manifest.schema_version = storage::SCHEMA_VERSION + 1;
+    assert_eq!(
+        preflight(archive, cancellation()).unwrap_err().code,
+        CODE_NEWER_VERSION
+    );
 }

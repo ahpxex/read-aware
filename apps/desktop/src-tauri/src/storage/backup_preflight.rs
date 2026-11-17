@@ -11,7 +11,6 @@ use std::{
         atomic::{AtomicBool, Ordering},
         Arc,
     },
-    time::{Duration, Instant},
 };
 
 #[path = "backup_preflight_data.rs"]
@@ -19,10 +18,17 @@ mod data;
 #[path = "backup_preflight_schema.rs"]
 mod schema;
 
+/// The archive was the first full-backup format, written at schema v41; an
+/// older version number cannot belong to a genuine full backup.
+const FIRST_BACKUP_SCHEMA: i64 = 41;
+/// A newer build wrote this archive; this one cannot know its tables.
+pub(crate) const CODE_NEWER_VERSION: &str = "backup/newer-version";
+
+/// Only the user stops a preflight. A large archive on a slow disk takes as
+/// long as it takes; a clock is not evidence that the file is damaged.
 #[derive(Clone)]
 struct Control {
     cancelled: Arc<AtomicBool>,
-    deadline: Instant,
 }
 impl Control {
     fn check(&self) -> Result<(), CommandError> {
@@ -30,11 +36,6 @@ impl Control {
             return Err(CommandError::new(
                 storage::backup_snapshot::CODE_CANCELLED,
                 "backup preflight cancelled",
-            ));
-        }
-        if Instant::now() >= self.deadline {
-            return Err(invalid(
-                "backup preflight exceeded its five-minute processing limit",
             ));
         }
         Ok(())
@@ -70,6 +71,34 @@ impl PreflightedBackup {
     pub(crate) fn archive(&self) -> &AuthenticatedBackup {
         &self.archive
     }
+}
+
+/// Bring an older archive to this build's schema on its private decrypted
+/// copy, with the migrations the live store runs on upgrade. Only a database
+/// just proven identical to this build's own migration output at its version
+/// reaches this point, so nothing the archive supplied (a trigger, a view, a
+/// function) can run. The copy stays a rollback-mode file, as `open_source`
+/// requires.
+fn migrate_private_copy(
+    archive: &AuthenticatedBackup,
+    control: &Control,
+) -> Result<(), CommandError> {
+    control.check()?;
+    let path = archive.directory().join("database.sqlite");
+    let mut conn = Connection::open_with_flags(
+        path,
+        OpenFlags::SQLITE_OPEN_READ_WRITE | OpenFlags::SQLITE_OPEN_NO_MUTEX,
+    )?;
+    conn.set_db_config(DbConfig::SQLITE_DBCONFIG_DEFENSIVE, true)?;
+    storage::register_sql_functions(&conn)?;
+    let progress = control.clone();
+    conn.progress_handler(1000, Some(move || progress.check().is_err()));
+    storage::run_migrations(&mut conn)?;
+    let mode: String = conn.query_row("PRAGMA journal_mode", [], |row| row.get(0))?;
+    if !mode.eq_ignore_ascii_case("delete") {
+        return Err(invalid("migrated backup copy left rollback journal mode"));
+    }
+    Ok(())
 }
 
 fn open_source(
@@ -129,16 +158,34 @@ pub(crate) fn preflight(
     archive: AuthenticatedBackup,
     cancelled: Arc<AtomicBool>,
 ) -> Result<PreflightedBackup, CommandError> {
-    let control = Control {
-        cancelled,
-        deadline: Instant::now() + Duration::from_secs(300),
-    };
+    let control = Control { cancelled };
+    let written = archive.manifest.schema_version;
+    if written > storage::SCHEMA_VERSION {
+        return Err(CommandError::new(
+            CODE_NEWER_VERSION,
+            format!(
+                "backup schema v{written} is newer than this build supports (v{})",
+                storage::SCHEMA_VERSION
+            ),
+        ));
+    }
     let result = (|| {
-        if archive.manifest.schema_version != storage::SCHEMA_VERSION {
-            return Err(invalid("backup schema is not supported by this build"));
+        if written < FIRST_BACKUP_SCHEMA {
+            return Err(invalid("backup schema predates full backups"));
         }
-        let conn = open_source(&archive, &control)?;
-        let tables = schema::validate(&conn, &archive.manifest, &control)?;
+        let mut conn = open_source(&archive, &control)?;
+        if storage::schema_version(&conn)? != written {
+            return Err(invalid("backup schema differs from its manifest"));
+        }
+        // Verify the archive exactly as it was written before touching it.
+        let mut tables =
+            schema::validate(&conn, written, Some(&archive.manifest.tables), &control)?;
+        if written < storage::SCHEMA_VERSION {
+            drop(conn);
+            migrate_private_copy(&archive, &control)?;
+            conn = open_source(&archive, &control)?;
+            tables = schema::validate(&conn, storage::SCHEMA_VERSION, None, &control)?;
+        }
         let mut report = PreflightReport {
             tables,
             ..Default::default()

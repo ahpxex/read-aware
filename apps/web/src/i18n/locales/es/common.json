@@ -68,6 +68,7 @@
     "backupUnlockFailed": "No se pudo desbloquear la copia. Comprueba la contraseña y la integridad del archivo.",
     "backupPasswordPolicy": "La contraseña debe tener al menos 12 caracteres y no superar los 1024 bytes en UTF-8.",
     "backupLegacyFormat": "Este archivo es una copia antigua de la biblioteca (.json) que ya no se puede restaurar. Elige en su lugar una copia completa cifrada (.age).",
+    "backupNewerVersion": "Esta copia de seguridad se creó con una versión más reciente de ReadAware. Actualiza ReadAware para restaurarla.",
     "dataWipeIncomplete": "Se eliminaron los registros locales, pero no todos los archivos. Recarga la aplicación para terminar la limpieza antes de continuar.",
     "backupRecoveryRequired": "No se pudieron revertir todos los archivos. Reinicia ReadAware para completar la recuperación antes de continuar.",
     "backupIncomplete": "Faltan archivos necesarios para una copia completa o no son compatibles. Restaura los archivos que faltan antes de volver a intentarlo.",

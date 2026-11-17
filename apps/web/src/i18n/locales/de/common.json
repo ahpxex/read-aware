@@ -68,6 +68,7 @@
     "backupUnlockFailed": "Die Sicherung konnte nicht entsperrt werden. Prüfen Sie das Passwort und die Unversehrtheit der Datei.",
     "backupPasswordPolicy": "Das Sicherungspasswort muss mindestens 12 Zeichen enthalten und darf höchstens 1024 UTF-8-Bytes lang sein.",
     "backupLegacyFormat": "Dies ist eine eingestellte Bibliothekssicherung (.json), die nicht mehr wiederhergestellt werden kann. Wählen Sie stattdessen eine vollständige verschlüsselte Sicherung (.age).",
+    "backupNewerVersion": "Dieses Backup wurde mit einer neueren Version von ReadAware erstellt. Aktualisiere ReadAware, um es wiederherzustellen.",
     "dataWipeIncomplete": "Die lokalen Datensätze wurden gelöscht, einige Dateien jedoch nicht. Laden Sie die App neu, um die Bereinigung vor der weiteren Nutzung abzuschließen.",
     "backupRecoveryRequired": "Die Dateien konnten nicht vollständig zurückgesetzt werden. Starten Sie ReadAware zur Wiederherstellung neu, bevor Sie fortfahren.",
     "backupIncomplete": "Für eine vollständige Sicherung fehlen Dateien oder sie werden nicht unterstützt. Stellen Sie fehlende Dateien vor einem erneuten Versuch wieder her.",

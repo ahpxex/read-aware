@@ -68,6 +68,7 @@
     "backupUnlockFailed": "无法解锁备份，请检查密码和文件完整性。",
     "backupPasswordPolicy": "备份密码至少需要 12 个字符，且不能超过 1024 个 UTF-8 字节。",
     "backupLegacyFormat": "这是已停用的旧版书库备份（.json），无法再恢复。请改为选择完整的加密备份（.age）。",
+    "backupNewerVersion": "这份备份由更新版本的 ReadAware 创建。请先更新 ReadAware 再恢复。",
     "dataWipeIncomplete": "本地记录已删除，但部分文件尚未清理。请重新载入完成清理后再继续使用。",
     "backupRecoveryRequired": "恢复未能完成文件回滚。请重启 ReadAware 完成恢复后再继续使用。",
     "backupIncomplete": "完整备份所需的部分文件缺失或不受支持，请先恢复缺失文件再重试。",

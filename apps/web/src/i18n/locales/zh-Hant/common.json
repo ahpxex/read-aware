@@ -68,6 +68,7 @@
     "backupUnlockFailed": "無法解鎖備份，請檢查密碼和檔案完整性。",
     "backupPasswordPolicy": "備份密碼至少需要 12 個字元，且不能超過 1024 個 UTF-8 位元組。",
     "backupLegacyFormat": "這是已停用的舊版書庫備份（.json），無法再還原。請改為選擇完整的加密備份（.age）。",
+    "backupNewerVersion": "這份備份由較新版本的 ReadAware 建立。請先更新 ReadAware 再還原。",
     "dataWipeIncomplete": "本機記錄已刪除，但部分檔案尚未清理。請重新載入完成清理後再繼續使用。",
     "backupRecoveryRequired": "還原未能完成檔案回復。請重新啟動 ReadAware 完成復原後再繼續使用。",
     "backupIncomplete": "完整備份所需的部分檔案遺失或不受支援，請先恢復遺失檔案再重試。",

@@ -68,6 +68,7 @@
     "backupUnlockFailed": "The backup could not be unlocked. Check the password and the file’s integrity.",
     "backupPasswordPolicy": "Use a backup password with at least 12 characters and no more than 1024 UTF-8 bytes.",
     "backupLegacyFormat": "This is a retired library backup (.json) and can no longer be restored. Choose a complete encrypted backup (.age) instead.",
+    "backupNewerVersion": "This backup was made by a newer version of ReadAware. Update ReadAware to restore it.",
     "dataWipeIncomplete": "Local records were deleted, but some files could not be removed. Reload to finish cleanup before continuing.",
     "backupRecoveryRequired": "Restore could not finish rolling back its files. Restart ReadAware to recover before continuing.",
     "backupIncomplete": "Some files needed for a complete backup are missing or unsupported. Restore the missing files before trying again.",

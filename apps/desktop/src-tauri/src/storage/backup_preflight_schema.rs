@@ -1,6 +1,5 @@
 //! Compare against this build's actual migration result, never execute source DDL.
 use super::*;
-use crate::storage::backup_snapshot::BackupManifest;
 use rusqlite::types::ValueRef;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -45,10 +44,12 @@ fn catalog(conn: &Connection) -> Result<BTreeMap<String, Object>, CommandError> 
     Ok(objects)
 }
 
-fn expected_catalog() -> Result<BTreeMap<String, Object>, CommandError> {
+/// This build's own migration result at `version`: what an archive written at
+/// that version must contain, object for object.
+fn expected_catalog(version: i64) -> Result<BTreeMap<String, Object>, CommandError> {
     let mut conn = Connection::open_in_memory()?;
     storage::register_sql_functions(&conn)?;
-    storage::run_migrations(&mut conn)?;
+    storage::run_migrations_up_to(&mut conn, version)?;
     // sqlite_stat1/4 are optional local optimizer state. Their schema is checked
     // against SQLite's own output; arbitrary sqlite_* objects are not exempt.
     conn.execute_batch("ANALYZE;")?;
@@ -103,14 +104,19 @@ fn check_value(value: ValueRef<'_>, column: &Column, table: &str) -> Result<(), 
     Ok(())
 }
 
+/// Check `conn` is exactly this build's schema at `version`, with well-typed
+/// rows, and count them. The counts are compared with the manifest only while
+/// the database is still as it was written (`expected_counts`); after the
+/// private copy is migrated they are this build's own result.
 pub(super) fn validate(
     conn: &Connection,
-    manifest: &BackupManifest,
+    version: i64,
+    expected_counts: Option<&BTreeMap<String, u64>>,
     control: &Control,
 ) -> Result<BTreeMap<String, u64>, CommandError> {
     control.check()?;
     let actual = catalog(conn)?;
-    let expected = expected_catalog()?;
+    let expected = expected_catalog(version)?;
     for (name, object) in &actual {
         if expected.get(name) != Some(object) {
             return Err(invalid(&format!(
@@ -147,7 +153,11 @@ pub(super) fn validate(
         }
         count += 1;
     }
-    if count != storage::MIGRATIONS.len() {
+    let applied = storage::MIGRATIONS
+        .iter()
+        .take_while(|(migration, _, _)| *migration <= version)
+        .count();
+    if count != applied {
         return Err(invalid(
             "backup migration history does not match this build",
         ));
@@ -183,7 +193,7 @@ pub(super) fn validate(
         }
         counts.insert(name.clone(), count);
     }
-    if counts != manifest.tables {
+    if expected_counts.is_some_and(|tables| *tables != counts) {
         return Err(invalid("backup table counts differ from manifest"));
     }
     if counts.get("blobs").copied().unwrap_or(0) != 0 {

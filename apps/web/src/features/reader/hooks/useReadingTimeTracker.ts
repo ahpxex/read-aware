@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSetAtom } from "jotai";
 import { readingStatsAtom } from "../../../state/ui";
 import { addReadingTime } from "../lib/reading-stats";
-import { ActiveReadingClock, MIN_BANK_MS, pausedLongEnough, TICK_MS } from "../lib/reading-session-policy";
+import { ActiveReadingClock, bankableMs, MIN_BANK_MS, pausedLongEnough, TICK_MS } from "../lib/reading-session-policy";
 import { readingTraces } from "../lib/reading-trace-runtime";
 
 function inForeground(): boolean {
@@ -33,7 +33,7 @@ export function useReadingTimeTracker(bookId: string | null, active: boolean) {
       const paused = pausedLongEnough(readingClock.idleMs(at));
       if (paused && !pauseClosed) trace.pause();
       pauseClosed = paused;
-      const delta = readingClock.totalMs - bankedMs;
+      const delta = bankableMs(readingClock.totalMs, bankedMs);
       if (delta < MIN_BANK_MS) return;
       bankedMs += delta;
       const now = Date.now();

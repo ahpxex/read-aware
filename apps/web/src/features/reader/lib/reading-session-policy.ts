@@ -34,6 +34,16 @@ export const MAX_SAMPLE_GAP_MS = TICK_MS * 2;
 /** Below this, banking waits for more: a sub-second span is a remount
  *  artefact, not reading, and never opens a bucket. */
 export const MIN_BANK_MS = 1_000;
+
+/**
+ * What a bank may record of the clock's time not yet banked: whole
+ * milliseconds, as the store counts them. The clock samples
+ * `performance.now()`, so its total carries fractions; the fraction stays
+ * unbanked and joins the next bank, so nothing read is lost.
+ */
+export function bankableMs(totalMs: number, bankedMs: number): number {
+  return Math.floor(totalMs - bankedMs);
+}
 export type BucketKey = { bookId: string; localDay: string; localHour: number };
 
 export function bucketKeyAt(bookId: string, epochMs: number): BucketKey {

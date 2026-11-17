@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   ActiveReadingClock,
+  bankableMs,
   bucketKeyAt,
   IDLE_LIMIT_MS,
   MAX_SAMPLE_GAP_MS,
@@ -10,6 +11,23 @@ import {
 } from "./reading-session-policy";
 
 describe("reading session policy", () => {
+  test("a bank records whole milliseconds and carries the fraction to the next", () => {
+    // performance.now() instants carry fractions; the store refused 7490.000000000058.
+    const clock = new ActiveReadingClock(1000.1, true);
+    clock.sample(8490.35);
+    let banked = 0;
+    const first = bankableMs(clock.totalMs, banked);
+    expect(Number.isSafeInteger(first)).toBe(true);
+    expect(first).toBe(7490);
+    banked += first;
+    clock.sample(9690.75);
+    const second = bankableMs(clock.totalMs, banked);
+    expect(Number.isSafeInteger(second)).toBe(true);
+    // Every whole millisecond read is banked across the two; under one stays pending.
+    expect(banked + second).toBe(Math.floor(clock.totalMs));
+    expect(clock.totalMs - (banked + second)).toBeLessThan(1);
+  });
+
   test("buckets are keyed by book and local hour", () => {
     const t = new Date(2026, 8, 7, 15, 10).getTime();
     const key = bucketKeyAt("b1", t);

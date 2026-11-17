@@ -6,6 +6,7 @@ import { useTranslation } from "../../../i18n";
 import { respondToUserInteraction } from "../agent/ports/user-interaction-port";
 import { ChatInteractionForm } from "./ChatInteractionForm";
 import { formatInteractionFormSummary } from "../lib/interaction-form-summary";
+import { permissionKey } from "../lib/permission-copy";
 import type { ChatInteractionAnswer, ChatInteractionPart, ChatPermissionAction } from "../lib/chat-types";
 
 type InteractionResponder = (id: string, answer: ChatInteractionAnswer) => boolean;
@@ -22,126 +23,6 @@ const consentDecline: Partial<
 > = {
   "complete-onboarding": "chat.interaction.skip",
   "reveal-spoilers": "chat.interaction.permission.revealSpoilers.decline",
-};
-
-const permissionKeys: Record<
-  ChatPermissionAction,
-  {
-    question: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "deleteBookmark" | "manageMemory" | "classifyBook" | "generateBookGraph" | "clearConversation" | "syncNow" | "manageSchedule" | "accessBookFile" | "importResource" | "mergeBooks" | "pluginTool" | "atomicTransaction" | "manageJob" | "downloadResource" | "updateProfile" | "manageEntity" | "completeOnboarding" | "revealSpoilers"}.question`;
-    description: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "deleteBookmark" | "manageMemory" | "classifyBook" | "generateBookGraph" | "clearConversation" | "syncNow" | "manageSchedule" | "accessBookFile" | "importResource" | "mergeBooks" | "pluginTool" | "atomicTransaction" | "manageJob" | "downloadResource" | "updateProfile" | "manageEntity" | "completeOnboarding" | "revealSpoilers"}.description`;
-    approve: `chat.interaction.permission.${"deleteBook" | "deleteBooks" | "deleteCollection" | "deleteAnnotation" | "deleteBookmark" | "manageMemory" | "classifyBook" | "generateBookGraph" | "clearConversation" | "syncNow" | "manageSchedule" | "accessBookFile" | "importResource" | "mergeBooks" | "pluginTool" | "atomicTransaction" | "manageJob" | "downloadResource" | "updateProfile" | "manageEntity" | "completeOnboarding" | "revealSpoilers"}.approve`;
-  }
-> = {
-  "reveal-spoilers": {
-    question: "chat.interaction.permission.revealSpoilers.question",
-    description: "chat.interaction.permission.revealSpoilers.description",
-    approve: "chat.interaction.permission.revealSpoilers.approve",
-  },
-  "complete-onboarding": {
-    question: "chat.interaction.permission.completeOnboarding.question",
-    description: "chat.interaction.permission.completeOnboarding.description",
-    approve: "chat.interaction.permission.completeOnboarding.approve",
-  },
-  "download-resource": {
-    question: "chat.interaction.permission.downloadResource.question",
-    description: "chat.interaction.permission.downloadResource.description",
-    approve: "chat.interaction.permission.downloadResource.approve",
-  },
-  "manage-entity": {
-    question: "chat.interaction.permission.manageEntity.question",
-    description: "chat.interaction.permission.manageEntity.description",
-    approve: "chat.interaction.permission.manageEntity.approve",
-  },
-  "update-profile": {
-    question: "chat.interaction.permission.updateProfile.question",
-    description: "chat.interaction.permission.updateProfile.description",
-    approve: "chat.interaction.permission.updateProfile.approve",
-  },
-  "manage-job": {
-    question: "chat.interaction.permission.manageJob.question",
-    description: "chat.interaction.permission.manageJob.description",
-    approve: "chat.interaction.permission.manageJob.approve",
-  },
-  "atomic-transaction": {
-    question: "chat.interaction.permission.atomicTransaction.question",
-    description: "chat.interaction.permission.atomicTransaction.description",
-    approve: "chat.interaction.permission.atomicTransaction.approve",
-  },
-  "plugin-tool": {
-    question: "chat.interaction.permission.pluginTool.question",
-    description: "chat.interaction.permission.pluginTool.description",
-    approve: "chat.interaction.permission.pluginTool.approve",
-  },
-  "merge-books": {
-    question: "chat.interaction.permission.mergeBooks.question",
-    description: "chat.interaction.permission.mergeBooks.description",
-    approve: "chat.interaction.permission.mergeBooks.approve",
-  },
-  "import-resource": {
-    question: "chat.interaction.permission.importResource.question",
-    description: "chat.interaction.permission.importResource.description",
-    approve: "chat.interaction.permission.importResource.approve",
-  },
-  "access-book-file": {
-    question: "chat.interaction.permission.accessBookFile.question",
-    description: "chat.interaction.permission.accessBookFile.description",
-    approve: "chat.interaction.permission.accessBookFile.approve",
-  },
-  "manage-schedule": {
-    question: "chat.interaction.permission.manageSchedule.question",
-    description: "chat.interaction.permission.manageSchedule.description",
-    approve: "chat.interaction.permission.manageSchedule.approve",
-  },
-  "sync-now": {
-    question: "chat.interaction.permission.syncNow.question",
-    description: "chat.interaction.permission.syncNow.description",
-    approve: "chat.interaction.permission.syncNow.approve",
-  },
-  "clear-conversation": {
-    question: "chat.interaction.permission.clearConversation.question",
-    description: "chat.interaction.permission.clearConversation.description",
-    approve: "chat.interaction.permission.clearConversation.approve",
-  },
-  "generate-book-graph": {
-    question: "chat.interaction.permission.generateBookGraph.question",
-    description: "chat.interaction.permission.generateBookGraph.description",
-    approve: "chat.interaction.permission.generateBookGraph.approve",
-  },
-  "classify-book": {
-    question: "chat.interaction.permission.classifyBook.question",
-    description: "chat.interaction.permission.classifyBook.description",
-    approve: "chat.interaction.permission.classifyBook.approve",
-  },
-  "manage-memory": {
-    question: "chat.interaction.permission.manageMemory.question",
-    description: "chat.interaction.permission.manageMemory.description",
-    approve: "chat.interaction.permission.manageMemory.approve",
-  },
-  "delete-book": {
-    question: "chat.interaction.permission.deleteBook.question",
-    description: "chat.interaction.permission.deleteBook.description",
-    approve: "chat.interaction.permission.deleteBook.approve",
-  },
-  "delete-books": {
-    question: "chat.interaction.permission.deleteBooks.question",
-    description: "chat.interaction.permission.deleteBooks.description",
-    approve: "chat.interaction.permission.deleteBooks.approve",
-  },
-  "delete-collection": {
-    question: "chat.interaction.permission.deleteCollection.question",
-    description: "chat.interaction.permission.deleteCollection.description",
-    approve: "chat.interaction.permission.deleteCollection.approve",
-  },
-  "delete-annotation": {
-    question: "chat.interaction.permission.deleteAnnotation.question",
-    description: "chat.interaction.permission.deleteAnnotation.description",
-    approve: "chat.interaction.permission.deleteAnnotation.approve",
-  },
-  "delete-bookmark": {
-    question: "chat.interaction.permission.deleteBookmark.question",
-    description: "chat.interaction.permission.deleteBookmark.description",
-    approve: "chat.interaction.permission.deleteBookmark.approve",
-  },
 };
 
 function SettledInteraction({ part, title }: { part: ChatInteractionPart; title: string }) {
@@ -280,7 +161,6 @@ function PermissionPrompt({ part, onRespond }: { part: ChatInteractionPart; onRe
   const [submitting, setSubmitting] = useState(false);
   const request = part.request.kind === "permission" ? part.request : null;
   if (!request) return null;
-  const keys = permissionKeys[request.action];
   const consentDeclineKey = consentDecline[request.action];
 
   function settle(answer: ChatInteractionAnswer): void {
@@ -291,7 +171,10 @@ function PermissionPrompt({ part, onRespond }: { part: ChatInteractionPart; onRe
   return (
     <div className="flex flex-col gap-3">
       <Caption as="p" className="whitespace-pre-wrap break-words leading-5 text-fg-muted">
-        {t(keys.description, { subject: request.subject, maxChapters: request.maxChapters ?? "?" })}
+        {t(permissionKey(request.action, "description"), {
+          subject: request.subject,
+          maxChapters: request.maxChapters ?? "?",
+        })}
       </Caption>
       {request.action === "complete-onboarding" && request.onboardingSeeds && (
         <div className="space-y-2">
@@ -315,7 +198,7 @@ function PermissionPrompt({ part, onRespond }: { part: ChatInteractionPart; onRe
           disabled={submitting}
           onClick={() => settle({ optionId: "approve", text: "Approved" })}
         >
-          {t(keys.approve)}
+          {t(permissionKey(request.action, "approve"))}
         </Button>
         <Button
           size="sm"
@@ -342,7 +225,7 @@ export function ChatInteractionPrompt({
   const permission = part.request.kind === "permission";
   const title =
     part.request.kind === "permission"
-      ? t(permissionKeys[part.request.action].question, { subject: part.request.subject })
+      ? t(permissionKey(part.request.action, "question"), { subject: part.request.subject })
       : part.request.kind === "form"
         ? part.request.title
         : part.request.question;

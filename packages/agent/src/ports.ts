@@ -361,29 +361,33 @@ export interface UserInteractionOption {
   description?: string;
 }
 
-export type UserPermissionAction =
-  | "delete-book"
-  | "delete-books"
-  | "delete-collection"
-  | "delete-annotation"
-  | "delete-bookmark"
-  | "manage-memory"
-  | "classify-book"
-  | "generate-book-graph"
-  | "clear-conversation"
-  | "sync-now"
-  | "manage-schedule"
-  | "access-book-file"
-  | "import-resource"
-  | "merge-books"
-  | "plugin-tool"
-  | "atomic-transaction"
-  | "manage-job"
-  | "download-resource"
-  | "complete-onboarding"
-  | "update-profile"
-  | "manage-entity"
-  | "reveal-spoilers";
+/** Every operation the host asks the reader to approve; the host words each one. */
+export const USER_PERMISSION_ACTIONS = [
+  "delete-book",
+  "delete-books",
+  "delete-collection",
+  "delete-annotation",
+  "delete-bookmark",
+  "manage-memory",
+  "classify-book",
+  "generate-book-graph",
+  "clear-conversation",
+  "sync-now",
+  "manage-schedule",
+  "access-book-file",
+  "import-resource",
+  "merge-books",
+  "plugin-tool",
+  "atomic-transaction",
+  "manage-job",
+  "download-resource",
+  "complete-onboarding",
+  "update-profile",
+  "manage-entity",
+  "reveal-spoilers",
+] as const;
+
+export type UserPermissionAction = (typeof USER_PERMISSION_ACTIONS)[number];
 
 type UserInteractionBase = {
   /** Globally unique for the lifetime of the tool call. */

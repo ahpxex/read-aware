@@ -80,29 +80,8 @@ export interface ChatInteractionOption {
   description?: string;
 }
 
-export type ChatPermissionAction =
-  | "delete-book"
-  | "delete-books"
-  | "delete-collection"
-  | "delete-annotation"
-  | "delete-bookmark"
-  | "manage-memory"
-  | "classify-book"
-  | "generate-book-graph"
-  | "clear-conversation"
-  | "sync-now"
-  | "manage-schedule"
-  | "access-book-file"
-  | "import-resource"
-  | "merge-books"
-  | "plugin-tool"
-  | "atomic-transaction"
-  | "manage-job"
-  | "download-resource"
-  | "complete-onboarding"
-  | "update-profile"
-  | "manage-entity"
-  | "reveal-spoilers";
+/** Chat presentation keeps the runtime's permission vocabulary. */
+export type ChatPermissionAction = import("@read-aware/agent").UserPermissionAction;
 
 export type ChatInteractionRequest = {
   id: string;

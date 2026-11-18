@@ -38,7 +38,19 @@ export const CURRENT_RELEASE_TAG = "v0.6.11";
 
 export type PlatformId = "macos" | "windows" | "linux" | "android" | "ios";
 
-export type DownloadLink = { label: string; url: string };
+export type DownloadLink = {
+  label: string;
+  url: string;
+  /** Short format shown beside the platform in the download menu (e.g. "dmg"). */
+  format: string;
+};
+
+/**
+ * Public TestFlight invitation for the iOS beta. iOS ships through App Store
+ * Connect, not GitHub releases, so it has no stable-alias asset; the
+ * invitation is the install path until the App Store listing exists.
+ */
+export const TESTFLIGHT_URL = "https://testflight.apple.com/join/Za2HV7kF";
 
 export type PlatformDownload = {
   id: PlatformId;
@@ -54,6 +66,7 @@ export type PlatformDownload = {
 const link = (label: string, alias: string): DownloadLink => ({
   label,
   url: `${REPO_URL}/releases/latest/download/ReadAware-${alias}`,
+  format: alias.slice(alias.lastIndexOf(".") + 1),
 });
 
 /** Per-platform downloads through the version-less stable-alias assets. */
@@ -86,7 +99,12 @@ export const DOWNLOADS: PlatformDownload[] = [
     primary: link("Download .apk", "android-arm64.apk"),
     extras: [],
   },
-  { id: "ios", name: "iOS", primary: null, extras: [], comingSoon: true },
+  {
+    id: "ios",
+    name: "iOS",
+    primary: { label: "Join the TestFlight beta", url: TESTFLIGHT_URL, format: "TestFlight" },
+    extras: [],
+  },
 ];
 
 /** Best-effort OS guess from the user agent, to feature the right download. */

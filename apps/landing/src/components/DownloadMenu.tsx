@@ -90,9 +90,7 @@ export function DownloadMenu({ downloads, platform, strings = DEFAULT_STRINGS }:
               className="flex items-baseline justify-between rounded-control px-3 py-2 transition-colors hover:bg-fill"
             >
               <span className="text-[0.9375rem]">{download.name}</span>
-              <span className="text-[0.8125rem] text-fg-subtle">
-                {download.primary ? download.primary.url.split(".").pop() : "web"}
-              </span>
+              <span className="text-[0.8125rem] text-fg-subtle">{download.primary?.format ?? "web"}</span>
             </a>
           );
         })}

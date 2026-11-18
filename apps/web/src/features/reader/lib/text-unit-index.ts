@@ -57,7 +57,13 @@ function isReadingAside(el: Element): boolean {
 }
 
 /**
- * The readable text nodes of a section, grouped per block, in reading order.
+ * One stretch of a block's reading text: a text node, or a forced line break,
+ * which reads as whitespace but has no text node to point a Range at.
+ */
+type ReadingPiece = { node: Node; text: string } | { node: null; text: "\n" };
+
+/**
+ * The readable text of a section, grouped per block, in reading order.
  *
  * One pass over the document. A block element opens a new group; text joins
  * the most recently opened block in document order, so trailing text after a
@@ -67,27 +73,37 @@ function isReadingAside(el: Element): boolean {
  * annotations) keep their block boundaries but contribute no text. Text
  * before the first block is read only when the body has no blocks at all.
  *
+ * A `<br>` is a line break in the text. It separates words as surely as a
+ * space does, and nothing else may: the text layer of a PDF page is one span
+ * per typeset line with a `<br>` between them and no trailing space, so
+ * without it the last word of every line fuses with the first of the next
+ * and a sentence that ends a line never ends ("…problem.The impact…").
+ *
  * A per-block walk from each range's common ancestor would revisit every
  * preceding sibling (and restyle each element) for every block — quadratic in
  * a chapter's paragraph count, which stalled opening a long chapter in a
  * text-unit mode on phones.
  */
-function readingBlocks(doc: Document): Node[][] {
+function readingBlocks(doc: Document): ReadingPiece[][] {
   const body = doc.body;
   if (!body) return [];
-  const blocks: Node[][] = [];
-  const leading: Node[] = [];
-  let current: Node[] | null = null;
+  const blocks: ReadingPiece[][] = [];
+  const leading: ReadingPiece[] = [];
+  let current: ReadingPiece[] | null = null;
   const visit = (parent: Node, readable: boolean) => {
     for (let child = parent.firstChild; child; child = child.nextSibling) {
       if (child.nodeType === Node.TEXT_NODE || child.nodeType === Node.CDATA_SECTION_NODE) {
-        if (readable && child.nodeValue) (current ?? leading).push(child);
+        if (readable && child.nodeValue) (current ?? leading).push({ node: child, text: child.nodeValue });
         continue;
       }
       if (child.nodeType !== Node.ELEMENT_NODE) continue;
       const el = child as Element;
       if (!isRendered(el)) continue;
       const name = el.tagName.toLowerCase();
+      if (name === "br") {
+        if (readable) (current ?? leading).push({ node: null, text: "\n" });
+        continue;
+      }
       if (READER_BLOCK_TAGS.has(name)) {
         current = [];
         blocks.push(current);
@@ -99,39 +115,69 @@ function readingBlocks(doc: Document): Node[][] {
   return blocks.length ? blocks : [leading];
 }
 
-/** Map trimmed segment offsets back onto the block's text nodes as Ranges. */
-function segmentsToRanges(nodes: Node[], segments: PluginReaderTextSegment[]): Range[] {
-  // Cumulative start offset of each node's text within the joined block string.
+/**
+ * Map segment offsets back onto the block's text nodes as Ranges. A boundary
+ * that falls on a line break — which no Range can address — moves inward to
+ * the nearest text: a unit covers the text it names, never the break beside it.
+ */
+function segmentsToRanges(pieces: ReadingPiece[], segments: PluginReaderTextSegment[]): Range[] {
+  // Cumulative start offset of each piece's text within the joined block string.
   const starts: number[] = [];
   let total = 0;
-  for (const node of nodes) {
+  for (const piece of pieces) {
     starts.push(total);
-    total += node.nodeValue?.length ?? 0;
+    total += piece.text.length;
   }
 
   // Segments arrive in ascending order, so a moving pointer suffices.
   let cursor = 0;
   const locate = (pos: number): number => {
-    while (cursor + 1 < nodes.length && starts[cursor + 1] <= pos) cursor++;
+    while (cursor + 1 < pieces.length && starts[cursor + 1] <= pos) cursor++;
     return cursor;
   };
 
-  const doc = nodes[0]?.ownerDocument;
+  const doc = pieces.find((piece) => piece.node)?.node?.ownerDocument;
   if (!doc) return [];
   const ranges: Range[] = [];
   for (const { start, end } of segments) {
     if (end > total) continue;
-    const startNode = locate(start);
-    // The end offset is exclusive, so it belongs to the node containing end-1
-    // (an end that falls exactly on a node boundary maps to the previous
-    // node's full length, a valid Range end).
-    const endNode = locate(end - 1);
+    let first = locate(start);
+    let startOffset = start - starts[first];
+    // The end offset is exclusive, so it belongs to the piece containing end-1
+    // (an end that falls exactly on a piece boundary maps to the previous
+    // piece's full length, a valid Range end).
+    let last = locate(end - 1);
+    let endOffset = end - starts[last];
+    while (first < last && !pieces[first].node) {
+      first++;
+      startOffset = 0;
+    }
+    while (last > first && !pieces[last].node) {
+      last--;
+      endOffset = pieces[last].text.length;
+    }
+    const from = pieces[first].node;
+    const to = pieces[last].node;
+    // Nothing but line breaks, or boundaries that met in the same text.
+    if (!from || !to || (first === last && startOffset >= endOffset)) continue;
     const range = doc.createRange();
-    range.setStart(nodes[startNode], start - starts[startNode]);
-    range.setEnd(nodes[endNode], end - starts[endNode]);
+    range.setStart(from, startOffset);
+    range.setEnd(to, endOffset);
     ranges.push(range);
   }
   return ranges;
+}
+
+/**
+ * The text of a unit as it reads: `Range.toString()` joins text nodes and so
+ * drops every `<br>` between them, running the words on either side together.
+ */
+export function textUnitText(range: Range): string {
+  const root = range.commonAncestorContainer;
+  if (root.nodeType !== Node.ELEMENT_NODE) return range.toString();
+  const fragment = range.cloneContents();
+  for (const br of Array.from(fragment.querySelectorAll("br"))) br.replaceWith("\n");
+  return fragment.textContent ?? "";
 }
 
 /**
@@ -158,15 +204,15 @@ export async function buildTextUnitRanges(
     while (!failed) {
       if (signal?.aborted) throw signal.reason;
       if (next >= blocks.length) return;
-      const nodes = blocks[next++];
-      const text = nodes.map((node) => node.nodeValue ?? "").join("");
-      if (!nodes.length || !text.trim()) continue;
+      const pieces = blocks[next++];
+      const text = pieces.map((piece) => piece.text).join("");
+      if (!text.trim()) continue;
       const index = ordinal++;
       try {
         await consumePluginResult(segmentText({ text, language, unitId }), (segmented) => {
           if (signal?.aborted) throw signal.reason;
           if (failed) return;
-          results[index] = segmentsToRanges(nodes, normalizeReaderTextSegments(segmented, text.length));
+          results[index] = segmentsToRanges(pieces, normalizeReaderTextSegments(segmented, text.length));
         });
       } catch (error) {
         failed = true;

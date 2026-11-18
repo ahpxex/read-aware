@@ -453,6 +453,74 @@ export async function runZoomRegressions(modules: Modules): Promise<Result[]> {
     },
   );
 
+  await check("pages a pinch brings in above the reader leave the page being read where it is", async () => {
+    // Pages unlike the placeholder a slot is built as: a slot left as built
+    // changes size when its page arrives, and moves everything below it.
+    const long = new File([await makePDFFixture([PAGE.width, PAGE.height], 20)], "long.pdf", {
+      type: "application/pdf",
+    });
+    const book = await modules.pdf.makePDF(long);
+    const view = new modules.view.View();
+    view.style.cssText = `display:block;position:fixed;left:0;top:0;width:${WIDTH}px;height:${HEIGHT}px;opacity:0;pointer-events:none;z-index:-1`;
+    document.body.append(view);
+    let pinching = true;
+    try {
+      await view.open(book);
+      const renderer = view.renderer as FixedLayout;
+      renderer.setLayout("scrolled", 1);
+      // The reading area at rest before a page is gone to, as when the app
+      // opens a book: no resize is on its way to size the slots again.
+      for (let i = 0; i < 3; i++) await new Promise((resolve) => requestAnimationFrame(resolve));
+      await view.goTo(12);
+      const pageOf = (index: number) => renderer.getContents().find((content) => content.index === index)?.doc;
+      const rasterOf = (index: number) => pageOf(index)?.querySelector<HTMLCanvasElement>("#canvas > canvas");
+      const boxOf = (index: number) => {
+        const frame = pageOf(index)?.defaultView?.frameElement;
+        if (!frame) throw new Error(`Page ${index} is not live`);
+        return frame.getBoundingClientRect();
+      };
+      await waitFor("the page read to raster", () => !!rasterOf(12));
+      const host = renderer.getBoundingClientRect();
+      // Once a page has shown, every unseen page's slot is its size...
+      near(renderer.scrollHeight, book.sections.length * boxOf(12).height, "height of the stack once a page has shown");
+      // ...so the page gone to is at the top of the reading area, and stays
+      // there as the pages before it arrive.
+      near(boxOf(12).top, host.top, "page gone to");
+      await waitFor("the page before to arrive", () => !!rasterOf(11));
+      near(boxOf(12).top, host.top, "page gone to, once the page before it arrived");
+      assert(!pageOf(10), "A page well above the reader was live before the pinch");
+      // Pinched out — which brings that page into reach — and held there without settling.
+      const anchor = { x: host.left + WIDTH / 2, y: host.top + HEIGHT / 2 };
+      const factors = [0.4, 0.41];
+      const shown = new Map<number, number[]>(factors.map((factor) => [factor, []]));
+      const pinch = async () => {
+        for (let step = 0; pinching; step++) {
+          const factor = factors[step % factors.length]!;
+          renderer.setZoom({ fit: "auto", factor }, { anchor, live: true });
+          shown.get(factor)!.push(boxOf(12).top);
+          await new Promise((resolve) => setTimeout(resolve, 50));
+        }
+      };
+      const steps = pinch();
+      await waitFor("a page above to arrive during the pinch", () => !!rasterOf(10), 5000);
+      // Steps at both zooms since it arrived, to compare with those before.
+      const before = factors.map((factor) => shown.get(factor)!.length);
+      await waitFor("the pinch to go on", () => factors.every((factor, i) => shown.get(factor)!.length > before[i]!));
+      pinching = false;
+      await steps;
+      for (const factor of factors) {
+        const tops = shown.get(factor)!;
+        for (const top of tops) near(top, tops[0]!, `page being read at ${factor}× as pages above it arrived`);
+      }
+      assert(renderer.index === 12, `Mid-pinch the reader was taken to be on page ${renderer.index}`);
+    } finally {
+      pinching = false;
+      await view.close();
+      view.remove();
+      await book.destroy();
+    }
+  });
+
   await check("a settled zoom keeps the sharp overlay until its replacement is drawn", async () => {
     const reader = await open("scrolled");
     try {

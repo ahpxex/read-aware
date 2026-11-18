@@ -938,24 +938,37 @@ export class FixedLayout extends HTMLElement {
       }
       entry.frame = frame;
       if (!frame.blank) {
-        // First real page dimensions become the placeholder default,
-        // and this page's own slot takes its exact size. Growth above
-        // the viewport would shove the reading position — compensate.
-        this.#stackDefaultDims ??= { width: frame.width, height: frame.height };
-        // A slot about to change size moves the layout a previewed zoom
-        // is measured against; lay that zoom out first.
+        // What the slot is sized for until now: the placeholder. A slot
+        // about to change size moves the layout a previewed zoom is
+        // measured against; lay that zoom out first.
         const dims = this.#stackDims(entry);
-        if (dims.width !== frame.width || dims.height !== frame.height) this.#commitPreview(context);
-        const before = entry.pixelHeight;
+        const resizes = dims.width !== frame.width || dims.height !== frame.height;
+        if (resizes) this.#commitPreview(context);
+        // First real page dimensions become the placeholder default.
+        const first = !this.#stackDefaultDims;
+        this.#stackDefaultDims ??= { width: frame.width, height: frame.height };
         entry.width = frame.width;
         entry.height = frame.height;
-        this.#sizeSlot(entry);
-        const delta = entry.pixelHeight - before;
-        if (delta !== 0) {
-          this.#restackTops();
-          // Growth above the reading position would shove the page
-          // under the reader — keep the view anchored.
-          if (entry.top < this.scrollTop) this.#setStackScroll(this.scrollTop + delta, context);
+        if (first && resizes) {
+          // Every placeholder takes that size now, as a resize of the
+          // reading area would give it them. Left as built, each would
+          // change size when its own page arrived, moving the pages below
+          // it every time — and unseen by the check above, which takes a
+          // placeholder to be the size of this default: under a previewed
+          // zoom the layout moved without the preview being laid out first.
+          this.#resizeStack(context);
+        } else {
+          // This page's own slot takes its exact size. Growth above the
+          // viewport would shove the reading position — compensate.
+          const before = entry.pixelHeight;
+          this.#sizeSlot(entry);
+          const delta = entry.pixelHeight - before;
+          if (delta !== 0) {
+            this.#restackTops();
+            // Growth above the reading position would shove the page
+            // under the reader — keep the view anchored.
+            if (entry.top < this.scrollTop) this.#setStackScroll(this.scrollTop + delta, context);
+          }
         }
       }
       Object.assign(frame.element.style, {
@@ -1621,15 +1634,20 @@ export class FixedLayout extends HTMLElement {
     // The reading area a preview was worked out from is gone.
     this.#commitPreview(context);
     if (this.scrolled && this.#stack) {
-      // Keep the reading position anchored while every slot resizes.
-      const entry = this.#stack[this.#stackCurrent];
-      const offset = entry ? (this.scrollTop - entry.top) / Math.max(1, entry.pixelHeight) : 0;
-      this.#layoutStack(context, false);
-      if (entry) this.#setStackScroll(entry.top + offset * entry.pixelHeight, this.#positionContext);
-      this.#updateStackWindow("layout", context);
+      this.#resizeStack(context);
       return;
     }
     this.#render(this.#side, context);
+  }
+  /** Size every slot again — the reading area changed, or what an unseen page is taken to be — and keep the reading position. */
+  #resizeStack(context: object) {
+    if (!this.#stack) return;
+    // Keep the reading position anchored while every slot resizes.
+    const entry = this.#stack[this.#stackCurrent];
+    const offset = entry ? (this.scrollTop - entry.top) / Math.max(1, entry.pixelHeight) : 0;
+    this.#layoutStack(context, false);
+    if (entry) this.#setStackScroll(entry.top + offset * entry.pixelHeight, context);
+    this.#updateStackWindow("layout", context);
   }
   #clearFrameCache() {
     this.#navigation++;

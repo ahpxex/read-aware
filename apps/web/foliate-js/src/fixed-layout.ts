@@ -71,6 +71,28 @@ export type PanEdges = { left: boolean; right: boolean; top: boolean; bottom: bo
 /** Where a page arrived at by a page turn is first shown. */
 type PageEdge = "start" | "end";
 type ZoomHold = { point: ZoomAnchor; fx: number; fy: number; slot: HTMLElement | null };
+// READAWARE: a live zoom is shown by transform, not by layout (see
+// `#previewZoom`). Everything here is in CSS pixels of the layout as it
+// stands — laid out at the zoom the preview began from.
+type ZoomPreview = {
+  /** The host's corner and reading area, read once when the preview began. */
+  host: { left: number; top: number };
+  view: Dimensions;
+  /** The content's own extent: the widest page and the whole stack, or the spread on screen. */
+  content: Dimensions;
+  /** Paged flows center the spread both ways; a stack runs from the top. */
+  centeredBlock: boolean;
+  /** The shown frames of a paged spread and where each is laid out; a stack moves as one column. */
+  frames: { frame: FixedFrame; left: number; top: number; height: number }[];
+  /** Target zoom over the laid-out one. */
+  ratio: number;
+  /** Where the layout will be scrolled to, if nothing scrolls it after `scrollAt`. */
+  scroll: { left: number; top: number };
+  scrollAt: { left: number; top: number };
+  anchor: ZoomAnchor | undefined;
+};
+/** Where content of `extent` starts in a `viewport` it is centered in — at its edge once it outgrows it. */
+const lead = (viewport: number, extent: number) => Math.max(0, (viewport - extent) / 2);
 
 type FrameBase = {
   hidden: boolean;
@@ -156,6 +178,10 @@ export class FixedLayout extends HTMLElement {
   // keyword, which nothing set) with a fit and a factor over it — see
   // fixed-zoom.ts — applied through `setZoom`.
   #zoom: FixedLayoutZoom = DEFAULT_FIXED_LAYOUT_ZOOM;
+  // The factor the pages are laid out at. It trails `#zoom.factor` only
+  // while a live zoom is previewed (`#preview`).
+  #laidFactor = DEFAULT_FIXED_LAYOUT_ZOOM.factor;
+  #preview: ZoomPreview | null = null;
   // While a live zoom is in progress, frames are re-presented but not
   // rastered; `#zoomSettleTimer` ends it.
   #zoomLive = false;
@@ -534,7 +560,7 @@ export class FixedLayout extends HTMLElement {
       ? height / (target.height ?? blankHeight)
       : height / Math.max(l.height ?? blankHeight, r.height ?? blankHeight);
     const fit = resolveFixedLayoutFit(this.#zoom.fit, this.scrolled);
-    const scale = ((fit === "width" ? fitWidth : Math.min(fitWidth, fitHeight)) || 1) * this.#zoom.factor;
+    const scale = ((fit === "width" ? fitWidth : Math.min(fitWidth, fitHeight)) || 1) * this.#laidFactor;
     return { scale, portrait, target, blankWidth, blankHeight };
   }
   #render(side = this.#side, context = this.#positionContext) {
@@ -763,7 +789,7 @@ export class FixedLayout extends HTMLElement {
   // while appending thousands of slots is O(n²) layout (9 s of the open
   // time of a 3,246-page book, measured).
   #stackScale(entry: StackEntry, viewport = this.#stackViewport()) {
-    return this.#stackFit(entry, viewport) * this.#zoom.factor;
+    return this.#stackFit(entry, viewport) * this.#laidFactor;
   }
   // READAWARE: each page fits on its own terms — a stack may mix sizes —
   // and the zoom factor scales from that fit.
@@ -802,7 +828,7 @@ export class FixedLayout extends HTMLElement {
       minWidth: "100%",
       width: "max-content",
     });
-    column.style.setProperty("--fxl-zoom", String(this.#zoom.factor));
+    column.style.setProperty("--fxl-zoom", String(this.#laidFactor));
     this.#stackColumn = column;
     // One viewport read and one DOM insertion for the whole stack.
     const viewport = this.#stackViewport();
@@ -828,7 +854,7 @@ export class FixedLayout extends HTMLElement {
     const dims = this.#stackDims(entry);
     const fit = this.#stackFit(entry, viewport);
     entry.fitHeight = dims.height * fit;
-    entry.pixelHeight = entry.fitHeight * this.#zoom.factor;
+    entry.pixelHeight = entry.fitHeight * this.#laidFactor;
     entry.slot.style.width = `calc(var(--fxl-zoom) * ${dims.width * fit}px)`;
     entry.slot.style.height = `calc(var(--fxl-zoom) * ${entry.fitHeight}px)`;
     // A slot whose page isn't rastered yet shows as sheet-colored paper,
@@ -896,6 +922,10 @@ export class FixedLayout extends HTMLElement {
         // and this page's own slot takes its exact size. Growth above
         // the viewport would shove the reading position — compensate.
         this.#stackDefaultDims ??= { width: frame.width, height: frame.height };
+        // A slot about to change size moves the layout a previewed zoom
+        // is measured against; lay that zoom out first.
+        const dims = this.#stackDims(entry);
+        if (dims.width !== frame.width || dims.height !== frame.height) this.#commitPreview(context);
         const before = entry.pixelHeight;
         entry.width = frame.width;
         entry.height = frame.height;
@@ -950,8 +980,8 @@ export class FixedLayout extends HTMLElement {
    */
   #rezoomStack(context = this.#positionContext, updateWindow = true) {
     if (!this.#stack) return;
-    this.#stackColumn?.style.setProperty("--fxl-zoom", String(this.#zoom.factor));
-    for (const entry of this.#stack) entry.pixelHeight = entry.fitHeight * this.#zoom.factor;
+    this.#stackColumn?.style.setProperty("--fxl-zoom", String(this.#laidFactor));
+    for (const entry of this.#stack) entry.pixelHeight = entry.fitHeight * this.#laidFactor;
     this.#restackTops();
     const viewport = this.#stackViewport();
     for (const i of this.#stackLive) {
@@ -976,7 +1006,7 @@ export class FixedLayout extends HTMLElement {
   #layoutStack(context = this.#positionContext, updateWindow = true) {
     if (!this.#stack) return;
     const viewport = this.#stackViewport();
-    this.#stackColumn?.style.setProperty("--fxl-zoom", String(this.#zoom.factor));
+    this.#stackColumn?.style.setProperty("--fxl-zoom", String(this.#laidFactor));
     for (const entry of this.#stack) this.#sizeSlot(entry, viewport);
     this.#restackTops();
     for (const i of this.#stackLive) {
@@ -993,8 +1023,7 @@ export class FixedLayout extends HTMLElement {
   #updateStackWindow(reason: RelocateReason | "layout", context: object) {
     if (!this.#stack?.length) return;
     this.#positionContext = context;
-    const height = this.clientHeight;
-    const top = this.scrollTop;
+    const { top, height } = this.#stackView();
     const center = top + height / 2;
     const current = this.#stackIndexAt(center);
     if (current !== this.#stackCurrent || this.#index < 0) {
@@ -1109,6 +1138,7 @@ export class FixedLayout extends HTMLElement {
   }
   async #goToStack(index: number, reason: RelocateReason, context: object) {
     if (!this.#stack?.length) return;
+    this.#commitPreview(context);
     const clamped = Math.max(0, Math.min(index, this.#stack.length - 1));
     const entry = this.#stack[clamped];
     this.#stackCurrent = clamped;
@@ -1128,9 +1158,10 @@ export class FixedLayout extends HTMLElement {
   }
   /**
    * READAWARE: zoom the pages (see fixed-zoom.ts), keeping the page point
-   * under `anchor` where it is. A `live` step — one of many in a pinch —
-   * re-presents the current rasters at once and rasters only when the zoom
-   * has held still; anything else rasters now, settling any live zoom.
+   * under `anchor` where it is. A `live` step — one of many in a pinch — is
+   * shown at once by transform (`#previewZoom`) and laid out and rastered
+   * only when the zoom has held still; anything else is laid out and
+   * rasters now, settling any live zoom.
    */
   setZoom(zoom: FixedLayoutZoom, { anchor, live = false, context = {} }: SetZoomOptions = {}) {
     const next = normalizeFixedLayoutZoom(zoom);
@@ -1138,9 +1169,7 @@ export class FixedLayout extends HTMLElement {
       if (!live && this.#zoomLive) this.#settleZoom(context);
       return;
     }
-    const held = this.#captureZoomAnchor(anchor);
     const refit = next.fit !== this.#zoom.fit;
-    this.#zoom = next;
     this.#positionContext = context;
     if (live && !this.#zoomLive) {
       // Re-rasters started for the old scale are no longer wanted; a page's
@@ -1150,12 +1179,16 @@ export class FixedLayout extends HTMLElement {
         if (frame.renderedScale != null) this.#cancelFrameRender(frame);
       });
     }
-    if (this.scrolled) {
-      if (refit) this.#layoutStack(context, false);
-      else this.#rezoomStack(context, false);
-    } else this.#render(this.#side, context);
-    this.#restoreZoomAnchor(held);
-    if (this.scrolled) this.#updateStackWindow("layout", context);
+    // A fit decides the layout itself, so only a change of factor previews.
+    if (live && !refit && this.#previewZoom(next, anchor, context)) {
+      if (this.#zoomSettleTimer) clearTimeout(this.#zoomSettleTimer);
+      this.#zoomSettleTimer = setTimeout(() => this.#settleZoom(context), ZOOM_SETTLE_MS);
+      return;
+    }
+    // Held before the zoom changes: against what is on screen, previewed or not.
+    const held = this.#captureZoomAnchor(anchor);
+    this.#zoom = next;
+    this.#layoutZoom(held, refit, context);
     if (this.#zoomSettleTimer) clearTimeout(this.#zoomSettleTimer);
     this.#zoomSettleTimer = 0;
     if (live) this.#zoomSettleTimer = setTimeout(() => this.#settleZoom(context), ZOOM_SETTLE_MS);
@@ -1167,12 +1200,160 @@ export class FixedLayout extends HTMLElement {
     const wasLive = this.#zoomLive;
     this.#zoomLive = false;
     if (!wasLive) return;
-    // Raster what the reader now sees, then rewarm the neighbours.
-    if (this.scrolled) this.#rezoomStack(context);
-    else {
-      this.#render(this.#side, context);
-      this.#schedulePreload(context);
+    // Lay out and raster what the reader now sees, then rewarm the neighbours.
+    if (this.#preview) this.#commitPreview(context);
+    else if (this.scrolled) this.#rezoomStack(context);
+    else this.#render(this.#side, context);
+    if (!this.scrolled) this.#schedulePreload(context);
+  }
+  /** Lay the pages out at the current zoom and put `held` back under its point. Ends any preview. */
+  #layoutZoom(held: ZoomHold | null, refit: boolean, context: object) {
+    this.#endPreview();
+    this.#laidFactor = this.#zoom.factor;
+    if (this.scrolled) {
+      if (refit) this.#layoutStack(context, false);
+      else this.#rezoomStack(context, false);
+    } else this.#render(this.#side, context);
+    this.#restoreZoomAnchor(held);
+    if (this.scrolled) this.#updateStackWindow("layout", context);
+  }
+  // READAWARE: a live zoom is previewed, not laid out. Laying the pages out
+  // at every step of a pinch — restyling each slot of the stack, resizing
+  // the live iframes, scrolling the anchor back under the fingers — costs
+  // more than a frame, so the pages trail the fingers at half the display's
+  // rate (measured: ~30 ms a step in a 528-page PDF, against 16.7 ms).
+  // Instead the layout stays as it is and one transform — on the stack's
+  // column, or on each frame of a paged spread — shows it where the target
+  // zoom will put it: scaled by the ratio of the two zooms, and shifted by
+  // the difference in centering and in scroll position, both worked out
+  // from the geometry read when the preview began. A step is then
+  // arithmetic and a style write, with no layout. When the zoom settles the
+  // pages are laid out for real (`#commitPreview`), measured against the
+  // preview as it stands on screen, so they land where it showed them.
+  //
+  // While a preview is up the layout — scroll position, slot offsets, frame
+  // sizes — is that of the laid-out zoom. What must know where the reader
+  // is looking asks `#stackView`; what would move or measure the layout
+  // (a navigation, a pan, a resize) commits the preview first.
+  /** Show the pages at `zoom` by transform; false when there is nothing laid out to preview from. */
+  #previewZoom(zoom: FixedLayoutZoom, anchor: ZoomAnchor | undefined, context: object): boolean {
+    const preview = this.#preview ?? this.#beginPreview();
+    if (!preview) return false;
+    const { view, content } = preview;
+    const now = { left: this.scrollLeft, top: this.scrollTop };
+    const point = anchor
+      ? { x: anchor.x - preview.host.left, y: anchor.y - preview.host.top }
+      : { x: view.width / 2, y: view.height / 2 };
+    // The layout point the preview shows under the anchor now...
+    const before = this.#previewShift(preview, preview.ratio);
+    const at = {
+      x: (point.x + preview.scroll.left + now.left - preview.scrollAt.left - before.x) / preview.ratio,
+      y: (point.y + preview.scroll.top + now.top - preview.scrollAt.top - before.y) / preview.ratio,
+    };
+    // ...stays under it at the new ratio, as far as the scroll range allows —
+    // the clamp the browser applies to a scroll position once laid out.
+    const ratio = zoom.factor / this.#laidFactor;
+    const shift = this.#previewShift(preview, ratio);
+    const clamp = (value: number, range: number) => Math.min(Math.max(0, range), Math.max(0, value));
+    this.#zoom = zoom;
+    this.#preview = preview;
+    preview.ratio = ratio;
+    preview.anchor = anchor;
+    preview.scrollAt = now;
+    preview.scroll = {
+      left: clamp(ratio * at.x + shift.x - point.x, content.width * ratio - view.width),
+      top: clamp(ratio * at.y + shift.y - point.y, content.height * ratio - view.height),
+    };
+    this.#presentPreview(preview);
+    // Zooming out brings pages into view that are not live yet.
+    if (this.scrolled) this.#updateStackWindow("layout", context);
+    return true;
+  }
+  /** Read the geometry a preview is worked out from; null when no page is laid out. */
+  #beginPreview(): ZoomPreview | null {
+    const host = this.getBoundingClientRect();
+    const view = { width: this.clientWidth, height: this.clientHeight };
+    if (!view.width || !view.height) return null;
+    const scroll = { left: this.scrollLeft, top: this.scrollTop };
+    const base = { host, view, ratio: 1, scroll, scrollAt: scroll, anchor: undefined };
+    if (this.scrolled) {
+      const last = this.#stack?.at(-1);
+      if (!this.#stack || !last || !this.#stackColumn) return null;
+      let width = 0;
+      for (const entry of this.#stack)
+        width = Math.max(width, this.#stackDims(entry).width * this.#stackScale(entry, view));
+      return { ...base, content: { width, height: last.top + last.pixelHeight }, centeredBlock: false, frames: [] };
     }
+    const frames = [this.#left, this.#center, this.#right].flatMap((frame) => {
+      if (!frame || frame.hidden || frame.element.style.display === "none") return [];
+      const rect = frame.element.getBoundingClientRect();
+      const [left, top] = [rect.left - host.left + scroll.left, rect.top - host.top + scroll.top];
+      return [{ frame, left, top, width: rect.width, height: rect.height }];
+    });
+    if (!frames.length) return null;
+    const left = Math.min(...frames.map((frame) => frame.left));
+    const right = Math.max(...frames.map((frame) => frame.left + frame.width));
+    const height = Math.max(...frames.map((frame) => frame.height));
+    return { ...base, content: { width: right - left, height }, centeredBlock: true, frames };
+  }
+  /**
+   * How far the content's origin moves, beyond the scaling, between the
+   * laid-out zoom and `ratio` times it: content narrower than the reading
+   * area is centered in it, wider content starts at its edge.
+   */
+  #previewShift({ view, content, centeredBlock }: ZoomPreview, ratio: number) {
+    return {
+      x: lead(view.width, content.width * ratio) - ratio * lead(view.width, content.width),
+      y: centeredBlock ? lead(view.height, content.height * ratio) - ratio * lead(view.height, content.height) : 0,
+    };
+  }
+  #presentPreview(preview: ZoomPreview) {
+    const { view, content, ratio, scroll, scrollAt } = preview;
+    // The layout scrolls on its own meanwhile; the transform only makes up
+    // the difference between where it stood and where the zoom scrolls to.
+    const dx = scroll.left - scrollAt.left;
+    const dy = scroll.top - scrollAt.top;
+    const place = (element: HTMLElement, x: number, y: number) => {
+      element.style.transformOrigin = "0 0";
+      element.style.transform = `translate(${x}px, ${y}px) scale(${ratio})`;
+    };
+    if (this.#stackColumn) {
+      const shift = this.#previewShift(preview, ratio);
+      place(this.#stackColumn, shift.x - dx, shift.y - dy);
+      return;
+    }
+    // Each frame of a spread to where the row will carry it, centered in
+    // the block direction on its own height.
+    const from = lead(view.width, content.width);
+    const to = lead(view.width, content.width * ratio);
+    for (const { frame, left, top, height } of preview.frames)
+      place(frame.element, to + ratio * (left - from) - left - dx, lead(view.height, height * ratio) - top - dy);
+  }
+  #endPreview() {
+    const preview = this.#preview;
+    if (!preview) return;
+    this.#preview = null;
+    for (const element of [this.#stackColumn, ...preview.frames.map(({ frame }) => frame.element)]) {
+      if (!element) continue;
+      element.style.transform = "";
+      element.style.transformOrigin = "";
+    }
+  }
+  /** Lay a previewed zoom out where the preview shows it. A live zoom stays live: nothing is rastered for it yet. */
+  #commitPreview(context = this.#positionContext) {
+    const preview = this.#preview;
+    if (!preview) return;
+    this.#layoutZoom(this.#captureZoomAnchor(preview.anchor), false, context);
+  }
+  /**
+   * The part of the laid-out stack on screen: the scroll position and the
+   * reading area, or — under a previewed zoom — what the preview shows.
+   */
+  #stackView(): { top: number; height: number } {
+    const preview = this.#preview;
+    if (!preview) return { top: this.scrollTop, height: this.clientHeight };
+    const top = preview.scroll.top + this.scrollTop - preview.scrollAt.top;
+    return { top: top / preview.ratio, height: preview.view.height / preview.ratio };
   }
   #eachLiveFrame(fn: (frame: FixedFrame) => void) {
     for (const frames of this.#liveFrames.values()) this.#eachFrame(frames, fn);
@@ -1190,7 +1371,9 @@ export class FixedLayout extends HTMLElement {
     let slot: HTMLElement | null = null;
     if (this.scrolled) {
       if (!this.#stack?.length) return null;
-      slot = this.#stack[this.#stackIndexAt(this.scrollTop + point.y - host.top)]?.slot ?? null;
+      const view = this.#stackView();
+      const y = view.top + ((point.y - host.top) / this.clientHeight) * view.height;
+      slot = this.#stack[this.#stackIndexAt(y)]?.slot ?? null;
       if (!slot) return null;
     }
     const box = this.#zoomBox(slot);
@@ -1231,10 +1414,8 @@ export class FixedLayout extends HTMLElement {
   get viewFocus(): ViewFocus | null {
     // A stack reads its current page from the scroll position itself — the
     // window's own record trails a scroll by a throttle step.
-    const spread =
-      this.scrolled && this.#stack?.length
-        ? this.#spreads[this.#stackIndexAt(this.scrollTop + this.clientHeight / 2)]
-        : null;
+    const view = this.scrolled && this.#stack?.length ? this.#stackView() : null;
+    const spread = view ? this.#spreads[this.#stackIndexAt(view.top + view.height / 2)] : null;
     const section = spread ? (spread.center ?? spread.left ?? spread.right) : null;
     const index = section && this.book ? this.book.sections.indexOf(section) : this.index;
     const box = this.#pageBox(index);
@@ -1248,6 +1429,7 @@ export class FixedLayout extends HTMLElement {
   }
   /** Scroll `focus` back to the viewport's center; false when its page is not the one shown. */
   showFocus(focus: ViewFocus): boolean {
+    this.#commitPreview();
     if (focus.index !== this.index) return false;
     const box = this.#pageBox(focus.index);
     if (!box?.width || !box.height) return false;
@@ -1321,6 +1503,7 @@ export class FixedLayout extends HTMLElement {
   /** Pan a zoomed paged spread; true when it moved. Scrolled flows scroll natively; a locked axis never pans. */
   panBy(dx: number, dy: number): boolean {
     if (this.scrolled) return false;
+    this.#commitPreview();
     const { scrollLeft, scrollTop } = this;
     if (this.#lockedAxis !== "x") this.scrollLeft = scrollLeft + dx;
     if (this.#lockedAxis !== "y") this.scrollTop = scrollTop + dy;
@@ -1408,6 +1591,8 @@ export class FixedLayout extends HTMLElement {
   }
   #onResize(context = this.#positionContext) {
     this.#positionContext = context;
+    // The reading area a preview was worked out from is gone.
+    this.#commitPreview(context);
     if (this.scrolled && this.#stack) {
       // Keep the reading position anchored while every slot resizes.
       const entry = this.#stack[this.#stackCurrent];
@@ -1433,6 +1618,8 @@ export class FixedLayout extends HTMLElement {
     if (this.#zoomSettleTimer) clearTimeout(this.#zoomSettleTimer);
     this.#zoomSettleTimer = 0;
     this.#zoomLive = false;
+    this.#endPreview();
+    this.#laidFactor = this.#zoom.factor;
     if (this.#detailTimer) clearTimeout(this.#detailTimer);
     this.#detailTimer = 0;
     this.#frameGeneration++;
@@ -1626,6 +1813,7 @@ export class FixedLayout extends HTMLElement {
   ) {
     if (index < 0 || index > this.#spreads.length - 1) return;
     if (this.scrolled) return this.#goToStack(index, reason, context);
+    this.#commitPreview(context);
     if (index === this.#index && index === this.#displayedIndex) {
       this.#side = side;
       this.#render(side, context);
@@ -1637,6 +1825,8 @@ export class FixedLayout extends HTMLElement {
     // READAWARE: a newer navigation landed while the frames were loading —
     // it owns the display now.
     if (this.#index !== index || this.#navigation !== navigation) return;
+    // A zoom may have begun meanwhile, on the spread about to leave.
+    this.#commitPreview(context);
     this.#displayedIndex = index;
     this.#showFrames(frames, side, context);
     // A zoomed spread opens where reading it begins — or, turned back to,
@@ -1685,6 +1875,7 @@ export class FixedLayout extends HTMLElement {
     if (typeof anchor === "number") return;
     const doc = isRange(anchor) ? anchor.startContainer.ownerDocument : anchor.ownerDocument;
     if (!doc || !this.getContents().some((content) => content.doc === doc)) return;
+    this.#commitPreview(context);
     if (select) {
       const range = anchorRange(doc, anchor),
         selection = doc.defaultView?.getSelection();
@@ -1698,12 +1889,14 @@ export class FixedLayout extends HTMLElement {
     this.#reportLocation("navigation", anchorRange(doc, anchor), context);
   }
   async next(_distance?: number, context: object = {}) {
+    this.#commitPreview(context);
     const navigation = ++this.#navigation;
     if (this.scrolled) return this.#goToStack(this.#stackCurrent + 1, "page", context);
     const s = this.rtl ? this.#goLeft(context, "start") : this.#goRight(context, "start");
     if (!s) await this.#goToSpread(this.#index + 1, this.rtl ? "right" : "left", "page", context, navigation, "start");
   }
   async prev(_distance?: number, context: object = {}) {
+    this.#commitPreview(context);
     const navigation = ++this.#navigation;
     if (this.scrolled) return this.#goToStack(this.#stackCurrent - 1, "page", context);
     const s = this.rtl ? this.#goRight(context, "end") : this.#goLeft(context, "end");

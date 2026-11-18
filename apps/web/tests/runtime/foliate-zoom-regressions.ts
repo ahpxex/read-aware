@@ -51,7 +51,11 @@ export async function runZoomRegressions(modules: Modules): Promise<Result[]> {
   const open = async (
     flow: "scrolled" | "paginated",
     index = 1,
-    { source = file, prepare }: { source?: File; prepare?: (renderer: FixedLayout) => void } = {},
+    {
+      source = file,
+      columns = 1,
+      prepare,
+    }: { source?: File; columns?: number; prepare?: (renderer: FixedLayout) => void } = {},
   ) => {
     const book = await modules.pdf.makePDF(source);
     const view = new modules.view.View();
@@ -60,7 +64,7 @@ export async function runZoomRegressions(modules: Modules): Promise<Result[]> {
     await view.open(book);
     const renderer = view.renderer;
     if (!(renderer instanceof modules.fixed.FixedLayout)) throw new Error("Wrong renderer");
-    renderer.setLayout(flow, 1);
+    renderer.setLayout(flow, columns);
     // As the app sets a book's remembered view up: before its first page shows.
     prepare?.(renderer as FixedLayout);
     await view.goTo(index);
@@ -149,22 +153,156 @@ export async function runZoomRegressions(modules: Modules): Promise<Result[]> {
     }
   });
 
-  await check("a live zoom presents the current raster and rasters once it settles", async () => {
+  await check("a live zoom shows the page at once without laying it out, and rasters once it settles", async () => {
     const reader = await open("scrolled");
     try {
       const { renderer } = reader;
       const doc = reader.page()!;
       const canvas = doc.querySelector("#canvas > canvas");
+      const frame = doc.defaultView!.frameElement as HTMLElement;
       const width = renderer.clientWidth;
+      const laid = { width: frame.style.width, scrollTop: renderer.scrollTop, scrollHeight: renderer.scrollHeight };
       renderer.setZoom({ fit: "auto", factor: 1.25 }, { live: true });
       renderer.setZoom({ fit: "auto", factor: 1.5 }, { live: true });
-      // Shown at the new size at once, from the raster it already had.
+      assert(renderer.zoom.factor === 1.5, `A live step left the zoom at ${renderer.zoom.factor}`);
+      // Shown at the new size at once, from the raster it already had...
       assert(doc.querySelector("#canvas > canvas") === canvas, "A live step rastered the page");
-      near(canvas!.getBoundingClientRect().width, width * 1.5, "live-presented raster width");
+      near(reader.box().width, width * 1.5, "live-presented page width");
+      // ...by transform: the layout a step would otherwise redo stands as it was.
+      assert(frame.style.width === laid.width, "A live step resized the page's frame");
+      assert(renderer.scrollTop === laid.scrollTop, "A live step scrolled the layout");
       await waitFor("the settled raster", () => doc.querySelector("#canvas > canvas") !== canvas);
       near(pageScale(doc), (width * 1.5) / PAGE.width, "settled raster scale", 0.01);
+      near(parseFloat(frame.style.width), width * 1.5, "settled frame width");
+      near(reader.box().width, width * 1.5, "settled page width");
     } finally {
       await reader.close();
+    }
+  });
+
+  await check("a live zoom shows the page where its layout then puts it", async () => {
+    // Each case is a pinch from `from`: live steps about `anchor` (a point of
+    // the reading area), then the settling layout. What the preview showed and
+    // what the layout shows must be the same box — through the centering of a
+    // page smaller than the reading area and the ends of the scroll range too.
+    const cases = [
+      { flow: "scrolled", fit: "width", from: 1, steps: [1.3, 1.9, 2.6], anchor: { x: 250, y: 180 } },
+      { flow: "scrolled", fit: "width", from: 2.4, steps: [1.8, 1.1, 0.7], anchor: { x: 620, y: 400 } },
+      { flow: "scrolled", fit: "width", from: 0.6, steps: [0.8, 1.2, 1.7], anchor: { x: 700, y: 100 } },
+      { flow: "paginated", fit: "page", from: 1, steps: [1.4, 2.2, 3.1], anchor: { x: 500, y: 150 } },
+      { flow: "paginated", fit: "page", from: 3, steps: [2.2, 1.3, 0.8], anchor: { x: 200, y: 450 } },
+      { flow: "paginated", fit: "page", from: 0.7, steps: [1.1, 1.6], anchor: { x: 450, y: 300 } },
+      // Wider than the reading area but no taller: scrolled one way, centered the other.
+      { flow: "paginated", fit: "page", from: 1, steps: [1.2, 1.45], anchor: { x: 450, y: 300 }, landscape: true },
+      // A two-page spread: each frame is carried to its own place in the row.
+      { flow: "paginated", fit: "page", from: 1, steps: [1.3, 2.1], anchor: { x: 600, y: 250 }, columns: 2 },
+      { flow: "paginated", fit: "page", from: 2.5, steps: [1.6, 0.8], anchor: { x: 300, y: 350 }, columns: 2 },
+    ] as const;
+    for (const [number, { flow, fit, from, steps, anchor, ...rest }] of cases.entries()) {
+      const label = `case ${number + 1} (${flow} ${from}→${steps.at(-1)})`;
+      const reader = await open(flow, 1, {
+        source: "landscape" in rest ? landscapeFile : file,
+        columns: "columns" in rest ? rest.columns : 1,
+      });
+      try {
+        const { renderer } = reader;
+        renderer.setZoom({ fit, factor: from });
+        // Somewhere inside the page, so the anchor has room to hold.
+        renderer.scrollLeft = renderer.scrollWidth / 5;
+        renderer.scrollTop += renderer.clientHeight / 4;
+        const host = reader.host();
+        const point = { x: host.left + anchor.x, y: host.top + anchor.y };
+        const start = reader.box();
+        for (const factor of steps) {
+          const before = reader.box();
+          const held = { x: (point.x - before.left) / before.width, y: (point.y - before.top) / before.height };
+          renderer.setZoom({ fit, factor }, { anchor: point, live: true });
+          const shown = reader.box();
+          // The point under the fingers stays there wherever the scroll range
+          // lets it (a stack's range runs past this one page, either way).
+          const wanted = { x: held.x * shown.width - anchor.x, y: held.y * shown.height - anchor.y };
+          if (wanted.x > 1 && wanted.x < shown.width - renderer.clientWidth - 1)
+            near(shown.left + held.x * shown.width, point.x, `${label} at ${factor}: previewed anchor x`);
+          if (flow === "scrolled" || (wanted.y > 1 && wanted.y < shown.height - renderer.clientHeight - 1))
+            near(shown.top + held.y * shown.height, point.y, `${label} at ${factor}: previewed anchor y`);
+        }
+        const shown = reader.box();
+        near(shown.width, (start.width * steps.at(-1)!) / from, `${label}: previewed width`);
+        // The spread's other page, if one is shown beside this one.
+        const beside = renderer.getContents().flatMap(({ index }) => {
+          const frame = index == null || index === 1 ? null : reader.page(index)?.defaultView?.frameElement;
+          // Cached spreads stay in the DOM, hidden; only the one on screen counts.
+          return frame && getComputedStyle(frame).visibility !== "hidden"
+            ? [[index!, reader.box(index!)] as const]
+            : [];
+        });
+        if ("columns" in rest) assert(beside.length > 0, `${label}: the spread shows one page only`);
+        // Settle it: the layout takes over from the preview without moving the page.
+        renderer.setZoom({ fit, factor: steps.at(-1)! }, { anchor: point });
+        const settled = reader.box();
+        for (const [index, box] of beside) {
+          const landed = reader.box(index);
+          near(landed.left, box.left, `${label}: page ${index} settled left`);
+          near(landed.top, box.top, `${label}: page ${index} settled top`);
+          near(landed.width, box.width, `${label}: page ${index} settled width`);
+        }
+        near(settled.left, shown.left, `${label}: settled left`);
+        near(settled.top, shown.top, `${label}: settled top`);
+        near(settled.width, shown.width, `${label}: settled width`);
+        near(settled.height, shown.height, `${label}: settled height`);
+        const frame = reader.page()!.defaultView!.frameElement as HTMLElement;
+        near(parseFloat(frame.style.width), settled.width, `${label}: laid-out frame width`);
+      } finally {
+        await reader.close();
+      }
+    }
+  });
+
+  await check("a previewed zoom is laid out before anything moves or measures the layout", async () => {
+    // Turning the page mid-pinch: the turn starts from the zoom on screen.
+    const paged = await open("paginated", 1);
+    try {
+      const { renderer } = paged;
+      renderer.setZoom({ fit: "page", factor: 2 }, { live: true });
+      await renderer.next();
+      await waitFor("next page", () => renderer.index === 2);
+      near(paged.box(2).height, renderer.clientHeight * 2, "page turned to at the zoom");
+      assert(renderer.panEdges.top && renderer.panEdges.left, "The page turned to did not open at its start");
+      // And panning or restoring a place acts on the laid-out page.
+      renderer.setZoom({ fit: "page", factor: 3 }, { live: true });
+      const previewed = paged.box(2);
+      assert(renderer.panBy(0, 100), "A previewed page did not pan");
+      near(paged.box(2).top, previewed.top - 100, "panned from where the preview showed the page");
+      near(paged.box(2).height, renderer.clientHeight * 3, "page height once laid out");
+      const frame = paged.page(2)!.defaultView!.frameElement as HTMLElement;
+      near(parseFloat(frame.style.height), renderer.clientHeight * 3, "laid-out frame height");
+    } finally {
+      await paged.close();
+    }
+    // Reading where the reader is looking does not need the layout: the focus
+    // names the same point of the same page before, during and after.
+    const scrolled = await open("scrolled", 1);
+    try {
+      const { renderer } = scrolled;
+      renderer.setZoom({ fit: "width", factor: 1.5 });
+      const before = renderer.viewFocus!;
+      renderer.setZoom({ fit: "width", factor: 2.4 }, { live: true });
+      const during = renderer.viewFocus!;
+      assert(during.index === before.index, `Mid-zoom the focus named page ${during.index}`);
+      near(during.x, before.x, "previewed focus x", 0.005);
+      near(during.y, before.y, "previewed focus y", 0.005);
+      renderer.setZoom({ fit: "width", factor: 2.4 });
+      const after = renderer.viewFocus!;
+      near(after.x, before.x, "settled focus x", 0.005);
+      near(after.y, before.y, "settled focus y", 0.005);
+      // A jump mid-pinch lands on its page at the zoom on screen.
+      renderer.setZoom({ fit: "width", factor: 1.2 }, { live: true });
+      await renderer.goTo({ index: 2 });
+      await waitFor("the page jumped to", () => renderer.index === 2);
+      near(scrolled.box(2).width, renderer.clientWidth * 1.2, "page jumped to at the zoom");
+      near(scrolled.box(2).top, scrolled.host().top, "page jumped to at the top of the reading area");
+    } finally {
+      await scrolled.close();
     }
   });
 

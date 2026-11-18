@@ -29,6 +29,11 @@ type DownloadMenuProps = {
  * has resolved, the left half downloads it in one click; the caret opens the
  * full platform list inline. It never scrolls the page — a download button
  * should download.
+ *
+ * The two halves are one button: the shared Button look rounds all four
+ * corners, so each half squares the side it shares with the other and only the
+ * group's outer corners stay round (radius.css: joined groups round only their
+ * outer corners).
  */
 export function DownloadMenu({ downloads, platform, strings = DEFAULT_STRINGS }: DownloadMenuProps) {
   const [open, setOpen] = useState(false);
@@ -39,7 +44,7 @@ export function DownloadMenu({ downloads, platform, strings = DEFAULT_STRINGS }:
   return (
     <div className="inline-flex items-stretch">
       {direct && (
-        <a href={direct.url} className={buttonClassName({ size: "lg", className: "rounded-l-md" })}>
+        <a href={direct.url} className={buttonClassName({ size: "lg", className: "rounded-r-none" })}>
           {strings.downloadFor(direct.name)}
         </a>
       )}
@@ -50,7 +55,7 @@ export function DownloadMenu({ downloads, platform, strings = DEFAULT_STRINGS }:
         triggerLabel={direct ? strings.choosePlatform : strings.download}
         triggerClassName={buttonClassName({
           size: "lg",
-          className: direct ? "rounded-r-md border-l border-inverse-fg/20 px-2.5" : "rounded-md",
+          className: direct ? "rounded-l-none border-l border-inverse-fg/20 px-2.5" : undefined,
         })}
         panelClassName="w-64 p-1"
         trigger={
@@ -82,7 +87,7 @@ export function DownloadMenu({ downloads, platform, strings = DEFAULT_STRINGS }:
               key={download.id}
               href={href}
               onClick={() => setOpen(false)}
-              className="flex items-baseline justify-between rounded px-3 py-2 transition-colors hover:bg-fill"
+              className="flex items-baseline justify-between rounded-control px-3 py-2 transition-colors hover:bg-fill"
             >
               <span className="text-[0.9375rem]">{download.name}</span>
               <span className="text-[0.8125rem] text-fg-subtle">

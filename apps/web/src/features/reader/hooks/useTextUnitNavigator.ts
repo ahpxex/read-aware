@@ -25,7 +25,7 @@ import {
   textUnitText,
   type TextUnitId,
 } from "../lib/text-unit-index";
-import { pageRange, pageTextReady } from "../lib/fixed-page-text";
+import { firstUnitInView, pageRange, pageTextReady } from "../lib/fixed-page-text";
 
 /** The unit the navigator rests on — the target for the bar's actions. */
 export type TextUnitTarget = {
@@ -309,6 +309,19 @@ export function useTextUnitNavigator({
     [viewRef],
   );
 
+  /** The unit to start from where the reader is looking: by the visible range
+   *  in flowing text; on a fixed-layout page — all of which is "visible" — by
+   *  how far the page is scrolled. */
+  const visibleUnitIndex = useCallback(
+    (units: Range[]): number => {
+      const renderer = viewRef.current?.renderer;
+      return viewRef.current?.isFixedLayout && renderer
+        ? firstUnitInView(units, renderer.getBoundingClientRect())
+        : anchorTextUnitIndex(units, visibleRangeRef.current);
+    },
+    [viewRef],
+  );
+
   // Drop outgoing document references before activation. Persisted positions
   // are restored only after the loader supplies the actual content version.
   // A new configuration actor alone is not a new book: it is read, not tracked.
@@ -473,20 +486,22 @@ export function useTextUnitNavigator({
         log.warn("discarding invalid reading mode position", error);
         setResting(null);
         persistState(origin);
-        return anchorTextUnitIndex(units, visibleRangeRef.current);
+        return visibleUnitIndex(units);
       }
     },
-    [viewRef, setResting, persistState],
+    [viewRef, setResting, persistState, visibleUnitIndex],
   );
 
   /** A resting unit from this device's legacy record resumes only on the page
    *  the reader opened at; anywhere else the position moved on without it. */
-  const verifiedIndex = useCallback((units: Range[], index: number): number => {
-    if (restingVerifiedRef.current) return index;
-    const visible = visibleRangeRef.current;
-    const unit = units[index];
-    return unit && textUnitOnPage(unit, visible) ? index : anchorTextUnitIndex(units, visible);
-  }, []);
+  const verifiedIndex = useCallback(
+    (units: Range[], index: number): number => {
+      if (restingVerifiedRef.current) return index;
+      const unit = units[index];
+      return unit && textUnitOnPage(unit, visibleRangeRef.current) ? index : visibleUnitIndex(units);
+    },
+    [visibleUnitIndex],
+  );
 
   /** Remove only the navigator's independent overlay at the resting CFI. */
   const clearWash = useCallback(() => {
@@ -524,7 +539,11 @@ export function useTextUnitNavigator({
       if (!rects.length) return false;
       const rootRect = root.getBoundingClientRect();
       const frameRect = frame.getBoundingClientRect();
-      const comfortBottom = viewRef.current?.renderer?.scrolled
+      // A locked view is held still across the reading on purpose: what it
+      // clips that way is not something a step should try to bring in.
+      const renderer = viewRef.current?.renderer;
+      const lockedAxis = renderer && "lockedAxis" in renderer ? renderer.lockedAxis : null;
+      const comfortBottom = renderer?.scrolled
         ? Math.min(
             SCROLL_COMFORT_BOTTOM_MAX_PX,
             Math.max(SCROLL_COMFORT_BOTTOM_MIN_PX, rootRect.height * SCROLL_COMFORT_BOTTOM_FRACTION),
@@ -532,10 +551,11 @@ export function useTextUnitNavigator({
         : 0;
       return rects.every(
         (rect) =>
-          frameRect.top + rect.top >= rootRect.top - 1 &&
-          frameRect.top + rect.bottom <= rootRect.bottom - comfortBottom + 1 &&
-          frameRect.left + rect.left >= rootRect.left - 1 &&
-          frameRect.left + rect.right <= rootRect.right + 1,
+          (lockedAxis === "y" ||
+            (frameRect.top + rect.top >= rootRect.top - 1 &&
+              frameRect.top + rect.bottom <= rootRect.bottom - comfortBottom + 1)) &&
+          (lockedAxis === "x" ||
+            (frameRect.left + rect.left >= rootRect.left - 1 && frameRect.left + rect.right <= rootRect.right + 1)),
       );
     },
     [readerRootRef, viewRef],
@@ -684,7 +704,7 @@ export function useTextUnitNavigator({
               resting?.sectionIndex === section.index && resting.cfiRange
                 ? resolveTextUnitPosition(view, resting.cfiRange, section.doc, section.index, units)
                 : currentIndexRef.current,
-            visibleIndex: anchorTextUnitIndex(units, visibleRangeRef.current),
+            visibleIndex: visibleUnitIndex(units),
             position: (ordinal) => {
               check();
               if (sectionRef.current !== section || unitsRef.current !== units) throw positionUnavailable();
@@ -783,6 +803,7 @@ export function useTextUnitNavigator({
       clearUnit,
       setResting,
       persistState,
+      visibleUnitIndex,
     ],
   );
 
@@ -814,7 +835,7 @@ export function useTextUnitNavigator({
         visible.startContainer.ownerDocument === section.doc &&
         !(resting.sectionIndex === section.index && range && textUnitOnPage(range, visible))
       ) {
-        const index = direction === 1 ? anchorTextUnitIndex(units, visible) : lastVisibleTextUnitIndex(units, visible);
+        const index = direction === 1 ? visibleUnitIndex(units) : lastVisibleTextUnitIndex(units, visible);
         if (index >= 0) {
           setReturnPoint(resting);
           applyIndex(index, { scroll: false, origin: "user" });
@@ -856,7 +877,7 @@ export function useTextUnitNavigator({
           toastRef.current({ description: describeError(error).body, variant: "destructive" });
       });
     },
-    [stepNative, viewRef, applyIndex, setReturnPoint],
+    [stepNative, viewRef, applyIndex, setReturnPoint, visibleUnitIndex],
   );
 
   const handleSectionLoad = useCallback(
@@ -896,7 +917,7 @@ export function useTextUnitNavigator({
         resting?.sectionIndex === index
           ? { index: restoredIndex(units, doc, index, origin), scroll: false, origin, verify: unverified }
           : !resting || unverified
-            ? { index: anchorTextUnitIndex(units, visibleRangeRef.current), scroll: false, origin, verify: false }
+            ? { index: visibleUnitIndex(units), scroll: false, origin, verify: false }
             : null;
       if (pendingAnchorRef.current == null) clearUnit(origin);
       // Worker segmentation can finish after relocate, not only before it.
@@ -909,7 +930,7 @@ export function useTextUnitNavigator({
         });
       }
     },
-    [applyIndex, buildSession, buildUnits, clearUnit, restoredIndex, verifiedIndex],
+    [applyIndex, buildSession, buildUnits, clearUnit, restoredIndex, verifiedIndex, visibleUnitIndex],
   );
 
   // The displayed section's text was drawn again: take the units from it
@@ -928,7 +949,7 @@ export function useTextUnitNavigator({
         resting?.sectionIndex === section.index
           ? verifiedIndex(units, restoredIndex(units, section.doc, section.index, origin))
           : !resting || !restingVerifiedRef.current
-            ? anchorTextUnitIndex(units, visibleRangeRef.current)
+            ? visibleUnitIndex(units)
             : -1;
       if (index >= 0) applyIndex(index, { scroll: false, origin });
       else {
@@ -936,7 +957,7 @@ export function useTextUnitNavigator({
         clearUnit(origin);
       }
     },
-    [applyIndex, buildUnits, clearUnit, clearWash, restoredIndex, verifiedIndex],
+    [applyIndex, buildUnits, clearUnit, clearWash, restoredIndex, verifiedIndex, visibleUnitIndex],
   );
 
   // A fixed-layout page is displayed whole, so it is the navigator's section
@@ -1047,7 +1068,9 @@ export function useTextUnitNavigator({
         const index =
           resting?.sectionIndex === section.index
             ? verifiedIndex(units, restoredIndex(units, section.doc, section.index, origin))
-            : anchorTextUnitIndex(units, reanchor ?? visibleRangeRef.current);
+            : reanchor
+              ? anchorTextUnitIndex(units, reanchor)
+              : visibleUnitIndex(units);
         if (index >= 0) applyIndex(index, { scroll: false, origin });
         else clearUnit(origin);
       })();
@@ -1079,6 +1102,7 @@ export function useTextUnitNavigator({
     restoredIndex,
     restingFromAddress,
     verifiedIndex,
+    visibleUnitIndex,
   ]);
 
   // Mode or unit switch: re-segment the loaded section under the new plugin
@@ -1118,7 +1142,7 @@ export function useTextUnitNavigator({
     void (async () => {
       const result = await buildUnits(origin);
       if (!result?.isCurrent()) return;
-      const index = anchorTextUnitIndex(result.units, previousRange ?? visibleRangeRef.current);
+      const index = previousRange ? anchorTextUnitIndex(result.units, previousRange) : visibleUnitIndex(result.units);
       if (index >= 0) applyIndex(index, { scroll: false, origin });
       else clearUnit(origin);
     })();
@@ -1136,6 +1160,7 @@ export function useTextUnitNavigator({
     persistState,
     setResting,
     setReturnPoint,
+    visibleUnitIndex,
   ]);
 
   // Android: while the mode is on, the volume keys step units (volume

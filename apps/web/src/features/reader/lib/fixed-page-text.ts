@@ -30,3 +30,21 @@ export function pageRange(doc: Document): Range | null {
   range.selectNodeContents(doc.body);
   return range;
 }
+
+/**
+ * The unit a reader looking at `viewport` (the reading area, in the window's
+ * coordinates) is at: the first one not yet scrolled past its top. On a
+ * fixed-layout page the whole page counts as displayed, so where the reader
+ * is on it is a matter of where the page is scrolled to, not of a range.
+ * The last unit when all are above; -1 only for none.
+ */
+export function firstUnitInView(units: Range[], viewport: Pick<DOMRect, "top">): number {
+  const frame = units[0]?.startContainer.ownerDocument?.defaultView?.frameElement;
+  if (!frame) return units.length ? 0 : -1;
+  // Unit boxes are in the frame's own coordinates, and a frame may be scaled.
+  const box = frame.getBoundingClientRect();
+  const scale = frame.clientHeight ? box.height / frame.clientHeight : 1;
+  const top = (viewport.top - box.top) / (scale || 1);
+  const index = units.findIndex((unit) => unit.getBoundingClientRect().bottom > top + 1);
+  return index < 0 ? units.length - 1 : index;
+}

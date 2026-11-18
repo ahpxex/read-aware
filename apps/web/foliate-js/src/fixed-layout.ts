@@ -1943,10 +1943,14 @@ export class FixedLayout extends HTMLElement {
     const top = box.top + Math.min(...rects.map((rect) => rect.top)) * scaleY;
     const host = this.getBoundingClientRect();
     const margin = Math.min(this.clientHeight * RANGE_LEAD_SHARE, RANGE_LEAD_MAX_PX);
-    this.scrollTop += top - host.top - margin;
-    const viewRight = host.left + this.clientWidth;
-    if (left < host.left || right - left > this.clientWidth) this.scrollLeft += left - host.left;
-    else if (right > viewRight) this.scrollLeft += right - viewRight;
+    // A locked view stays where it is held: what it clips that way is the
+    // reader's choice, and showing a place does not undo it.
+    if (this.#lockedAxis !== "y") this.scrollTop += top - host.top - margin;
+    if (this.#lockedAxis !== "x") {
+      const viewRight = host.left + this.clientWidth;
+      if (left < host.left || right - left > this.clientWidth) this.scrollLeft += left - host.left;
+      else if (right > viewRight) this.scrollLeft += right - viewRight;
+    }
     return true;
   }
   async next(_distance?: number, context: object = {}) {

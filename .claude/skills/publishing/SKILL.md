@@ -119,8 +119,15 @@ git ls-remote --tags origin | grep 'vX.Y.Z$'   # 没输出就是没推上去
 此处保留 lightweight + 显式推，与既往 tag 的形态一致。）
 
 tag 推上去即触发 `.github/workflows/release.yml`（android / ios / desktop
-三平台矩阵 / updater-manifest 四组 job）；第 5/6 步改动 landing 后 push 会
-另触发 landing.yml 自动部署站点。
+三平台矩阵 / updater-manifest，stable tag 另有 testflight）；第 5/6 步改动
+landing 后 push 会另触发 landing.yml 自动部署站点。
+
+TestFlight 不再本机手动传：stable tag 的 `testflight` job（调用
+`.github/workflows/testflight.yml`）用 App Store Connect API key 云端签名构建、
+altool 上传、`scripts/testflight.ts` 等处理完成后填 What to Test（指向官网
+changelog 与该 tag 的 GitHub release）、挂公开 external 组、提交 Beta 审核。
+构建号（CFBundleVersion）由 CI 按 UTC 时间生成，仓库里的 `CFBundleVersion`
+只给本机构建用。pre-release tag 不进 TestFlight。
 
 ## 3. 盯 CI（约 15 分钟）
 
@@ -136,6 +143,12 @@ gh run watch <run-id> --exit-status            # 或后台轮询
   `gh run rerun <run-id> --failed`。desktop 全矩阵 + updater-manifest
   成功是硬性门槛（桌面端自动更新依赖 updater-manifest 产出的
   latest.json）；iOS/Android 单独失败可先发布桌面端，向用户说明后补。
+- testflight 失败：先看是哪一步。签名/构建/上传失败就
+  `gh run rerun <run-id> --failed`；上传已成功、只是等待处理或提审失败时，
+  不要 rerun（会再构建上传一个新构建号），改为本机补跑
+  `bun scripts/testflight.ts --version X.Y.Z --build-number <日志里的构建号> --tag vX.Y.Z`
+  （环境变量同脚本头注释，每步先查状态、已完成即跳过）。要单独验证签名可在
+  Actions 里手动跑 testflight，mode 选 `sign`（只构建验签，不上传）。
 - **失败原因在 workflow 自身时，rerun 救不了**：rerun 永远用 tag 所指
   commit 上的 workflow 定义。正确流程：`gh run cancel` 掉还在跑的 run →
   修 `release.yml` 并 commit push → `git tag -f vX.Y.Z` 移 tag 到修复

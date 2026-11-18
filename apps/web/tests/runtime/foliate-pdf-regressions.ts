@@ -244,6 +244,56 @@ export async function runPDFRegressions(modules: Modules): Promise<Result[]> {
     }
   });
 
+  await check("PDF: a light palette colors the paper, whether or not the page paints its own", async () => {
+    const book = await modules.pdf.makePDF(file);
+    const view = new modules.view.View();
+    view.style.cssText =
+      "display:block;position:fixed;left:0;top:0;width:900px;height:600px;opacity:0;pointer-events:none;z-index:-1";
+    document.body.append(view);
+    try {
+      await view.open(book);
+      const renderer = view.renderer;
+      if (!(renderer instanceof modules.fixed.FixedLayout)) throw new Error("Wrong renderer");
+      // Before the first page shows, as the reader applies its palette.
+      renderer.setPageColors({ background: "#f4ecd8" });
+      renderer.setLayout("scrolled", 1);
+      await view.goTo(0);
+      const raster = (index: number) =>
+        renderer
+          .getContents()
+          .find((content) => content.index === index)
+          ?.doc.querySelector<HTMLCanvasElement>("#canvas > canvas");
+      const pixel = (index: number, x: number, y: number) => {
+        const canvas = raster(index)!;
+        return Array.from(
+          canvas
+            .getContext("2d")!
+            .getImageData(Math.round(x * canvas.width), Math.round(y * canvas.height), 1, 1)
+            .data.slice(0, 3),
+        );
+      };
+      const near = (actual: number[], expected: number[], what: string) => {
+        if (actual.some((channel, i) => Math.abs(channel - expected[i]) > 3))
+          throw new Error(`${what}: expected ${expected.join(",")}, received ${actual.join(",")}`);
+      };
+      await waitFor("both pages to raster", () => !!raster(0) && !!raster(1));
+      // The page that paints a white sheet of its own, and the one that leaves its paper bare.
+      near(pixel(0, 0.5, 0.5), [244, 236, 216], "paper of a page that paints its own");
+      near(pixel(1, 0.9, 0.9), [244, 236, 216], "paper of a page that paints none");
+      // Ink stays ink: the middle of the fixture's black square (30–230 × 200–400 from the top).
+      near(pixel(1, 130 / 600, 300 / 800), [0, 0, 0], "black ink on tinted paper");
+      // And as authored again when the palette is let go.
+      renderer.setPageColors(null);
+      const tinted = raster(0);
+      await waitFor("the page redrawn as authored", () => !!raster(0) && raster(0) !== tinted);
+      near(pixel(0, 0.5, 0.5), [255, 255, 255], "paper as authored");
+    } finally {
+      await view.close();
+      view.remove();
+      await book.destroy();
+    }
+  });
+
   for (const synchronous of [false, true])
     await check(
       `PDF ${synchronous ? "synchronous" : "asynchronous"} range read failures reject instead of hanging`,

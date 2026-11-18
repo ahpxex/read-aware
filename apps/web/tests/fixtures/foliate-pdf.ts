@@ -1,9 +1,10 @@
 import { PDFDocument, PDFName, PDFString, StandardFonts, rgb } from "pdf-lib";
 
 /**
- * Three pages of `size` page units (portrait by default), the second with
- * text, a link and a filled square — and then `more` pages, each with two
- * typeset lines near its foot ("Page N line one." / "It ends here.").
+ * Three pages of `size` page units (portrait by default): the first a white
+ * sheet the page paints itself, the second with text, a link and a filled
+ * square — and then `more` pages, each with two typeset lines near its foot
+ * ("Page N line one." / "It ends here.").
  */
 export async function makePDFFixture(size: [number, number] = [600, 800], more = 0): Promise<Uint8Array<ArrayBuffer>> {
   const pdf = await PDFDocument.create();
@@ -13,6 +14,9 @@ export async function makePDFFixture(size: [number, number] = [600, 800], more =
   pdf.setModificationDate(new Date("2024-01-01T00:00:00Z"));
   const font = await pdf.embedFont(StandardFonts.Helvetica);
   const pages = [pdf.addPage(size), pdf.addPage(size), pdf.addPage(size)];
+  // The first page paints its own white sheet edge to edge, as PDFs made
+  // from ebooks and scans do; the others leave their paper to the viewer.
+  pages[0].drawRectangle({ x: 0, y: 0, width: size[0], height: size[1], color: rgb(1, 1, 1) });
   // Laid out from the top edge, so the content sits the same on any page size.
   const top = size[1];
   pages[1].drawText("Hello PDF world", { x: 30, y: top - 60, size: 24, font });

@@ -101,10 +101,14 @@ const renderCoverPage = async (page: PDFPage, deadline: number) => {
 
 // READAWARE: page colors, in two forms.
 //
-// `background` alone is painted before the page is drawn on top of it
-// (`beginDrawing` fills the canvas with it), so a light palette tints the sheet
-// with every ink and photograph left exactly as authored. That is a render
-// parameter and costs nothing.
+// `background` alone is the light case: the page is printed on paper of that
+// color. The finished page is multiplied by it, so white comes out as the
+// paper and every ink keeps its place on it, tinted the way that paper would
+// tint it. Filling the canvas with the color before the page is drawn — the
+// cheaper thing, and what this used to do — colors only what the page leaves
+// unpainted, and a great many PDFs leave nothing: one made from an ebook or
+// a scan paints its own white sheet edge to edge, and stayed white in every
+// palette.
 //
 // `background` + `foreground` is the dark case: black ink cannot be painted
 // onto a dark sheet, so the page's tonal range has to be remapped between the
@@ -144,21 +148,28 @@ const rgbChannels = (color: string): number[] | null => {
 
 const clampChannel = (value: number) => Math.max(0, Math.min(255, Math.round(value)));
 
-// The remap, as four composite operations over the finished page. Each one is
-// a plain fill the compositor can run on the GPU; the equivalent pixel loop
-// costs a third of a second on a Retina-scale page, which a page turn cannot
-// afford. Endpoints land exactly: white paper comes out as `background`, black
-// ink as `foreground`.
+// Both forms are composite operations over the finished page. Each is a plain
+// fill the compositor can run on the GPU; the equivalent pixel loop costs a
+// third of a second on a Retina-scale page, which a page turn cannot afford.
+// Endpoints land exactly: white paper comes out as `background`, and black ink
+// as black on light paper, as `foreground` on dark.
 const applyPageColors = (context: CanvasRenderingContext2D, canvas: HTMLCanvasElement, pageColors?: PageColors) => {
-  if (!pageColors?.foreground || !pageColors?.background) return;
-  const fg = rgbChannels(pageColors.foreground);
-  const bg = rgbChannels(pageColors.background);
-  if (!fg || !bg) return;
+  if (!pageColors?.background) return;
   const { width, height } = canvas;
   const fill = (style: string) => {
     context.fillStyle = style;
     context.fillRect(0, 0, width, height);
   };
+  if (!pageColors.foreground) {
+    context.save();
+    context.globalCompositeOperation = "multiply";
+    fill(pageColors.background);
+    context.restore();
+    return;
+  }
+  const fg = rgbChannels(pageColors.foreground);
+  const bg = rgbChannels(pageColors.background);
+  if (!fg || !bg) return;
 
   context.save();
   // Drop the color, keeping each pixel's luminosity.
@@ -328,13 +339,9 @@ const rasterize = async (
   canvas.height = height;
   const canvasContext = canvas.getContext("2d");
   if (!canvasContext) throw new Error("Could not create PDF page context");
-  const task = page.render({
-    canvas,
-    viewport,
-    // Only the light case is a render parameter; the dark case is a filter
-    // over the finished page (see above).
-    ...(pageColors?.background && !pageColors.foreground ? { background: pageColors.background } : {}),
-  });
+  // Drawn as authored, on white; the page colors go over the finished page
+  // (see above).
+  const task = page.render({ canvas, viewport });
   const abortRaster = () => task.cancel();
   signal?.addEventListener("abort", abortRaster, { once: true });
   try {

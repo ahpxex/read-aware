@@ -13,7 +13,7 @@ const palette = (bg: string, text: string): ReaderPalette => ({
 });
 
 describe("fixedLayoutPageColors", () => {
-  test("light palettes only tint the paper, so ink and photographs survive", () => {
+  test("light palettes only tint the paper: no tonal remap, so ink and photographs keep their color", () => {
     for (const theme of ["light", "warm"] as const) {
       const colors = fixedLayoutPageColors(BUILTIN_READER_PALETTES[theme], "theme");
       expect(colors).toEqual({ background: BUILTIN_READER_PALETTES[theme].bg });

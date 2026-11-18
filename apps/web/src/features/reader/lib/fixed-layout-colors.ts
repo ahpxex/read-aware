@@ -5,10 +5,12 @@
  * so the palette has to be applied while the page is being drawn, and there are
  * only two honest ways to do it:
  *
- * - **Tint the paper.** Fill the canvas with the palette background before the
- *   page is painted on top. Nothing else changes — every ink, photograph and
- *   figure survives exactly as authored. This works whenever the paper is
- *   lighter than the ink, which is to say for every light palette.
+ * - **Tint the paper.** Multiply the finished page by the palette background:
+ *   white becomes the paper, and every ink, photograph and figure stays where
+ *   it is, tinted as that paper would tint a print. This works whenever the
+ *   paper is lighter than the ink, which is to say for every light palette —
+ *   and whether or not the page paints a white sheet of its own, as PDFs made
+ *   from ebooks and scans do.
  * - **Remap the tonal range.** Black ink cannot be painted onto dark paper, so
  *   a dark palette has to run the page through a duotone filter that flattens
  *   it to luminance and stretches that range between the palette's text and

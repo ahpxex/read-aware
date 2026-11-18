@@ -137,6 +137,7 @@ import {
 import { resolvePageTurnTap, type PageTurnTap } from "../lib/page-turn-tap";
 import { READER_STRIP_HEIGHT_PX } from "../lib/header-footer-layout";
 import { useVolumeKeySteps } from "../hooks/useVolumeKeySteps";
+import type { ReadingModeSupport } from "../hooks/useReadingModeSupport";
 import type { ReaderEngineSession } from "../lib/reader-engine-session";
 import type { ActiveReadingClock } from "../lib/reading-session-policy";
 import { useReaderEngineSession } from "../hooks/useReaderEngineSession";
@@ -188,6 +189,9 @@ type FoliateReaderViewProps = {
   textUnitModeActive?: boolean;
   /** Enabled plugin contribution supplying text segmentation policy. */
   textUnitMode?: RegisteredReaderMode | null;
+  /** Whether this book has running text the mode can step through. While
+   *  that is still being found out the mode is suspended, not switched off. */
+  textUnitModeSupport?: ReadingModeSupport;
   modeController?: ReadingModeController;
   modeRequest?: ModeRequest;
   onModeUnitChange?: (unitId: string) => void;
@@ -366,6 +370,7 @@ export function FoliateReaderView({
   onPageLocatorChange,
   textUnitModeActive = false,
   textUnitMode = null,
+  textUnitModeSupport = "supported",
   modeController,
   modeRequest,
   onModeUnitChange,
@@ -1019,10 +1024,12 @@ export function FoliateReaderView({
 
   // ----- plugin-defined text-unit mode ----------------------------------------
 
-  // Fixed-layout books have no reflowable text to segment; the mode never
-  // activates there (the shell hides its toggle via onFixedLayoutChange).
-  const textUnitModeEngineActive = textUnitModeActive && textUnitMode !== null && !isFixedLayout;
-  const textUnitModeSuspended = textUnitModeActive && textUnitMode === null;
+  // The mode runs where there is text to step through — a reflowable book,
+  // or a PDF with a text layer; the shell offers its toggle on the same
+  // finding. A book it is on for is suspended, keeping its place, while the
+  // plugin is away or the finding is still out.
+  const textUnitModeEngineActive = textUnitModeActive && textUnitMode !== null && textUnitModeSupport === "supported";
+  const textUnitModeSuspended = textUnitModeActive && (textUnitMode === null || textUnitModeSupport === "pending");
 
   const emitFixedLayoutChange = useEffectEvent((fixedLayout: boolean) => onFixedLayoutChange?.(fixedLayout));
   useEffect(() => {
@@ -1440,7 +1447,10 @@ export function FoliateReaderView({
     if (!gestures) return;
     if (fixedLayoutZoom.handleZoomWheel(event)) return;
     const horizontal = Math.abs(event.deltaX) > Math.abs(event.deltaY);
-    if (isFixedLayoutRef.current && readingModeRef.current !== "scroll" && !event.ctrlKey) {
+    // A reading mode that steps by the wheel has it for that — stepping
+    // brings each unit into view itself, so a zoomed page is not panned by it.
+    const stepsByWheel = textUnitModeEngineActive && textUnitModeSettings.scrollToStep && !horizontal;
+    if (isFixedLayoutRef.current && readingModeRef.current !== "scroll" && !event.ctrlKey && !stepsByWheel) {
       const delta = horizontal ? event.deltaX : event.deltaY;
       if (gestures.pageTurn.trailing(delta, wheelEventTime(event))) {
         if (event.cancelable) event.preventDefault();
@@ -2616,11 +2626,12 @@ export function FoliateReaderView({
           }
         };
 
-        const onCreateOverlay = () => {
+        const onCreateOverlay = (event: Event) => {
           if (!view || session.closed) return;
           applyAnnotationMarks(view, highlightsRef.current, notesRef.current);
+          const detail = (event as CustomEvent<{ index?: number; context?: object } | undefined>).detail;
           // oxlint-disable-next-line react-hooks/rules-of-hooks -- openEngine runs inside useReaderEngineSession's effect event
-          currentTextUnitNavigator().handleOverlayReady();
+          currentTextUnitNavigator().handleOverlayReady(detail?.index, readingRenderActor(detail ?? {}, "system"));
         };
 
         // Tapping a mark anchors the recolor/remove menu over it; tapping a note

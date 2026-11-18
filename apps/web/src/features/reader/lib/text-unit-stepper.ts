@@ -5,6 +5,13 @@ export type TextUnitStepIndex = {
   count: number;
   currentIndex: number;
   visibleIndex: number;
+  /**
+   * The section is a page shown whole (fixed layout). A step that turns to
+   * one stops there even when it has no unit to rest on: a figure, a blank
+   * leaf, a page that is a scan. Flowing text has no such pages — a section
+   * without units there is a file with nothing to read, and is passed over.
+   */
+  page?: boolean;
   position(index: number): ReadingModePosition;
 };
 export type TextUnitStepAdapter = {
@@ -13,6 +20,8 @@ export type TextUnitStepAdapter = {
   adjacent(sectionIndex: number, direction: -1 | 1): number | null;
   navigate(target: number | ReadingModePosition, signal: AbortSignal): Promise<void>;
   land(position: ReadingModePosition, signal: AbortSignal): Promise<void>;
+  /** Rest on no unit: the step stopped on a page that has none. */
+  vacate(): void;
 };
 
 /** Traversal policy is independent of renderer layout and plugin segmentation. */
@@ -49,6 +58,12 @@ export async function stepTextUnit(
     check();
     if (index.sectionIndex !== next)
       throw new AppError("reader/target-not-found", "Reader did not enter the requested section");
+    // One step turns at most one page: without this, stepping into a run of
+    // text-less pages would page through all of them — a scanned book, to its end.
+    if (index.page && !index.count) {
+      adapter.vacate();
+      return "moved";
+    }
     target = direction === 1 ? 0 : index.count - 1;
   }
   const position = index.position(target);

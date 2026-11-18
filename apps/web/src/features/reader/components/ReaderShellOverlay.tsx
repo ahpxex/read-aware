@@ -88,6 +88,8 @@ type ReaderShellOverlayProps = {
    * text-unit mode.
    */
   fixedLayout?: boolean;
+  /** The book has running text a text-unit mode can step through (see useReadingModeSupport). */
+  textUnitModeSupported?: boolean;
 };
 
 const log = createLogger("reader");
@@ -112,13 +114,14 @@ export function ReaderShellOverlay({
   modeSnapshot,
   onToggleTextUnitMode,
   fixedLayout = false,
+  textUnitModeSupported = !fixedLayout,
 }: ReaderShellOverlayProps) {
   const { t } = useTranslation("reader");
   // A text-unit mode segments running text — there is none to segment in a
-  // book whose pages are pre-typeset.
-  const textUnitModeAvailable = textUnitMode !== null && !fixedLayout;
+  // comic or a scanned PDF.
+  const textUnitModeAvailable = textUnitMode !== null && textUnitModeSupported;
   const canSelectMode =
-    !fixedLayout &&
+    textUnitModeSupported &&
     modeSnapshot &&
     modeSnapshot.availableModes.length > 0 &&
     (modeSnapshot.availableModes.length > 1 || !textUnitMode);

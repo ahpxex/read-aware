@@ -1,5 +1,6 @@
 import type { ReadingVisibleTextState } from "@read-aware/core";
 import { createLogger } from "../../../platform/logger";
+import { pageTextLayer, pageTextReady } from "./fixed-page-text";
 import type { FoliateView } from "./foliate-engine";
 
 const log = createLogger("reading-visible-text");
@@ -58,7 +59,7 @@ function read(view: FoliateView): ReadingVisibleText {
     truncated = false,
     hasPdf = false;
   for (const { doc } of renderer.getContents()) {
-    const layer = doc.querySelector<HTMLElement>(".textLayer");
+    const layer = pageTextLayer(doc);
     if (!layer) continue;
     hasPdf = true;
     const frame = doc.defaultView?.frameElement;
@@ -75,7 +76,7 @@ function read(view: FoliateView): ReadingVisibleText {
     )
       continue;
     layers++;
-    if (layer.dataset.readawareTextState !== "ready") {
+    if (!pageTextReady(doc)) {
       pending = true;
       continue;
     }

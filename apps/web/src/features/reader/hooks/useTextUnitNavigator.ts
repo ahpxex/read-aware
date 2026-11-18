@@ -22,8 +22,10 @@ import {
   anchorTextUnitIndex,
   buildTextUnitRanges,
   lastVisibleTextUnitIndex,
+  textUnitText,
   type TextUnitId,
 } from "../lib/text-unit-index";
+import { pageRange, pageTextReady } from "../lib/fixed-page-text";
 
 /** The unit the navigator rests on — the target for the bar's actions. */
 export type TextUnitTarget = {
@@ -77,11 +79,13 @@ export type TextUnitNavigator = {
     resume?: ReadingModeResume | null,
   ) => void;
   handleRelocate: (detail: FoliateRelocateDetail) => void;
-  /** Invoke from the reader's `create-overlay` handler: the engine rebuilds a
-   *  section's overlayer from scratch on re-layout (style injection, resize,
-   *  reopen), and the wash must be re-drawn alongside the user's marks or it
-   *  silently vanishes. */
-  handleOverlayReady: () => void;
+  /** Invoke from the reader's `create-overlay` handler, with the section it
+   *  is for: the engine rebuilds a section's overlayer from scratch on
+   *  re-layout (style injection, resize, reopen), and the wash must be re-drawn
+   *  alongside the user's marks or it silently vanishes. On a fixed-layout
+   *  page it also says the page's text was just drawn — for the first time,
+   *  or again — and the units are taken from it anew. */
+  handleOverlayReady: (index?: number, origin?: DomainActor) => void;
 };
 
 type UseTextUnitNavigatorOptions = {
@@ -121,6 +125,13 @@ type UseTextUnitNavigatorOptions = {
 };
 
 const normalizeText = (value: string) => value.replace(/\s+/g, " ").trim();
+/**
+ * A fixed-layout page whose text is being drawn again (it rasters at a new
+ * zoom or size). The units held are Ranges into the text about to be
+ * replaced, so nothing is resolved against them until the new text is in and
+ * `handleOverlayReady` has taken the units from it.
+ */
+const redrawing = (view: FoliateView, doc: Document) => view.isFixedLayout && !pageTextReady(doc);
 const log = createLogger("text-unit-navigator");
 
 // Scroll-mode comfort band: how far above the viewport bottom the resting unit
@@ -142,6 +153,13 @@ const SCROLL_COMFORT_BOTTOM_MAX_PX = 240;
  * stepping continues from that resting unit wherever the viewport is. A
  * visual step on a paginated page the reader turned to instead re-anchors
  * there and keeps the abandoned unit as a return point (`hasReturnPoint`).
+ *
+ * A fixed-layout book with text (a PDF) is read the same way, a page being
+ * its section. Three things differ, all from the page being typeset: it is
+ * displayed whole, so everything on it counts as on screen (`showFixedPage`);
+ * its text is drawn with its raster, so the units wait for that and are taken
+ * again at every raster after; and a step that turns to a page with no text
+ * stops there instead of reading on through it.
  */
 export function useTextUnitNavigator({
   configurationRevision = 0,
@@ -431,6 +449,7 @@ export function useTextUnitNavigator({
         const units = unitsRef.current;
         const view = viewRef.current;
         if (!section || !units || !view || !layoutReadyRef.current) return;
+        if (redrawing(view, section.doc)) return;
         const index = resolveTextUnitPosition(view, position.location.cfi, section.doc, section.index, units);
         if (index !== currentIndexRef.current || !appliedCfiRef.current) return;
         return {
@@ -545,7 +564,7 @@ export function useTextUnitNavigator({
         appliedCfiRef.current = cfi;
         applyNavigatorHighlight(view, cfi, veilColorRef.current);
       }
-      setCurrent({ text: normalizeText(range.toString()), cfiRange: cfi });
+      setCurrent({ text: normalizeText(textUnitText(range)), cfiRange: cfi });
       setProgress({ ordinal: index, total: unitsRef.current?.length ?? 0 });
       positionWaiter.notify();
       if (scroll && !rangeComfortablyVisible(range)) {
@@ -561,8 +580,11 @@ export function useTextUnitNavigator({
 
   // The build lease covers both the Worker result and the caller's deferred
   // anchoring, including mode retirement and same-index document replacement.
+  // `quiet`: the section's text was only drawn again (a fixed-layout page
+  // rastered anew). The unit the navigator rests on is still what the reader
+  // sees, so it stays shown while its Range is taken from the new text.
   const buildUnits = useCallback(
-    async (origin: DomainActor) => {
+    async (origin: DomainActor, { quiet = false }: { quiet?: boolean } = {}) => {
       const section = sectionRef.current;
       if (!section) return null;
       const segmenter = segmentTextRef.current;
@@ -570,11 +592,21 @@ export function useTextUnitNavigator({
       const revision = configurationRef.current;
       unitsRef.current = null;
       currentIndexRef.current = -1;
-      clearWash();
-      clearUnit(origin);
-      setStatus("building");
+      if (!quiet) {
+        clearWash();
+        clearUnit(origin);
+        setStatus("building");
+      }
       setPreparedRevision(revision);
       setBuildErrorCode(undefined);
+      // A page whose text is not drawn yet has none to segment — which is
+      // not a page without text. The build waits for the overlay that
+      // announces it (`handleOverlayReady`).
+      if (viewRef.current?.isFixedLayout && !pageTextReady(section.doc)) {
+        buildSession.invalidate();
+        setStatus("building");
+        return null;
+      }
       const result = await buildSession.run((signal) => buildTextUnitRanges(section.doc, unit, segmenter, signal));
       const isCurrent = () =>
         Boolean(
@@ -602,7 +634,7 @@ export function useTextUnitNavigator({
       positionWaiter.notify();
       return { units: result.value, isCurrent };
     },
-    [buildSession, clearUnit, clearWash, positionWaiter],
+    [buildSession, clearUnit, clearWash, positionWaiter, viewRef],
   );
 
   const stepNative = useCallback(
@@ -642,10 +674,12 @@ export function useTextUnitNavigator({
           const section = sectionRef.current;
           const units = unitsRef.current;
           if (!section || !units || !layoutReadyRef.current) return;
+          if (redrawing(view, section.doc)) return;
           const resting = restingRef.current;
           return {
             sectionIndex: section.index,
             count: units.length,
+            page: view.isFixedLayout,
             currentIndex:
               resting?.sectionIndex === section.index && resting.cfiRange
                 ? resolveTextUnitPosition(view, resting.cfiRange, section.doc, section.index, units)
@@ -715,6 +749,14 @@ export function useTextUnitNavigator({
             applyIndex(ordinal, { scroll: false, origin });
             await waitForPosition(target, signal);
           },
+          vacate: () => {
+            check();
+            clearWash();
+            currentIndexRef.current = -1;
+            setResting(null);
+            persistState(origin);
+            clearUnit(origin);
+          },
         },
         direction,
         signal,
@@ -731,7 +773,17 @@ export function useTextUnitNavigator({
         },
       };
     },
-    [viewRef, positionWaiter, applyIndex, waitForPosition, rangeComfortablyVisible],
+    [
+      viewRef,
+      positionWaiter,
+      applyIndex,
+      waitForPosition,
+      rangeComfortablyVisible,
+      clearWash,
+      clearUnit,
+      setResting,
+      persistState,
+    ],
   );
 
   const unmanagedStepRef = useRef<AbortController | null>(null);
@@ -860,11 +912,59 @@ export function useTextUnitNavigator({
     [applyIndex, buildSession, buildUnits, clearUnit, restoredIndex, verifiedIndex],
   );
 
+  // The displayed section's text was drawn again: take the units from it
+  // anew and rest where the navigator rested — on the unit it shows, or, if
+  // this is the first the page's text has been there at all, wherever a
+  // section that just loaded would be entered.
+  const rebuildSection = useCallback(
+    async (origin: DomainActor) => {
+      const section = sectionRef.current;
+      if (!section || !activeRef.current) return;
+      const result = await buildUnits(origin, { quiet: currentIndexRef.current >= 0 });
+      if (!result?.isCurrent() || sectionRef.current !== section) return;
+      const { units } = result;
+      const resting = restingRef.current;
+      const index =
+        resting?.sectionIndex === section.index
+          ? verifiedIndex(units, restoredIndex(units, section.doc, section.index, origin))
+          : !resting || !restingVerifiedRef.current
+            ? anchorTextUnitIndex(units, visibleRangeRef.current)
+            : -1;
+      if (index >= 0) applyIndex(index, { scroll: false, origin });
+      else {
+        clearWash();
+        clearUnit(origin);
+      }
+    },
+    [applyIndex, buildUnits, clearUnit, clearWash, restoredIndex, verifiedIndex],
+  );
+
+  // A fixed-layout page is displayed whole, so it is the navigator's section
+  // and all of it is "on the page" — whatever range, if any, the engine
+  // reported with the move (a jump to an address reports just that address).
+  // `drawn`: the page's text was just drawn, rather than the page arrived at.
+  const showFixedPage = useCallback(
+    (index: number, origin: DomainActor, drawn: boolean) => {
+      const doc = viewRef.current?.renderer?.getContents().find((content) => content.index === index)?.doc;
+      // Not live yet: the overlay made with its first raster announces it.
+      const range = doc ? pageRange(doc) : null;
+      if (!doc || !range) return;
+      if (doc !== sectionRef.current?.doc) void handleSectionLoad(doc, index, origin);
+      else if (drawn) void rebuildSection(origin);
+      visibleRangeRef.current = range;
+      layoutReadyRef.current = true;
+    },
+    [handleSectionLoad, rebuildSection, viewRef],
+  );
+
   // Manual moves never displace the navigator; relocates only feed the visible
   // range (for first-anchor and re-entry) and land a deferred section anchor.
   const handleRelocate = useCallback(
     (detail: FoliateRelocateDetail) => {
-      if (detail.range) {
+      if (viewRef.current?.isFixedLayout) {
+        const index = detail.section?.current;
+        if (index != null) showFixedPage(index, readingRenderActor(detail), false);
+      } else if (detail.range) {
         const doc = detail.range.startContainer.ownerDocument;
         if (doc && doc !== sectionRef.current?.doc) {
           const index = detail.section?.current;
@@ -889,7 +989,7 @@ export function useTextUnitNavigator({
       }
       positionWaiter.notify();
     },
-    [applyIndex, handleSectionLoad, positionWaiter, verifiedIndex],
+    [applyIndex, handleSectionLoad, positionWaiter, showFixedPage, verifiedIndex, viewRef],
   );
 
   // Activation: index the loaded section and rest on the persisted unit if
@@ -1047,13 +1147,19 @@ export function useTextUnitNavigator({
 
   // A fresh overlayer starts empty — re-draw the wash the navigator believes
   // is applied (the reader re-applies the user's marks in the same event).
-  const handleOverlayReady = useCallback(() => {
-    if (!activeRef.current) return;
-    const view = viewRef.current;
-    const cfi = appliedCfiRef.current;
-    if (!view || !cfi) return;
-    applyNavigatorHighlight(view, cfi, veilColorRef.current);
-  }, [viewRef]);
+  const handleOverlayReady = useCallback(
+    (index?: number, origin: DomainActor = "system") => {
+      const view = viewRef.current;
+      if (!view) return;
+      const cfi = appliedCfiRef.current;
+      if (activeRef.current && cfi) applyNavigatorHighlight(view, cfi, veilColorRef.current);
+      // The page being read rastered: its text is new, and so are the Ranges
+      // into it. Other live pages draw theirs too; they are not the section.
+      if (view.isFixedLayout && index != null && index === view.lastLocation?.section?.current)
+        showFixedPage(index, causalActor(origin), true);
+    },
+    [showFixedPage, viewRef],
+  );
 
   // Bring the reader back to the resting unit. Same section: re-apply the
   // wash and scroll it into view. Another section: navigate to the unit's
@@ -1128,7 +1234,7 @@ export function useTextUnitNavigator({
     const units = unitsRef.current;
     const index = currentIndexRef.current;
     if (!units || index < 0 || index + 1 >= units.length) return null;
-    return normalizeText(units[index + 1].toString()) || null;
+    return normalizeText(textUnitText(units[index + 1])) || null;
   }, []);
 
   return {

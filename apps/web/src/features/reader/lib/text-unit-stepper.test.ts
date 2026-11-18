@@ -1,9 +1,10 @@
 import { expect, test } from "bun:test";
 import { stepTextUnit, type TextUnitStepAdapter } from "./text-unit-stepper";
 
-function fixture(counts = [2, 0, 2]) {
+function fixture(counts = [2, 0, 2], page = false) {
   let section = 0;
   let current = 0;
+  let rests = true;
   const navigated: (number | string)[] = [];
   const position = (unit: number) => ({
     modeKey: "test:mode",
@@ -11,12 +12,13 @@ function fixture(counts = [2, 0, 2]) {
     location: { bookId: "book", contentVersion: "v1", cfi: `${section}:${unit}` },
   });
   const adapter: TextUnitStepAdapter = {
-    resting: () => (counts[section] ? position(current) : null),
+    resting: () => (rests && counts[section] ? position(current) : null),
     index: async () => ({
       sectionIndex: section,
       count: counts[section]!,
       currentIndex: current,
-      visibleIndex: 0,
+      visibleIndex: counts[section] ? 0 : -1,
+      page,
       position,
     }),
     adjacent: (index, direction) =>
@@ -26,9 +28,15 @@ function fixture(counts = [2, 0, 2]) {
       if (typeof target === "number") {
         section = target;
         current = -1;
-      } else [section, current] = target.location.cfi.split(":").map(Number) as [number, number];
+      } else {
+        [section, current] = target.location.cfi.split(":").map(Number) as [number, number];
+        rests = true;
+      }
     },
     land: async () => {},
+    vacate: () => {
+      rests = false;
+    },
   };
   return { adapter, navigated, location: () => [section, current] };
 }
@@ -75,4 +83,33 @@ test("cancelled or misdirected traversal never lands a new unit", async () => {
   await expect(stepTextUnit(empty.adapter, 1, new AbortController().signal)).rejects.toMatchObject({
     code: "reader/target-not-found",
   });
+});
+
+test("a step that turns to a page without units stops there, and the next one reads on", async () => {
+  // Pages shown whole: text, a figure, a blank leaf, text.
+  const f = fixture([2, 0, 0, 1], true);
+  const signal = new AbortController().signal;
+  await stepTextUnit(f.adapter, 1, signal);
+  expect(f.location()).toEqual([0, 1]);
+  // Off the last unit: onto the figure, resting on nothing — not through it.
+  expect(await stepTextUnit(f.adapter, 1, signal)).toBe("moved");
+  expect(f.location()).toEqual([1, -1]);
+  expect(f.adapter.resting()).toBeNull();
+  expect(await stepTextUnit(f.adapter, 1, signal)).toBe("moved");
+  expect(f.location()).toEqual([2, -1]);
+  // The next page has text: the step lands on its first unit.
+  expect(await stepTextUnit(f.adapter, 1, signal)).toBe("moved");
+  expect(f.location()).toEqual([3, 0]);
+  // And back the same way, a page at a time, onto the last unit of the first.
+  expect(await stepTextUnit(f.adapter, -1, signal)).toBe("moved");
+  expect(f.location()).toEqual([2, -1]);
+  await stepTextUnit(f.adapter, -1, signal);
+  expect(await stepTextUnit(f.adapter, -1, signal)).toBe("moved");
+  expect(f.location()).toEqual([0, 1]);
+  // A book of nothing but such pages ends where the pages do.
+  const scan = fixture([0, 0, 0], true);
+  expect(await stepTextUnit(scan.adapter, 1, signal)).toBe("moved");
+  expect(await stepTextUnit(scan.adapter, 1, signal)).toBe("moved");
+  expect(scan.location()).toEqual([2, -1]);
+  expect(await stepTextUnit(scan.adapter, 1, signal)).toBe("end-of-book");
 });

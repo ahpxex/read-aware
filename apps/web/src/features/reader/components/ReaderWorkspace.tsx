@@ -7,6 +7,7 @@ import type { ReaderLoadError } from "../hooks/useReaderSession";
 import { useReaderPalette } from "../../settings/hooks/useReaderPalette";
 import { SLOW_OPEN_MS, useDelayedFlag } from "../hooks/useDelayedFlag";
 import { useReadingModeControl } from "../hooks/useReadingModeControl";
+import { useReadingModeSupport } from "../hooks/useReadingModeSupport";
 import { useImmersiveWindowControls } from "../hooks/useImmersiveWindowControls";
 import { useReaderAppearance } from "../hooks/useReaderAppearance";
 import { useReaderFocusTarget } from "../hooks/useReaderFocusTarget";
@@ -160,11 +161,15 @@ export function ReaderWorkspace({
   // sticky per book — closing a book (or the app) mid-navigation and reopening
   // it resumes unit-by-unit reading where it stopped (the resting
   // unit itself is restored by useTextUnitNavigator from the same store).
-  // Fixed-layout books (PDF/CBZ) can't host it.
+  // It needs running text: a PDF with a text layer has it, a scan or a comic
+  // does not (see useReadingModeSupport).
   const [isFixedLayout, setIsFixedLayout] = useState(false);
+  const modeSupport = useReadingModeSupport(selectedBook.id, selectedBook.format, isFixedLayout);
   // The open book's page count by position, for the progress bar's readout.
   const [pageLocator, setPageLocator] = useState<ReadingPageLocator | null>(null);
-  const modeControl = useReadingModeControl(selectedBook.id, !isFixedLayout, !standby);
+  // Not yet knowing is not a refusal: only a book found unable to host the
+  // mode is reported as an unsupported format.
+  const modeControl = useReadingModeControl(selectedBook.id, modeSupport !== "unsupported", !standby);
   // A standing reader shows the plain page and the mode resumes with the
   // reading. The mode stays the book's: it is suspended (active, with nothing
   // to run it), never switched off, which would be written as the reader's choice.
@@ -237,6 +242,7 @@ export function ReaderWorkspace({
           onPageLocatorChange={(pageAt) => setPageLocator(() => pageAt)}
           textUnitModeActive={textUnitModeActive}
           textUnitMode={textUnitMode}
+          textUnitModeSupport={modeSupport}
           modeController={modeControl.controller}
           modeRequest={modeControl.request}
           onModeUnitChange={modeControl.setUnit}
@@ -314,6 +320,7 @@ export function ReaderWorkspace({
           modeSnapshot={modeControl.snapshot}
           onToggleTextUnitMode={toggleTextUnitMode}
           fixedLayout={isFixedLayout}
+          textUnitModeSupported={modeSupport === "supported"}
         />
       )}
     </div>

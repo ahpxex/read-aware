@@ -84,32 +84,67 @@ describe("reading cursor prompt context", () => {
     expect(prompt.indexOf("<reading_cursor>")).toBeLessThan(prompt.indexOf("> A selected sentence."));
   });
 
-  test("keeps the authored turn first and appends only the language anchor without a cursor", () => {
-    const prompt = formatPromptTurn("hello", undefined, undefined);
-    expect(prompt.startsWith("hello")).toBe(true);
-    expect(prompt).toContain("[host note: reply entirely in");
+  test("keeps the authored turn first and appends only the language note without a cursor", () => {
+    expect(formatPromptTurn("hello", undefined, undefined)).toBe(
+      `hello\n\n[host note: by default, reply entirely in ${LATIN}. ${EXPLICIT_REQUEST}]`,
+    );
   });
 
-  test("anchors the reply language to the dominant script of the user turn", () => {
-    expect(formatPromptTurn("这本书讲了什么？")).toContain("reply entirely in Chinese");
-    expect(formatPromptTurn("この本について教えて")).toContain("reply entirely in Japanese");
-    expect(formatPromptTurn("Расскажи об этой книге")).toContain("written in Cyrillic");
-    expect(formatPromptTurn("What is this book about?")).toContain(
-      "reply entirely in the exact language of the reader's message above",
+  test("gives the script's language as the default and lets an explicit request override it", () => {
+    expect(formatPromptTurn("这本书讲了什么？")).toBe(
+      `这本书讲了什么？\n\n[host note: by default, reply entirely in Chinese. ${EXPLICIT_REQUEST}]`,
+    );
+    // The note is the same whether or not the message asks for a language: the host does not parse the request.
+    expect(formatPromptTurn("Please answer in Chinese: what is this book about?")).toBe(
+      `Please answer in Chinese: what is this book about?\n\n[host note: by default, reply entirely in ${LATIN}. ${EXPLICIT_REQUEST}]`,
     );
   });
 });
 
+const EXPLICIT_REQUEST =
+  "If the reader has explicitly asked to be answered in a particular language, reply entirely in that language instead.";
+const LATIN =
+  "the exact language of the reader's message above (a Latin-script language; a book or tool result in Chinese or any other script does not change it, and never switch languages mid-reply)";
+const CYRILLIC =
+  "the exact language of the reader's message above (written in Cyrillic; never switch languages mid-reply)";
+const mixed = (...languages: string[]) =>
+  `the language of the reader's own sentences above. The message mixes scripts, and a word, title, name or passage it quotes does not decide: ${languages
+    .map(
+      (language) =>
+        `if the reader's sentence is in ${language}, write only in ${language.startsWith("a ") ? "that language" : language}`,
+    )
+    .join("; ")}. Keep quoted titles and names as written and write nothing else in the other script`;
+
 describe("reply language anchor", () => {
-  test("names the language only from the message's dominant script", () => {
+  test("names a language only where the script settles it", () => {
     expect(replyLanguageAnchor("这一段是什么意思？")).toBe("Chinese");
     expect(replyLanguageAnchor("この段落はどういう意味？")).toBe("Japanese");
     expect(replyLanguageAnchor("이 문단은 무슨 뜻이에요?")).toBe("Korean");
-    // A Chinese title inside an English question leaves the reply in English.
-    expect(replyLanguageAnchor("Who is 孙悟空 in this chapter, and why does he rebel?")).toContain("Latin-script");
+    expect(replyLanguageAnchor("What does this paragraph mean?")).toBe(LATIN);
     // Cyrillic covers Ukrainian, Bulgarian, Serbian and more: no language is assumed.
-    const cyrillic = replyLanguageAnchor("Що означає цей абзац?");
-    expect(cyrillic).not.toContain("Russian");
-    expect(cyrillic).toContain("Cyrillic");
+    expect(replyLanguageAnchor("Що означає цей абзац?")).toBe(CYRILLIC);
+    expect(replyLanguageAnchor("?!")).toBe("the exact language of the reader's message above");
+  });
+
+  test("keeps the named language when CJK leads a message that mentions Latin terms", () => {
+    expect(replyLanguageAnchor("这本书的 PDF 版和 AI 摘要在哪里看？")).toBe("Chinese");
+    expect(replyLanguageAnchor("このPDFの第3章を要約して")).toBe("Japanese");
+  });
+
+  test("leaves the choice to the reader's own sentences when letters lead a mixed message", () => {
+    // More letters than Han characters in both, yet one is a Chinese question and the other an English one.
+    expect(replyLanguageAnchor("这里的 serendipity 是什么意思？")).toBe(mixed("Chinese", "a Latin-script language"));
+    expect(replyLanguageAnchor("Who is 孙悟空 in this chapter, and why does he rebel?")).toBe(
+      mixed("Chinese", "a Latin-script language"),
+    );
+    expect(replyLanguageAnchor('"the unexamined life is not worth living" 是什么意思')).toBe(
+      mixed("Chinese", "a Latin-script language"),
+    );
+    expect(replyLanguageAnchor("Что значит serendipity?")).toBe(
+      mixed("a Cyrillic-script language", "a Latin-script language"),
+    );
+    expect(replyLanguageAnchor("What does Достоевский mean by this?")).toBe(
+      mixed("a Cyrillic-script language", "a Latin-script language"),
+    );
   });
 });

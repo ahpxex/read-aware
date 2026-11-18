@@ -144,13 +144,18 @@ export function formatReadingCursor(cursor: ReadingCursor, position?: TurnReadin
 }
 
 /**
- * 用户消息的主导文字系统 → 回复语言锚点。system prompt 里的静态语言规则
- * 压不住某些模型的漂移（deepseek 会对英文提问漏中文）；把锚点动态放到
- * 每轮 user message 的末尾（注意力最近处）。
+ * 用户消息的文字系统 → 缺省回复语言。system prompt 里的静态语言规则压不住
+ * 某些模型的漂移（deepseek 会对英文提问漏中文）；把它动态放到每轮 user
+ * message 的末尾（注意力最近处）。返回值是名词短语，标题提示词也用它。
  *
- * 判定看主导文字，不看是否出现：英文提问里夹一个中文书名或人名仍是英文。
  * 只有文字系统能唯一确定语言时（假名 → 日语、谚文 → 韩语、汉字 → 中文）
  * 才说出语言名；西里尔与拉丁字母都覆盖多种语言，只锚定"读者原话的语言"。
+ *
+ * 混排时字符数只在 CJK 领先时作数：一个汉字就是一个词，字母文字的一个词要
+ * 好几个字母，CJK 仍然领先就是 CJK 的句子（中文提问里夹 PDF、AI、英文书名）。
+ * 反过来字母领先说明不了问题——"这里的 serendipity 是什么意思"与
+ * "Who is 孙悟空 in this chapter" 都是字母多，句子却一中一英；两种字母文字
+ * 混排同理。这时不替读者猜，告诉模型看句子本身，引用的词、书名不算。
  */
 export function replyLanguageAnchor(content: string): string {
   const counts = {
@@ -160,17 +165,33 @@ export function replyLanguageAnchor(content: string): string {
     cyrillic: (content.match(/[Ѐ-ӿ]/g) ?? []).length,
     latin: (content.match(/[A-Za-zÀ-ɏ]/g) ?? []).length,
   };
-  // Japanese writes kanji and kana together; any kana in a CJK-dominant message makes it Japanese.
   const cjk = counts.kana + counts.hangul + counts.han;
   const dominant = Math.max(cjk, counts.cyrillic, counts.latin);
   if (dominant === 0) return "the exact language of the reader's message above";
-  if (dominant === cjk) {
-    if (counts.kana > 0) return "Japanese";
-    return counts.hangul > counts.han ? "Korean" : "Chinese";
-  }
-  if (dominant === counts.cyrillic)
+  // Japanese writes kanji and kana together; any kana among the CJK makes it Japanese.
+  const cjkLanguage = counts.kana > 0 ? "Japanese" : counts.hangul > counts.han ? "Korean" : "Chinese";
+  if (dominant === cjk) return cjkLanguage;
+  const candidates = [
+    ...(cjk > 0 ? [{ language: cjkLanguage, reply: cjkLanguage }] : []),
+    ...(counts.cyrillic > 0 ? [{ language: "a Cyrillic-script language", reply: "that language" }] : []),
+    ...(counts.latin > 0 ? [{ language: "a Latin-script language", reply: "that language" }] : []),
+  ];
+  if (candidates.length > 1)
+    return `the language of the reader's own sentences above. The message mixes scripts, and a word, title, name or passage it quotes does not decide: ${candidates
+      .map(({ language, reply }) => `if the reader's sentence is in ${language}, write only in ${reply}`)
+      .join("; ")}. Keep quoted titles and names as written and write nothing else in the other script`;
+  if (counts.cyrillic > 0)
     return "the exact language of the reader's message above (written in Cyrillic; never switch languages mid-reply)";
-  return "the exact language of the reader's message above (a Latin-script language — never reply in Chinese or any other non-Latin script, and never switch languages mid-reply)";
+  return "the exact language of the reader's message above (a Latin-script language; a book or tool result in Chinese or any other script does not change it, and never switch languages mid-reply)";
+}
+
+/**
+ * The per-turn reply-language note. The script only gives the default: a
+ * language the reader asked to be answered in comes first, and the note says
+ * so last, where it is not outweighed by the default it overrides.
+ */
+function replyLanguageNote(content: string): string {
+  return `[host note: by default, reply entirely in ${replyLanguageAnchor(content)}. If the reader has explicitly asked to be answered in a particular language, reply entirely in that language instead.]`;
 }
 
 /**
@@ -184,7 +205,7 @@ export function formatPromptTurn(
   position?: TurnReadingPosition,
 ): string {
   const authoredTurn = formatUserTurn(content, attachments);
-  const anchor = `[host note: reply entirely in ${replyLanguageAnchor(content)}]`;
+  const anchor = replyLanguageNote(content);
   // A located selection is a position even when the host sampled no cursor.
   const located = position?.viewport || position?.selections.some((selection) => selection !== undefined);
   const prefix = cursor || located ? formatReadingCursor(cursor ?? {}, position) : undefined;

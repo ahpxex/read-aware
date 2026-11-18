@@ -1,5 +1,7 @@
 import type { AgentEvalObservation, EvalAssessment, EvalCheck, EvalCheckCategory, JsonValue } from "./types";
 
+export type ReplyScript = "cjk" | "latin" | "cyrillic";
+
 export interface AgentTraceExpectation {
   answer?: {
     mustContain?: string[];
@@ -9,7 +11,7 @@ export interface AgentTraceExpectation {
      * script does not settle it: they asked to be answered in another
      * language, or the message quotes words in a second script.
      */
-    script?: "cjk" | "latin";
+    script?: ReplyScript;
   };
   tools?: {
     required?: string[];
@@ -76,8 +78,8 @@ export function evaluateAgentTrace(
   // 未声明时只查最常见的漂移——拉丁文字提问、回复却大半是 CJK；阈值 0.3
   // 容忍合法引用中文书源文，中文提问的场景 userCjkRatio 高，检查自动不适用。
   // 场景声明了 answer.script（读者点名了回复语言，或提问里混着另一种文字）
-  // 就按声明判，比的是 CJK 字数与拉丁词数：一个汉字是一个词大小的单位，
-  // 按字符比会让带一个英文书名的中文短答看上去像英文。
+  // 就按声明判，比的是各文字的词数：一个汉字是一个词大小的单位，字母文字
+  // 按词数。按字符比会让带一个英文书名的中文短答看上去像英文。
   const cjkCount = (text: string) => (text.match(/[一-鿿぀-ヿ가-힯]/g) ?? []).length;
   const userText = observation.turns
     .map((turn) => {
@@ -88,17 +90,23 @@ export function evaluateAgentTrace(
   const answerCjk = cjkCount(observation.answer);
   const declaredScript = expectation.answer?.script;
   if (declaredScript) {
-    const latinWords = (observation.answer.match(/[A-Za-zÀ-ɏ]+/g) ?? []).length;
-    const actual = answerCjk > latinWords ? "cjk" : "latin";
-    const counts = `${answerCjk} CJK characters, ${latinWords} Latin-script words`;
+    const units: Record<ReplyScript, number> = {
+      cjk: answerCjk,
+      latin: (observation.answer.match(/[A-Za-zÀ-ɏ]+/g) ?? []).length,
+      cyrillic: (observation.answer.match(/[Ѐ-ӿ]+/g) ?? []).length,
+    };
+    const actual = (Object.keys(units) as ReplyScript[]).reduce((lead, script) =>
+      units[script] > units[lead] ? script : lead,
+    );
+    const counts = `${units.cjk} CJK characters, ${units.latin} Latin-script words, ${units.cyrillic} Cyrillic words`;
     checks.push(
       check(
         "answer.script-consistency",
         "quality",
         actual === declaredScript,
         actual === declaredScript
-          ? `answer is in the expected ${declaredScript === "cjk" ? "CJK" : "Latin"} script (${counts})`
-          : `answer is not in the expected ${declaredScript === "cjk" ? "CJK" : "Latin"} script (${counts})`,
+          ? `answer is in the expected ${declaredScript} script (${counts})`
+          : `answer is in ${actual} script where ${declaredScript} was expected (${counts})`,
         declaredScript,
         actual,
       ),

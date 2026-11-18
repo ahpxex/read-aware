@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { AgentEvalObservation } from "./types";
-import { evaluateAgentTrace } from "./assertions";
+import { evaluateAgentTrace, type ReplyScript } from "./assertions";
 
 function observation(partial: Partial<AgentEvalObservation> = {}): AgentEvalObservation {
   return {
@@ -80,7 +80,7 @@ describe("agent eval assertions", () => {
     const chinese = "你的书架上现在有三本书：《群山回响》《The Glass Orchard》和《长夜将尽》，其中两本还在读。";
     const english =
       "You have three books on your shelf: 群山回响, The Glass Orchard and 长夜将尽. Two of them are still in progress.";
-    const scriptCheck = (answer: string, text: string, script?: "cjk" | "latin") =>
+    const scriptCheck = (answer: string, text: string, script?: ReplyScript) =>
       evaluateAgentTrace(
         observation({ answer, turns: [{ turn: 1, input: { text }, answer, thinking: "", chunks: [] }] }),
         { answer: { script } },
@@ -105,6 +105,13 @@ describe("agent eval assertions", () => {
       const reply = "是的，已经读完了。书架上《The Glass Orchard》（P. Vine）的状态是“已读完”（finished）。";
       expect(scriptCheck(reply, "我书架上的 The Glass Orchard 读完了吗？", "cjk").passed).toBe(true);
       expect(scriptCheck(reply, "我书架上的 The Glass Orchard 读完了吗？", "latin").passed).toBe(false);
+    });
+
+    test("tells a Cyrillic reply that quotes an English title from an English one", () => {
+      const russian = "Да, книга The Glass Orchard (P. Vine) уже отмечена как прочитанная.";
+      const question = "Я уже дочитал The Glass Orchard?";
+      expect(scriptCheck(russian, question, "cyrillic").passed).toBe(true);
+      expect(scriptCheck("Yes, The Glass Orchard is marked as finished.", question, "cyrillic").passed).toBe(false);
     });
   });
 });

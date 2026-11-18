@@ -252,6 +252,68 @@ export const refactoringEvalSuite: EvalSuite<AgentEvalScenario> = {
           noFenceAssessment(observation),
         ),
     }),
+    // 书内对话的回复语言：阅读位置带着整页英文原文，读者的话在它后面。
+    defineAgentEvalScenario({
+      id: "chinese-question-long-english-term",
+      description: "英文书里用中文问一个字母数更多的英文术语：用中文回答，术语保留原文。",
+      tags: ["language", "refactoring", "book"],
+      scope: { kind: "book", bookId: fowler.bookId },
+      seed: {
+        ...fowler.seed(60),
+        chapterDigests: fowler.digestsSeed(READER_CHAPTER),
+      },
+      seedSummary: fowler.seedSummary(60),
+      turns: [
+        {
+          text: "这里的 Replace Derived Variable with Query 是什么意思？",
+          readingCursor: readerCursor(),
+        },
+      ],
+      expectation: {
+        answer: { script: "cjk", mustContain: ["Replace Derived Variable with Query"] },
+        tools: { noErrors: true },
+      },
+      rubric: [
+        "Answers in Chinese — the question is Chinese and only quotes the English name — and explains the refactoring from this book's text",
+      ],
+      evaluate: (observation) =>
+        combineAssessments(
+          evaluateAgentTrace(observation, {
+            answer: { script: "cjk", mustContain: ["Replace Derived Variable with Query"] },
+            tools: { noErrors: true },
+          }),
+          noFenceAssessment(observation),
+        ),
+    }),
+    defineAgentEvalScenario({
+      id: "english-question-asks-for-chinese-reply",
+      description: "英文书里用英文提问并明确要求用中文回答：用中文回答。",
+      tags: ["language", "refactoring", "book"],
+      scope: { kind: "book", bookId: fowler.bookId },
+      seed: {
+        ...fowler.seed(60),
+        chapterDigests: fowler.digestsSeed(READER_CHAPTER),
+      },
+      seedSummary: fowler.seedSummary(60),
+      turns: [
+        {
+          text: "Please answer in Chinese: what does Fowler mean by Split Variable, and when should I use it?",
+          readingCursor: readerCursor(),
+        },
+      ],
+      expectation: { answer: { script: "cjk", mustContain: ["Split Variable"] }, tools: { noErrors: true } },
+      rubric: [
+        "Answers in Chinese because the reader asked for it, though the question and the book are in English, and explains Split Variable from this book's text",
+      ],
+      evaluate: (observation) =>
+        combineAssessments(
+          evaluateAgentTrace(observation, {
+            answer: { script: "cjk", mustContain: ["Split Variable"] },
+            tools: { noErrors: true },
+          }),
+          noFenceAssessment(observation),
+        ),
+    }),
     defineAgentEvalScenario({
       id: "smell-diagnosis-mapping",
       description: "从症状反推：三百行长函数嵌套分支 → 指认坏味道并开出对症手法（目录查找的逆向）。",

@@ -27,6 +27,9 @@ export type { ChapterRange, LocatedRange, TurnReadingPosition } from "./reading-
 
 type Source = Pick<BookTextPort, "getToc" | "getChapterText" | "getChapterLayout" | "locate">;
 
+/** How much of either end of the on-screen sample is looked up in a page's text. */
+const VISIBLE_QUOTE_CHARS = 64;
+
 /** A chapter's layout, or one block of sentences for a host that keeps none. */
 export async function chapterLayout(
   bookText: Pick<BookTextPort, "getChapterLayout">,
@@ -46,6 +49,8 @@ export async function resolveReadingPosition(input: {
     viewportAnchors?: string[];
     chapterIndex?: number;
     position?: { start: number; end: number };
+    /** The host's sample of the text on screen; places the viewport inside a page (see `withinPage`). */
+    visibleText?: string;
   };
   attachments?: (TurnAttachment & { position?: ChapterRange })[];
   signal?: AbortSignal;
@@ -93,6 +98,37 @@ export async function resolveReadingPosition(input: {
     );
   };
 
+  // A paged book's location names a page, never the part of it on screen:
+  // the page's text is extracted without the layout a location could point
+  // into, so the host can only say "this page". Read that way the reader has
+  // always read to the foot of the page they opened. The host's sample of
+  // what is on screen says where on the page they are: its opening and closing
+  // words are looked up in the page's own text, and the viewport runs from one
+  // to the other. An end that cannot be placed — its words not on this page
+  // (the window runs onto the next one), or on it twice — keeps the page's own.
+  const withinPage = async (anchor: string | undefined, page: BookTextLocation, visible: string | undefined) => {
+    const whole = { start: page.start.offset, end: page.end.offset };
+    const sample = visible?.trim();
+    if (!sample || page.start.chapterIndex !== page.end.chapterIndex) return whole;
+    if ((await chapter(page.start.chapterIndex))?.layout.unit !== "page") return whole;
+    const chars = Array.from(sample);
+    const inside = (found: BookTextLocation | undefined) =>
+      found !== undefined &&
+      found.start.chapterIndex === page.start.chapterIndex &&
+      found.end.chapterIndex === page.start.chapterIndex &&
+      found.start.offset >= whole.start &&
+      found.end.offset <= whole.end &&
+      // The host answers a quote it cannot place with the page itself.
+      (found.start.offset !== whole.start || found.end.offset !== whole.end);
+    const [head, tail] = await Promise.all([
+      locate(anchor, chars.slice(0, VISIBLE_QUOTE_CHARS).join("")),
+      locate(anchor, chars.slice(-VISIBLE_QUOTE_CHARS).join("")),
+    ]);
+    const start = inside(head) ? head!.start.offset : whole.start;
+    const end = inside(tail) ? tail!.end.offset : whole.end;
+    return start < end ? { start, end } : whole;
+  };
+
   // The viewport belongs to the chapter it ends in: a page that shows the end
   // of one chapter and the start of the next has reached the next.
   let viewportRange: ChapterRange | undefined;
@@ -106,12 +142,14 @@ export async function resolveReadingPosition(input: {
     );
     const first = located[0];
     const last = located[located.length - 1];
-    if (first && last)
-      viewportRange = {
-        chapterIndex: last.end.chapterIndex,
-        start: first.start.chapterIndex === last.end.chapterIndex ? first.start.offset : 0,
-        end: last.end.offset,
-      };
+    if (first && last) {
+      const chapterIndex = last.end.chapterIndex;
+      const sameChapter = first.start.chapterIndex === chapterIndex;
+      viewportRange =
+        located.length === 1 && sameChapter
+          ? { chapterIndex, ...(await withinPage(anchors[0], first, cursor?.visibleText)) }
+          : { chapterIndex, start: sameChapter ? first.start.offset : 0, end: last.end.offset };
+    }
   }
   const viewport = viewportRange ? await describe(viewportRange) : undefined;
   const viewportChapter = viewport ? await chapter(viewport.chapterIndex) : undefined;

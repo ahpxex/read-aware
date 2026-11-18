@@ -124,3 +124,110 @@ test("a paged book's coordinates are pages", async () => {
   expect(describeSpan(located.viewport!)).toBe("page 1 sentence 0 through page 1 sentence 1");
   expect(located.viewport!.blocks).toBe(2);
 });
+
+// A paged book's location names a page. Where on the page the reader is comes
+// from the host's sample of what is on screen, found in the page's own text.
+const PAGE =
+  "The first lines of the page are above the window and the reader has scrolled past them already. " +
+  "What the window shows begins with this sentence, which is long enough to be told apart. " +
+  "It goes on through a second visible sentence. And it stops at the end of this one, here. " +
+  "Below the window the page carries on with text the reader has not reached at all so far.";
+const PAGED = [{ title: "A chapter of one page", text: PAGE }];
+const squeezed = (text: string) => text.replace(/\s+/g, "");
+function pagedSource(asked: (string | undefined)[] = []) {
+  const { deps } = createInMemoryDeps({ chapters: { book: PAGED } });
+  deps.bookText.getChapterLayout = async () => ({ unit: "page", paragraphs: [0], sentences: sentenceStarts(PAGE) });
+  // As the host locates in a page: the whole page for its location alone, and
+  // inside it for a quote found there once — whatever the whitespace between.
+  deps.bookText.locate = async (_book, target) => {
+    asked.push(target.textQuote?.exact);
+    const whole = { start: { chapterIndex: 0, offset: 0 }, end: { chapterIndex: 0, offset: PAGE.length } };
+    const quote = target.textQuote?.exact;
+    if (!quote) return whole;
+    const compact = squeezed(PAGE);
+    const found = compact.indexOf(squeezed(quote));
+    if (found < 0 || compact.indexOf(squeezed(quote), found + 1) >= 0) return whole;
+    // Offsets of the compacted match, back in the page's own text.
+    const positions = Array.from(PAGE).flatMap((char, index) => (/\s/.test(char) ? [] : [index]));
+    return {
+      start: { chapterIndex: 0, offset: positions[found] },
+      end: { chapterIndex: 0, offset: positions[found + squeezed(quote).length - 1] + 1 },
+    };
+  };
+  return deps.bookText;
+}
+const sentenceStarts = (text: string) => [0, ...[...text.matchAll(/\. /g)].map((match) => match.index + 2)];
+const VISIBLE = PAGE.slice(PAGE.indexOf("What the window"), PAGE.indexOf(" Below the window"));
+
+test("the part of a page on screen is found by what the reader's window shows", async () => {
+  const asked: (string | undefined)[] = [];
+  const located = await resolveReadingPosition({
+    bookText: pagedSource(asked),
+    bookId,
+    // The host's sample has its own whitespace: lines joined with spaces.
+    cursor: { anchor: "page", visibleText: VISIBLE.replace(/ /g, "  ") },
+  });
+  expect(PAGE.slice(located.viewport!.start, located.viewport!.end)).toBe(VISIBLE);
+  expect(describeSpan(located.viewport!)).toBe("page 0 sentence 1 through page 0 sentence 3");
+  // The reader has read through the last sentence in the window, not the page.
+  expect(located.viewport!.through).toBe(PAGE.indexOf("Below the window"));
+  // Short quotes from either end of the sample, never the sample itself.
+  expect(asked.filter((quote) => quote !== undefined).every((quote) => quote.length <= 80)).toBe(true);
+});
+
+test("a window that runs onto the next page is placed by the end the page has", async () => {
+  const start = PAGE.indexOf("What the window");
+  // Its closing words are the next page's: only its opening is on this one.
+  const overEnd = await resolveReadingPosition({
+    bookText: pagedSource(),
+    bookId,
+    cursor: {
+      anchor: "page",
+      visibleText: `${PAGE.slice(start)} The next page begins with words this page does not have.`,
+    },
+  });
+  expect([overEnd.viewport!.start, overEnd.viewport!.end]).toEqual([start, PAGE.length]);
+  // Its opening words are the previous page's: only its closing is on this one.
+  const end = PAGE.indexOf(" Below the window");
+  const overStart = await resolveReadingPosition({
+    bookText: pagedSource(),
+    bookId,
+    cursor: {
+      anchor: "page",
+      visibleText: `The page before ends with words this page does not have. ${PAGE.slice(0, end)}`,
+    },
+  });
+  expect([overStart.viewport!.start, overStart.viewport!.end]).toEqual([0, end]);
+});
+
+test("a window that cannot be placed leaves the whole page, as a page without one does", async () => {
+  const whole = [0, PAGE.length];
+  for (const visibleText of [
+    undefined,
+    "Words that are nowhere on this page, from its first to its last, at either end of the sample.",
+    // Elided by the host in the middle; both ends still say nothing.
+    "Nothing here matches … and nothing here does either.",
+  ]) {
+    const located = await resolveReadingPosition({
+      bookText: pagedSource(),
+      bookId,
+      cursor: { anchor: "page", ...(visibleText ? { visibleText } : {}) },
+    });
+    expect([located.viewport!.start, located.viewport!.end]).toEqual(whole);
+  }
+});
+
+test("a book of flowing text is placed by its location alone: the window's words are not consulted", async () => {
+  const asked: (string | undefined)[] = [];
+  const bookText = source((_cfi, quote) => {
+    asked.push(quote);
+    return at(1, "爷从新街走出来。他回了学校。");
+  });
+  const located = await resolveReadingPosition({
+    bookText,
+    bookId,
+    cursor: { anchor: "page", visibleText: "他回了学校。" },
+  });
+  expect(describeSpan(located.viewport!)).toBe("paragraph 1 sentence 0 through paragraph 1 sentence 1");
+  expect(asked).toEqual([undefined]);
+});

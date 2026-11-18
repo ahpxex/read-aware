@@ -421,7 +421,13 @@ export class FixedLayout extends HTMLElement {
   // permanently blank page. Renders are cancellable through the signal the
   // PDF layer honors; a stale in-flight render (scale or palette changed)
   // is cancelled rather than raced.
-  #renderFrameAt(frame: FixedFrame | null | undefined, scale: number, context = this.#positionContext) {
+  /** `display`: the scale the frame is laid out at, when it is not the one it rasters for. */
+  #renderFrameAt(
+    frame: FixedFrame | null | undefined,
+    scale: number,
+    context = this.#positionContext,
+    display = scale,
+  ) {
     if (!frame?.onZoom) return;
     // A live zoom re-rasters nothing until it settles (see `setZoom`): a
     // page that has a raster is presented from it meanwhile. A page with
@@ -476,6 +482,9 @@ export class FixedLayout extends HTMLElement {
           frame.renderingScale = null;
         }
       });
+    // A render presents the page at the scale it rasters for; the frame is
+    // still laid out at `display`, and the raster is shown at that when it lands.
+    if (display !== scale) frame.onPresent?.(frame.doc, display);
   }
   /** Cancel a frame's in-flight render (no-op when idle). Synchronous
    *  bookkeeping, so a follow-up `#renderFrameAt` never dedupes against a
@@ -970,7 +979,12 @@ export class FixedLayout extends HTMLElement {
     if (!frame || frame.blank) return;
     const scale = this.#stackScale(entry, viewport);
     this.#presentFrame(frame, scale);
-    this.#renderFrameAt(frame, scale, context);
+    // Under a previewed zoom the page is laid out at the zoom being left but
+    // rasters for the one on its way: a pinch far out would otherwise draw
+    // every page it brings into view at the size they were, many times the
+    // pixels it shows — and again when it settles.
+    const ratio = this.#preview ? this.#zoom.factor / this.#laidFactor : 1;
+    this.#renderFrameAt(frame, scale * ratio, context, scale);
   }
   /**
    * A new zoom factor over unchanged fits: one property, arithmetic tops.

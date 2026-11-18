@@ -395,6 +395,55 @@ export async function runZoomRegressions(modules: Modules): Promise<Result[]> {
     }
   });
 
+  await check(
+    "a page a pinch brings into view rasters for the zoom on its way, shown at the zoom laid out",
+    async () => {
+      const book = await modules.pdf.makePDF(file);
+      const view = new modules.view.View();
+      view.style.cssText = `display:block;position:fixed;left:0;top:0;width:${WIDTH}px;height:${HEIGHT}px;opacity:0;pointer-events:none;z-index:-1`;
+      document.body.append(view);
+      let pinching = true;
+      try {
+        await view.open(book);
+        const renderer = view.renderer as FixedLayout;
+        renderer.setLayout("scrolled", 1);
+        renderer.setZoom({ fit: "auto", factor: 3 });
+        // The page gone to is live when this returns; its neighbours follow.
+        await view.goTo(1);
+        const width = renderer.clientWidth;
+        // Pinched far out before they arrive, and held there without settling.
+        let factor = 0.6;
+        const pinch = async () => {
+          while (pinching) {
+            factor = factor === 0.6 ? 0.62 : 0.6;
+            renderer.setZoom({ fit: "auto", factor }, { live: true });
+            await new Promise((resolve) => setTimeout(resolve, 50));
+          }
+        };
+        const steps = pinch();
+        const neighbour = () => renderer.getContents().find((content) => content.index === 2)?.doc;
+        const raster = () => neighbour()?.querySelector<HTMLCanvasElement>("#canvas > canvas");
+        await waitFor("a neighbour's first raster during the pinch", () => !!raster(), 5000);
+        const frame = neighbour()!.defaultView!.frameElement as HTMLElement;
+        // Still laid out at the zoom the pinch began from...
+        near(parseFloat(frame.style.width), width * 3, "laid-out frame width mid-pinch");
+        // ...drawn for the zoom on its way, not that one: a fifth of the pixels across...
+        const drawn = raster()!.width / devicePixelRatio / width;
+        assert(drawn > 0.55 && drawn < 0.67, `The neighbour rastered at ${drawn.toFixed(2)}× the fit, not the pinch's`);
+        // ...and stretched over its frame, which the preview shows at the pinch's size.
+        near(raster()!.getBoundingClientRect().width, width * 3, "raster presented across the laid-out frame", 3);
+        near(frame.getBoundingClientRect().width, width * factor, "neighbour on screen at the pinch's zoom", 3);
+        pinching = false;
+        await steps;
+      } finally {
+        pinching = false;
+        await view.close();
+        view.remove();
+        await book.destroy();
+      }
+    },
+  );
+
   await check("a settled zoom keeps the sharp overlay until its replacement is drawn", async () => {
     const reader = await open("scrolled");
     try {

@@ -1,7 +1,11 @@
 import { PDFDocument, PDFName, PDFString, StandardFonts, rgb } from "pdf-lib";
 
-/** Three pages of `size` page units (portrait by default), the second with text, a link and a filled square. */
-export async function makePDFFixture(size: [number, number] = [600, 800]): Promise<Uint8Array<ArrayBuffer>> {
+/**
+ * Three pages of `size` page units (portrait by default), the second with
+ * text, a link and a filled square — and then `more` pages, each with two
+ * typeset lines near its foot ("Page N line one." / "It ends here.").
+ */
+export async function makePDFFixture(size: [number, number] = [600, 800], more = 0): Promise<Uint8Array<ArrayBuffer>> {
   const pdf = await PDFDocument.create();
   pdf.setTitle("PDF Engine Fixture");
   pdf.setAuthor("Test Writer");
@@ -15,6 +19,11 @@ export async function makePDFFixture(size: [number, number] = [600, 800]): Promi
   pages[1].drawText("Go to final chapter", { x: 30, y: top - 100, size: 16, font });
   pages[1].drawRectangle({ x: 30, y: top - 400, width: 200, height: 200, color: rgb(0, 0, 0) });
   pages[2].drawText("Final chapter", { x: 30, y: top - 60, size: 24, font });
+  for (let i = 0; i < more; i++) {
+    const page = pdf.addPage(size);
+    page.drawText(`Page ${pages.length + i + 1} line one.`, { x: 30, y: 120, size: 16, font });
+    page.drawText("It ends here.", { x: 30, y: 96, size: 16, font });
+  }
   const outline = pdf.context.obj({ Type: "Outlines", Count: 2 });
   const outlineRef = pdf.context.register(outline);
   const first = pdf.context.obj({

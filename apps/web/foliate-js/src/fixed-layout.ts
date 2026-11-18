@@ -51,6 +51,10 @@ const STACK_KEEP_BEHIND_VIEWPORTS = 3;
 // start and cancel a page-sized draw per event. A discrete zoom (a key, a
 // button) rasters at once.
 const ZOOM_SETTLE_MS = 160;
+// Where a range gone to is shown: this share of the reading area below its
+// top, and no more than this many pixels.
+const RANGE_LEAD_SHARE = 0.15;
+const RANGE_LEAD_MAX_PX = 96;
 // The sharp overlay of a zoomed page follows the viewport once scrolling or
 // panning has paused this long (see pdf-detail.ts).
 const DETAIL_SETTLE_MS = 120;
@@ -352,11 +356,15 @@ export class FixedLayout extends HTMLElement {
           if (!doc) return fail(new Error("Fixed-layout page document is inaccessible"));
           for (const name of ["wheel", "touchstart", "keydown"])
             doc.addEventListener(name, this.#clearScrollFeedback, { capture: true, passive: true });
-          doc.addEventListener(
+          // READAWARE: on the frame's window, not its document, so the
+          // reader's own listeners on the document are asked first: a wheel
+          // one of them claimed — to step a reading mode along, say — is not
+          // also a scroll.
+          doc.defaultView?.addEventListener(
             "wheel",
             (event) => {
               // ctrl+wheel is a pinch (or a zoom chord), never a scroll.
-              if (!this.scrolled || event.ctrlKey) return;
+              if (!this.scrolled || event.ctrlKey || event.defaultPrevented) return;
               event.preventDefault();
               // The stack is scrolled from here, not natively, whenever the
               // pointer is over a page — so the lock is kept here too:
@@ -1884,6 +1892,14 @@ export class FixedLayout extends HTMLElement {
     }
     await this.#goToSpread(index, side, "navigation", context, navigation);
     if (book !== this.book || this.#navigation !== navigation) return;
+    // READAWARE: a lazily rastered page (PDF) draws its text with its raster,
+    // so an address inside the page resolves to nothing until then — and the
+    // jump would stop at the top of the page instead of the place it names.
+    if (typeof resolved.anchor === "function") {
+      // A page that fails to raster is still the page gone to.
+      await this.waitForCurrentRender().catch(() => {});
+      if (book !== this.book || this.#navigation !== navigation) return;
+    }
     const content = this.getContents().find((content) => content.index === resolved.index);
     if (content) {
       const anchor = anchorValue(content.doc, resolved.anchor);
@@ -1903,9 +1919,35 @@ export class FixedLayout extends HTMLElement {
         selection.addRange(range);
       }
     }
-    anchorElement(anchor)?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    if (!isRange(anchor) || !this.#showRange(anchor))
+      anchorElement(anchor)?.scrollIntoView({ block: "nearest", inline: "nearest" });
     if (this.scrolled) this.#stackScrollFeedback = { position: this.scrollTop, context };
     this.#reportLocation("navigation", anchorRange(doc, anchor), context);
+  }
+  // READAWARE: a range is shown from its start, a little below the top of
+  // the reading area — where the reflowable renderer puts one. Scrolling its
+  // first line box "into view" would stop the moment that line shows at the
+  // foot of the viewport: a sentence stepped to there would show one line and
+  // hide the rest. Sideways it moves only as far as it must.
+  /** Scroll `range` to the top of the reading area; false when it has no boxes to show. */
+  #showRange(range: Range): boolean {
+    const frame = range.startContainer.ownerDocument?.defaultView?.frameElement;
+    const rects = Array.from(range.getClientRects()).filter((rect) => rect.width > 0 && rect.height > 0);
+    if (!frame || !rects.length || !frame.clientWidth || !frame.clientHeight) return false;
+    // The boxes are in the frame's own coordinates, and an image page's frame
+    // is scaled by transform.
+    const box = frame.getBoundingClientRect();
+    const [scaleX, scaleY] = [box.width / frame.clientWidth, box.height / frame.clientHeight];
+    const left = box.left + Math.min(...rects.map((rect) => rect.left)) * scaleX;
+    const right = box.left + Math.max(...rects.map((rect) => rect.right)) * scaleX;
+    const top = box.top + Math.min(...rects.map((rect) => rect.top)) * scaleY;
+    const host = this.getBoundingClientRect();
+    const margin = Math.min(this.clientHeight * RANGE_LEAD_SHARE, RANGE_LEAD_MAX_PX);
+    this.scrollTop += top - host.top - margin;
+    const viewRight = host.left + this.clientWidth;
+    if (left < host.left || right - left > this.clientWidth) this.scrollLeft += left - host.left;
+    else if (right > viewRight) this.scrollLeft += right - viewRight;
+    return true;
   }
   async next(_distance?: number, context: object = {}) {
     this.#commitPreview(context);

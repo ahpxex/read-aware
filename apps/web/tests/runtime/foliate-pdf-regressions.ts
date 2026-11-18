@@ -58,6 +58,99 @@ export async function runPDFRegressions(modules: Modules): Promise<Result[]> {
     }
   });
 
+  await check(
+    "PDF: an address inside a page is gone to once the page has its text, and shown from its start",
+    async () => {
+      // Enough pages that only those near the reader are live.
+      const long = new File([await makePDFFixture([600, 800], 20)], "long.pdf", { type: "application/pdf" });
+      const book = await modules.pdf.makePDF(long);
+      const view = new modules.view.View();
+      view.style.cssText =
+        "display:block;position:fixed;left:0;top:0;width:900px;height:600px;opacity:0;pointer-events:none;z-index:-1";
+      document.body.append(view);
+      try {
+        await view.open(book);
+        const renderer = view.renderer;
+        if (!(renderer instanceof modules.fixed.FixedLayout)) throw new Error("Wrong renderer");
+        renderer.setLayout("scrolled", 1);
+        const target = 18;
+        const page = () => renderer.getContents().find((content) => content.index === target)?.doc;
+        const lines = () => Array.from(page()?.querySelectorAll(".textLayer span") ?? []);
+        await view.goTo(target);
+        await waitFor("the target page's text", () => lines().length >= 2);
+        // Both typeset lines of the page: one unit of text across a line break.
+        const range = page()!.createRange();
+        range.setStart(lines()[0].firstChild!, 0);
+        range.setEnd(lines()[1].firstChild!, lines()[1].textContent!.length);
+        const cfi = view.getCFI(target, range);
+        // Far away, the page is torn down; its text is gone with it.
+        await view.goTo(0);
+        await waitFor("the target page to leave", () => !page());
+        await view.goTo(cfi);
+        equal(renderer.index, target);
+        if (lines().length < 2) throw new Error("The jump returned before the page had its text");
+        const host = renderer.getBoundingClientRect();
+        const frame = page()!.defaultView!.frameElement!.getBoundingClientRect();
+        const top = frame.top + lines()[0].getBoundingClientRect().top - host.top;
+        const bottom = frame.top + lines()[1].getBoundingClientRect().bottom - host.top;
+        // From its start, a little below the top of the reading area — all of it.
+        if (top < 20 || top > 110) throw new Error(`The address was shown ${top}px below the top`);
+        if (bottom > renderer.clientHeight) throw new Error(`The address ends ${bottom}px down, out of view`);
+        // The same through a zoom: a range gone to on a page already live.
+        renderer.setZoom({ fit: "width", factor: 2 });
+        await waitFor("the zoomed text", () => lines().length >= 2 && !!lines()[0].firstChild);
+        const again = page()!.createRange();
+        again.setStart(lines()[0].firstChild!, 0);
+        again.setEnd(lines()[1].firstChild!, 3);
+        renderer.scrollTop -= 400;
+        await renderer.scrollToAnchor(again);
+        const zoomedFrame = page()!.defaultView!.frameElement!.getBoundingClientRect();
+        const zoomedTop =
+          zoomedFrame.top + lines()[0].getBoundingClientRect().top - renderer.getBoundingClientRect().top;
+        if (zoomedTop < 20 || zoomedTop > 110)
+          throw new Error(`Zoomed, the range was shown ${zoomedTop}px below the top`);
+      } finally {
+        await view.close();
+        view.remove();
+        await book.destroy();
+      }
+    },
+  );
+
+  await check("PDF: a wheel the reader claimed over a page does not also scroll the stack", async () => {
+    const book = await modules.pdf.makePDF(file);
+    const view = new modules.view.View();
+    view.style.cssText =
+      "display:block;position:fixed;left:0;top:0;width:900px;height:600px;opacity:0;pointer-events:none;z-index:-1";
+    document.body.append(view);
+    try {
+      await view.open(book);
+      const renderer = view.renderer;
+      if (!(renderer instanceof modules.fixed.FixedLayout)) throw new Error("Wrong renderer");
+      renderer.setLayout("scrolled", 1);
+      await view.goTo(1);
+      const doc = renderer.getContents().find((content) => content.index === 1)?.doc;
+      if (!doc) throw new Error("The page is not live");
+      const WheelEventOfPage = (doc.defaultView as Window & typeof globalThis).WheelEvent;
+      const wheel = () =>
+        doc.body.dispatchEvent(new WheelEventOfPage("wheel", { deltaY: 90, bubbles: true, cancelable: true }));
+      const top = renderer.scrollTop;
+      wheel();
+      equal(renderer.scrollTop, top + 90);
+      // A listener on the page's document — where the reader puts its own —
+      // is asked before the stack scrolls.
+      const claim = (event: Event) => event.preventDefault();
+      doc.addEventListener("wheel", claim, { passive: false });
+      wheel();
+      doc.removeEventListener("wheel", claim);
+      equal(renderer.scrollTop, top + 90);
+    } finally {
+      await view.close();
+      view.remove();
+      await book.destroy();
+    }
+  });
+
   await check("PDF parses through byte ranges, extracts text and resolves outline sections", async () => {
     let slices = 0;
     const source: BookFile = {

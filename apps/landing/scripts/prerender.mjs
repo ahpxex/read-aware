@@ -39,8 +39,8 @@ const GITHUB_URL = "https://github.com/ahpxex/read-aware";
 const DISCORD_URL = "https://discord.gg/whDrKXwHWU";
 const LOGO_URL = `${SITE_ORIGIN}/favicon.png`;
 const FEED_URL = `${SITE_ORIGIN}/feed.xml`;
-const SHELF_SCREENSHOT_LIGHT = "/screenshots/shelf-light.webp?v=043";
-const SHELF_SCREENSHOT_DARK = "/screenshots/shelf-dark.webp?v=043";
+const SHELF_SCREENSHOT_LIGHT = "/screenshots/shelf-light.webp?v=0611";
+const SHELF_SCREENSHOT_DARK = "/screenshots/shelf-dark.webp?v=0611";
 
 // Locale prefixes must mirror src/lib/i18n.ts.
 const LOCALES = [

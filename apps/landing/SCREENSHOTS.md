@@ -1,5 +1,48 @@
 # Website Screenshots
 
+## Desktop Plates
+
+`public/screenshots/{shelf,reader,context,plugins}-{light,dark}.webp` are
+unretouched captures of the desktop app's webview, 1200 x 800 at 2x. Each
+light/dark pair is one staged view captured twice, with only the theme changed
+in between. `public/og.jpg` is cut from the light shelf.
+
+- Captured: 2026-11-18, from the v0.6.11 source running as a development build
+  on macOS.
+- Library: a profile made for the captures, holding 25 public-domain EPUBs from
+  Project Gutenberg in English, French, German, Spanish, Italian, Chinese and
+  Japanese, and one collection, "Russian novels". No account, no sync, no
+  private books or notes.
+- Shelf: default sort, scrolled to the top.
+- Reader: *Pride and Prejudice* (Gutenberg no. 1342), Chapter I, continuous
+  scroll, Literata, Sentence Reader on the opening sentence. Page theme Warm
+  for the light capture and Dark for the dark one.
+- Context: one real conversation on the Agent page, asked once and not edited:
+  "Look across my whole shelf. What threads run through the books I keep?"
+- Plugins: Settings → Plugins on a fresh profile, built-in plugins only.
+
+### Retaking
+
+Capture from a profile of its own, never from a personal library: the plates
+are public. A development build can run under a separate identity beside the
+ordinary one, with its own data directory, when it is started with
+`READAWARE_ACCEPTANCE_IDENTITY=com.readaware.app.<name>` and a Tauri config
+that sets the same `identifier`, a `productName` that does not start with
+"ReadAware Dev", and its own `devUrl` port (see
+`apps/desktop/src-tauri/tauri.capability-e2e.conf.json` for the shape). Fill
+the library with `ra --data-dir <profile> import <files>`; the shelf lists the
+most recently added book first.
+
+The webview stops animating while its window is fully covered, so surfaces
+that fade in come out blank. Keep the window on screen while capturing, without
+giving it keyboard focus: a capture session that takes focus also takes
+whatever is being typed elsewhere.
+
+Encode with `cwebp -q 84 -m 6 -sharp_yuv`, keep the 2400 x 1600 frame, and bump
+`SHOT_VERSION` in `src/components/Plate.tsx` together with the two preload URLs
+in `scripts/prerender.mjs`. Check every image for anything private before
+committing it.
+
 ## Android Reader
 
 `public/screenshots/android-reader-{light,dark}.png` are unmodified device

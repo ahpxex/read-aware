@@ -75,6 +75,6 @@ const FAQS: TopicFaq[] = [
   {
     question: "截图是真实 Android 界面吗？",
     answer:
-      "是。页面截图来自安装官方 ReadAware 0.5.4 APK 的 Android 16 Pixel 7 模拟器，展示真实导入的《傲慢与偏见》。它不是 Android 12 兼容性测试结果。",
+      "是。页面截图来自安装官方 ReadAware 0.6.11 APK 的 Android 16 Pixel 7 模拟器，展示真实导入的《傲慢与偏见》。它不是 Android 12 兼容性测试结果。",
   },
 ];

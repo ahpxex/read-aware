@@ -48,10 +48,10 @@ committing it.
 `public/screenshots/android-reader-{light,dark}.png` are unmodified device
 captures, not browser mockups or generated images.
 
-- Captured: 2026-09-07.
-- App: official ReadAware v0.5.4 ARM64 APK from
-  <https://github.com/ahpxex/read-aware/releases/tag/v0.5.4>.
-- APK SHA-256: `2cc24b57da9012479b11cf3050c36670e548e30ca2e7debd170819bfcad6bcb8`.
+- Captured: 2026-11-18.
+- App: official ReadAware v0.6.11 ARM64 APK from
+  <https://github.com/ahpxex/read-aware/releases/tag/v0.6.11>.
+- APK SHA-256: `96dc099f0ebae070deeca8777c03aac48c2bc7e1e010b1a733201fe10746b829`.
 - Device: Pixel 7 Android 16 (API 36), ARM64 emulator, 1080 x 2400 at 420 dpi.
 - Dedicated AVD: `ReadAware_Site_Screenshots`. No signed-in account or private books.
 - Book: Jane Austen, *Pride and Prejudice*, Project Gutenberg no. 1342,
@@ -59,7 +59,9 @@ captures, not browser mockups or generated images.
 - View: Chapter I, first text page after its illustration; toolbar visible.
 - Reading settings: Literata, Medium, Regular; Warm for the light capture,
   Dark for the dark capture. The system theme matches each capture.
-- Android System UI demo mode fixes the clock at 10:00 and hides notifications.
+- Android System UI demo mode fixes the clock at 10:00, shows full Wi-Fi and
+  battery, and hides notifications. The device clock itself is set to 10:00
+  as well, because the reader's own footer shows the time.
   No application UI or book content was altered for the screenshots.
 
 ## Retaking
@@ -80,13 +82,16 @@ avdmanager delete avd -n ReadAware_Site_Screenshots
 On this Mac the SDK is at `/opt/homebrew/share/android-commandlinetools`.
 Launch the dedicated AVD with `-gpu host -no-snapshot`; automatic graphics
 selection can fall back to software rendering and stall under memory pressure.
-Keep external network requests behind the configured development proxy.
+`-no-window -port 5556` runs it out of sight beside a development emulator on
+the default port.
 
 Install the official APK, push the EPUB to `/sdcard/Download/`, and import it
 through the app's Android file picker. Open Chapter I from the table of
 contents, swipe past the illustration, select the reading settings above,
 and tap the top margin to reveal the toolbar. After changing the Android
-system theme, restart the app so native status-bar colors update too.
+system theme, restart the app so native status-bar colors update too, then go
+to the same page again: do not count on the restart reopening the book where
+it was.
 
 Capture with `adb -s <dedicated-serial> exec-out screencap -p`, inspect the full
 image, and replace the corresponding PNG. Preserve the complete 1080 x 2400

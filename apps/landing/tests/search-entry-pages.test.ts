@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { readFile } from "node:fs/promises";
+import { SHOT_VERSION } from "../src/components/Plate";
 import { DOWNLOADS } from "../src/lib/releases";
 import { LOCALES, localizePath, servedHref } from "../src/lib/i18n";
 
@@ -75,12 +76,12 @@ test.each([...LOCALES])("%s navigation stays localized and secondary links are c
 test("Android screenshot has both themes and reserves the actual device aspect ratio", async () => {
   const page = await inspect("/epub-reader-for-android/");
   expect(page.images).toContainEqual({
-    src: "/screenshots/android-reader-light.png",
+    src: `/screenshots/android-reader-light.png${SHOT_VERSION}`,
     width: "1080",
     height: "2400",
     alt: "Pride and Prejudice open in ReadAware on Android, with the chapter text, reading progress, and reader toolbar visible.",
   });
-  expect(page.sources).toContain("/screenshots/android-reader-dark.png");
+  expect(page.sources).toContain(`/screenshots/android-reader-dark.png${SHOT_VERSION}`);
   for (const theme of ["light", "dark"]) {
     const png = await readFile(new URL(`screenshots/android-reader-${theme}.png`, dist));
     expect(png.subarray(0, 8).toString("hex")).toBe("89504e470d0a1a0a");

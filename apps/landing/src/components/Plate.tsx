@@ -1,5 +1,5 @@
 // Cache-buster for the retaken screenshot set (bump when replacing the files).
-const SHOT_VERSION = "?v=0611";
+export const SHOT_VERSION = "?v=0611";
 
 /**
  * A screenshot printed as a plate: a hairline frame does the separating, and a

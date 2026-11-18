@@ -24,6 +24,14 @@ const TITLE_MAX_OUTPUT_TOKENS = 1024;
 const USER_TEXT_CHARS = 2000;
 const ASSISTANT_TEXT_CHARS = 1500;
 
+/**
+ * A thread is titled in the language it is answered in, which is not always
+ * the one the reader writes in: they may have asked for another. Without a
+ * reply to go by, the reader's own message decides.
+ */
+const REPLY_LANGUAGE =
+  "the language the ASSISTANT's reply is written in, even when the READER wrote in another (titles, names and words the reply quotes from a second language do not count)";
+
 function titlePrompt(language: string): string {
   return `You name a conversation between a reader and their reading assistant, for the reader's list of conversations.
 
@@ -78,7 +86,7 @@ export async function generateThreadTitle(input: GenerateThreadTitleInput): Prom
   const message = await input.complete(
     input.model,
     {
-      systemPrompt: titlePrompt(replyLanguageAnchor(input.userText)),
+      systemPrompt: titlePrompt(input.assistantText ? REPLY_LANGUAGE : replyLanguageAnchor(input.userText)),
       messages: [{ role: "user", content: `Conversation:\n${exchange}`, timestamp: Date.now() }],
     },
     { signal: input.signal, maxTokens: TITLE_MAX_OUTPUT_TOKENS },

@@ -44,7 +44,7 @@ test("output that is not a title is no title", () => {
   expect(sanitizeThreadTitle("x".repeat(GENERATED_TITLE_MAX_CHARS + 1))).toBeUndefined();
 });
 
-test("the title is asked for in the reader's language, from a bounded exchange, with a bounded reply", async () => {
+test("the title is asked for in the language of the reply, from a bounded exchange, with a bounded reply", async () => {
   let seen: { system?: string; content?: string; maxTokens?: number } = {};
   const complete: CompleteFn = async (_model, context, options) => {
     seen = { system: context.systemPrompt, content: promptOf(context), maxTokens: options?.maxTokens };
@@ -57,9 +57,21 @@ test("the title is asked for in the reader's language, from a bounded exchange, 
     assistantText: "你最近 30 天读了 13 分钟。",
   });
   expect(title).toBe("近一个月的阅读时长");
-  expect(seen.system).toContain("Write it in Chinese");
+  expect(seen.system).toContain(
+    "Write it in the language the ASSISTANT's reply is written in, even when the READER wrote",
+  );
   expect(seen.content?.length).toBeLessThan(4000);
   expect(seen.maxTokens).toBeGreaterThan(0);
+});
+
+test("without a reply the title follows the reader's own message", async () => {
+  let system: string | undefined;
+  const complete: CompleteFn = async (_model, context) => {
+    system = context.systemPrompt;
+    return fauxAssistantMessage("近一个月的阅读时长");
+  };
+  await generateThreadTitle({ complete, model, userText: "我最近一个月大概读了多少时间？" });
+  expect(system).toContain("Write it in Chinese.");
 });
 
 function titlerFixture(complete: CompleteFn) {

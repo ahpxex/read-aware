@@ -88,6 +88,11 @@ export async function runZoomRegressions(modules: Modules): Promise<Result[]> {
         return frame.getBoundingClientRect();
       },
       host: () => renderer.getBoundingClientRect(),
+      /** Give the view another size, as a window drag does. */
+      resize: (width: number, height: number) => {
+        view.style.width = `${width}px`;
+        view.style.height = `${height}px`;
+      },
       close: async () => {
         await view.close();
         view.remove();
@@ -279,19 +284,23 @@ export async function runZoomRegressions(modules: Modules): Promise<Result[]> {
     const paged = await open("paginated", 1);
     try {
       const { renderer } = paged;
+      // The fit, which the zoom multiplies: every page of the fixture is this
+      // one's size. (Not the reading area's height once zoomed — a scrollbar
+      // that takes room has taken some of it by then.)
+      const fit = paged.box().height;
       renderer.setZoom({ fit: "page", factor: 2 }, { live: true });
       await renderer.next();
       await waitFor("next page", () => renderer.index === 2);
-      near(paged.box(2).height, renderer.clientHeight * 2, "page turned to at the zoom");
+      near(paged.box(2).height, fit * 2, "page turned to at the zoom");
       assert(renderer.panEdges.top && renderer.panEdges.left, "The page turned to did not open at its start");
       // And panning or restoring a place acts on the laid-out page.
       renderer.setZoom({ fit: "page", factor: 3 }, { live: true });
       const previewed = paged.box(2);
       assert(renderer.panBy(0, 100), "A previewed page did not pan");
       near(paged.box(2).top, previewed.top - 100, "panned from where the preview showed the page");
-      near(paged.box(2).height, renderer.clientHeight * 3, "page height once laid out");
+      near(paged.box(2).height, fit * 3, "page height once laid out");
       const frame = paged.page(2)!.defaultView!.frameElement as HTMLElement;
-      near(parseFloat(frame.style.height), renderer.clientHeight * 3, "laid-out frame height");
+      near(parseFloat(frame.style.height), fit * 3, "laid-out frame height");
     } finally {
       await paged.close();
     }
@@ -317,6 +326,20 @@ export async function runZoomRegressions(modules: Modules): Promise<Result[]> {
       await waitFor("the page jumped to", () => renderer.index === 2);
       near(scrolled.box(2).width, renderer.clientWidth * 1.2, "page jumped to at the zoom");
       near(scrolled.box(2).top, scrolled.host().top, "page jumped to at the top of the reading area");
+      // A resize of the reading area — a window dragged, a scrollbar taking
+      // its room — lays a previewed zoom out too, and for the new area.
+      renderer.setZoom({ fit: "width", factor: 2 }, { live: true });
+      const frame = scrolled.page(2)!.defaultView!.frameElement as HTMLElement;
+      near(parseFloat(frame.style.width), renderer.clientWidth * 1.2, "frame width under the preview");
+      scrolled.resize(WIDTH - 120, HEIGHT);
+      // The stack as wide as its pages at the zoom, fitted to the new area:
+      // only the resize's own layout sizes the slots so.
+      await waitFor(
+        "the resize to lay the previewed zoom out",
+        () => Math.abs(renderer.scrollWidth - renderer.clientWidth * 2) < 1.5,
+      );
+      near(parseFloat(frame.style.width), renderer.clientWidth * 2, "frame width laid out for the new reading area");
+      near(scrolled.box(2).width, renderer.clientWidth * 2, "page on screen in the new reading area");
     } finally {
       await scrolled.close();
     }

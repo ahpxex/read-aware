@@ -478,8 +478,15 @@ export async function runZoomRegressions(modules: Modules): Promise<Result[]> {
         // ...drawn for the zoom on its way, not that one: a fifth of the pixels across...
         const drawn = rasterOf(7)!.width / devicePixelRatio / width;
         assert(drawn > 0.55 && drawn < 0.67, `The page rastered at ${drawn.toFixed(2)}× the fit, not the pinch's`);
-        // ...and stretched over its frame, which the preview shows at the pinch's size.
-        near(rasterOf(7)!.getBoundingClientRect().width, width * 3, "raster presented across the laid-out frame", 3);
+        // ...and stretched over its frame — in whole pixels of its own, so by
+        // less than one of them short of it — which the preview shows at the
+        // pinch's size.
+        const presented = rasterOf(7)!.getBoundingClientRect().width;
+        const short = width * 3 - presented;
+        assert(
+          short > -0.01 && short < presented / rasterOf(7)!.width,
+          `The raster is presented ${presented} wide across a frame of ${width * 3}`,
+        );
         near(frame.getBoundingClientRect().width, width * factor, "page on screen at the pinch's zoom", 3);
         pinching = false;
         await steps;

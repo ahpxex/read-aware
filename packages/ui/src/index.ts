@@ -15,6 +15,7 @@ export { Card } from "./Card";
 export { NavItem } from "./NavItem";
 export { Progress } from "./Progress";
 export { ProgressRing } from "./ProgressRing";
+export { QrCode } from "./QrCode";
 export { Divider } from "./Divider";
 export { EmptyState } from "./EmptyState";
 export { TextField } from "./TextField";

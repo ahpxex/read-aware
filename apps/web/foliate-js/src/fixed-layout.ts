@@ -358,7 +358,10 @@ export class FixedLayout extends HTMLElement {
               // ctrl+wheel is a pinch (or a zoom chord), never a scroll.
               if (!this.scrolled || event.ctrlKey) return;
               event.preventDefault();
-              this.scrollBy({ top: event.deltaY, left: event.deltaX });
+              // The stack is scrolled from here, not natively, whenever the
+              // pointer is over a page — so the lock is kept here too:
+              // `overflow: hidden` does not hold a programmatic scroll.
+              this.scrollBy({ top: event.deltaY, left: this.#lockedAxis === "x" ? 0 : event.deltaX });
             },
             { passive: false },
           );
@@ -1475,7 +1478,9 @@ export class FixedLayout extends HTMLElement {
   //   view moves as it does unlocked: it pans to the page's end, turns
   //   there, and the next page opens where reading it begins.
   // - A continuous scroll is read down the stack whatever shape its pages
-  //   are, so the lock holds it sideways and it scrolls on as ever.
+  //   are, so the lock holds it sideways and it scrolls on as ever. A wheel
+  //   over a page scrolls the stack through the frame's own listener (see
+  //   `#createFrame`), which drops the sideways part itself.
   //
   // A zoom still moves the view either way (programmatic scrolling survives
   // `overflow: hidden`), and it stays locked at the new zoom.

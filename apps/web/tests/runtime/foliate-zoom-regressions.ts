@@ -659,9 +659,24 @@ export async function runZoomRegressions(modules: Modules): Promise<Result[]> {
         const top = renderer.scrollTop;
         renderer.scrollTop = top + 300;
         near(renderer.scrollTop, top + 300, "scrolled distance");
+        // A wheel over a page scrolls the stack through the page's own
+        // listener: down it as ever, sideways not at all.
+        const wheel = (deltaX: number, deltaY: number) => {
+          const doc = reader.page()!;
+          const WheelEventOfPage = (doc.defaultView as Window & typeof globalThis).WheelEvent;
+          doc.body.dispatchEvent(new WheelEventOfPage("wheel", { deltaX, deltaY, bubbles: true, cancelable: true }));
+        };
+        const held = { left: renderer.scrollLeft, top: renderer.scrollTop };
+        wheel(80, 0);
+        near(renderer.scrollLeft, held.left, "locked: sideways wheel over a page");
+        wheel(-60, 120);
+        near(renderer.scrollLeft, held.left, "locked: sideways part of a diagonal wheel");
+        near(renderer.scrollTop, held.top + 120, "locked: downward part of a diagonal wheel");
         renderer.setViewLocked(false);
         assert(renderer.lockedAxis === null, "An unlocked scroll still holds an axis");
         assert(overflowOf(renderer) === "auto auto", `Unlocked, it scrolls natively as ${overflowOf(renderer)}`);
+        wheel(-80, 0);
+        near(renderer.scrollLeft, held.left - 80, "unlocked: sideways wheel over a page");
       } finally {
         await reader.close();
       }

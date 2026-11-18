@@ -10,10 +10,9 @@
  * pipeline stops delivering it, whatever a model would have made of it.
  */
 import { afterAll, beforeAll, expect, test } from "bun:test";
-import type { Context } from "@earendil-works/pi-ai";
 import { evalSuites, type AgentEvalScenario } from "@read-aware/agent/evals";
 import { realBookSlugs } from "@read-aware/agent/evals/books";
-import { createScriptedThread } from "@read-aware/agent/testing/scripted-thread";
+import { createScriptedThread, type ScriptedRequest } from "@read-aware/agent/testing/scripted-thread";
 import { addressAt, blocksIn } from "@read-aware/core";
 import { getExtractedChapters } from "../src/domain/library";
 import { addEvalBooks, createAppEvalHost, extractEvalBook, readEvalBookSnapshot } from "./headless/eval-host";
@@ -27,7 +26,7 @@ beforeAll(async () => {
 });
 afterAll(() => shell.dispose());
 
-const text = (message: Context["messages"][number]) =>
+const text = (message: ScriptedRequest["messages"][number]) =>
   typeof message.content === "string"
     ? message.content
     : message.content.map((part) => ("text" in part ? part.text : "")).join("");
@@ -40,9 +39,9 @@ async function scripted(
 ) {
   const environment = await createAppEvalHost(shell).createEnvironment(scenario);
   const turn = await environment.locateTurn(scenario.turns[turnIndex]!);
-  const requests: Context[] = [];
-  const { thread, dispose } = createScriptedThread(scenario.scope, environment.deps, calls, (context) =>
-    requests.push(structuredClone(context)),
+  const requests: ScriptedRequest[] = [];
+  const { thread, dispose } = createScriptedThread(scenario.scope, environment.deps, calls, (request) =>
+    requests.push(structuredClone(request)),
   );
   try {
     for await (const _chunk of thread.sendTurn(turn)) {

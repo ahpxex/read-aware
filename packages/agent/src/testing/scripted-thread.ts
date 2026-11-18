@@ -5,13 +5,20 @@ import type { RuntimeDeps } from "../ports";
 import type { ThreadScope } from "../thread-scope";
 import { AgentThread } from "../runtime/thread";
 
+/**
+ * One request the scripted model receives: what the runtime actually put in
+ * front of a model. Named here so a host's tests can keep what `observe`
+ * hands them without depending on the model library themselves.
+ */
+export type ScriptedRequest = Context;
+
 /** In-process model fixture for host-port integration tests; no inference or desktop evidence. */
 export function createScriptedThread(
   scope: ThreadScope,
   deps: RuntimeDeps,
   calls: { name: string; arguments: JsonObject }[],
-  /** Sees every request the scripted model receives: what the runtime actually put in front of a model. */
-  observe?: (context: Context) => void,
+  /** Sees every request the scripted model receives. */
+  observe?: (request: ScriptedRequest) => void,
 ) {
   const provider = registerFauxProvider({ tokensPerSecond: 100_000 });
   const responses = [

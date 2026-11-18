@@ -1,7 +1,9 @@
 # Release builds run on version tags. Manual dispatch repairs Windows artifacts
 # and the desktop updater for an existing tag without rebuilding shipped platforms.
 # Android: signed arm64 APK. iOS: unsigned arm64 IPA for sideloading (AltStore
-# / SideStore / Sideloadly re-sign it with the user's own Apple ID). Desktop:
+# / SideStore / Sideloadly re-sign it with the user's own Apple ID), and for
+# stable tags an App Store-signed build that testflight.yml uploads and submits
+# to the public TestFlight beta. Desktop:
 # macOS .dmg/.app.zip per chip (Apple Silicon + Intel, no universal), Windows
 # x64 NSIS .exe/portable .zip, Linux x64 .AppImage/.deb/.rpm. Every artifact is renamed to carry its platform
 # (ReadAware-vX.Y.Z-<platform>-<arch>.<ext>) before it is attached to the
@@ -291,6 +293,22 @@ jobs:
           files: release-assets/*
           generate_release_notes: true
           prerelease: ${{ contains(env.RELEASE_TAG, '-') }}
+
+  # The public TestFlight beta (see testflight.yml). Stable tags only, like the
+  # landing's download links; nothing depends on it, so an App Store Connect
+  # problem never holds back the GitHub release or the updater.
+  testflight:
+    if: github.event_name != 'workflow_dispatch' && !contains(github.ref_name, '-')
+    needs: marketplace-contract
+    permissions:
+      contents: read
+    uses: ./.github/workflows/testflight.yml
+    with:
+      tag: ${{ github.ref_name }}
+    secrets:
+      APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+      APPLE_API_KEY: ${{ secrets.APPLE_API_KEY }}
+      APPLE_API_KEY_B64: ${{ secrets.APPLE_API_KEY_B64 }}
 
   desktop:
     needs: marketplace-contract

@@ -1,5 +1,5 @@
-import { ArrowSquareOut, DiscordLogo, Star } from "@phosphor-icons/react";
-import { Body, Button, buttonClassName, Dialog, Heading, Skeleton } from "@read-aware/ui";
+import { ArrowSquareOut, DiscordLogo, Star, WechatLogo } from "@phosphor-icons/react";
+import { Body, Button, buttonClassName, Dialog, Heading, QrCode, Skeleton } from "@read-aware/ui";
 import { useExternalLink } from "../../../hooks/useExternalLink";
 import { useLocale, useTranslation } from "../../../i18n";
 import { PROJECT_DISCORD_URL, PROJECT_REPOSITORY_URL } from "../../../platform/site-url";
@@ -17,6 +17,11 @@ import { changelogUrlForLocale } from "../lib/whats-new";
  * dialog — Continue reading, Escape, or the backdrop — dismisses it for good.
  * Community links stay available while the notes load and leave the dialog
  * open, so opening GitHub does not consume the invitation to join Discord.
+ * Where WeChat is the community's home — the container decides for whom — the
+ * group's invitation sits beside that text as a code to scan: WeChat groups
+ * are joined from a phone, and a link would only open a page asking for one.
+ * It shares the row with the text instead of taking one of its own, because
+ * this section does not scroll and every line it grows is taken from the notes.
  * Users who dislike it can turn it off in Settings → General.
  *
  * Presentation only. Which version to announce, and fetching its notes, is the
@@ -52,6 +57,8 @@ type WhatsNewDialogViewProps = {
   close: () => void;
   /** Missing search credentials; opens the existing AI settings page. */
   configureSearch?: () => void;
+  /** The WeChat group's invitation, when this reader should be offered it. */
+  wechatGroupUrl?: string | null;
 };
 
 export function WhatsNewDialogView({
@@ -61,6 +68,7 @@ export function WhatsNewDialogView({
   loading,
   close,
   configureSearch,
+  wechatGroupUrl,
 }: WhatsNewDialogViewProps) {
   const { t } = useTranslation(["nav", "common", "settings"]);
   const locale = useLocale();
@@ -168,10 +176,23 @@ export function WhatsNewDialogView({
         </div>
 
         <section className="shrink-0 border-t border-border px-6 pb-4 pt-5 sm:px-8">
-          <h3 className="font-sans text-sm font-medium text-fg">{t("common:community.title")}</h3>
-          <Body as="p" className="mt-1.5">
-            {t("common:community.description")}
-          </Body>
+          <div className="flex items-start gap-5">
+            <div className="min-w-0 flex-1">
+              <h3 className="font-sans text-sm font-medium text-fg">{t("common:community.title")}</h3>
+              <Body as="p" className="mt-1.5">
+                {t("common:community.description")}
+              </Body>
+            </div>
+            {wechatGroupUrl && (
+              <figure className="shrink-0">
+                <QrCode value={wechatGroupUrl} label={t("common:community.wechatQrLabel")} size={112} />
+                <figcaption className="mt-1.5 flex items-center justify-center gap-1 text-caption text-fg-muted">
+                  <WechatLogo size={14} aria-hidden="true" />
+                  {t("common:community.wechatCaption")}
+                </figcaption>
+              </figure>
+            )}
+          </div>
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
             <a
               href={PROJECT_REPOSITORY_URL}

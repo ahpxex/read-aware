@@ -8,7 +8,7 @@ import { useWhatsNewDialog } from "../hooks/useWhatsNewDialog";
 import { WhatsNewDialogView } from "./WhatsNewDialogView";
 
 export function WhatsNewDialog() {
-  const { version, codename, entry, loading, close, configureSearch } = useWhatsNewDialog();
+  const { version, codename, entry, loading, close, configureSearch, wechatGroupUrl } = useWhatsNewDialog();
   return (
     <WhatsNewDialogView
       version={version}
@@ -17,6 +17,7 @@ export function WhatsNewDialog() {
       loading={loading}
       close={close}
       configureSearch={configureSearch}
+      wechatGroupUrl={wechatGroupUrl}
     />
   );
 }

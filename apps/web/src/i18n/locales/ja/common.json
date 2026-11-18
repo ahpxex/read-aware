@@ -226,6 +226,8 @@
     "description": "ReadAware が役に立ったら、GitHub で Star をお願いします。Discord では、次のバージョンに向けたアイデアや感想をお待ちしています。",
     "star": "GitHub で Star",
     "discord": "Discord に参加",
+    "wechatCaption": "WeChat でスキャンして参加",
+    "wechatQrLabel": "ReadAware の WeChat グループに参加",
     "madeBy": "<author>AHpx</author> が <heart/> を込めて制作",
     "love": "愛情"
   }

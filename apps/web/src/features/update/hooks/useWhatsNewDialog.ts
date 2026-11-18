@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSetAtom } from "jotai";
 import { useLocale } from "../../../i18n";
+import { wechatGroupInvitationUrl } from "../../../platform/site-url";
 import { settingsOpenAtom, settingsSectionRequestAtom } from "../../../state/ui";
 import { getSearchConfig } from "../../ai/lib/search-config";
 import { getGeneralSettings } from "../../settings/lib/general-settings";
@@ -21,6 +22,10 @@ import { versionCodename } from "../lib/version-codename";
  * good. When the user turned the dialog off in Settings the notice is
  * consumed silently instead, so a later re-enable never pops a stale
  * version.
+ *
+ * Readers using a Chinese interface are also offered the WeChat group, for as
+ * long as its invitation works; that is settled when the dialog opens, so the
+ * code never disappears from under someone scanning it.
  */
 export function useWhatsNewDialog(): {
   version: string | null;
@@ -29,6 +34,7 @@ export function useWhatsNewDialog(): {
   loading: boolean;
   close: () => void;
   configureSearch: (() => void) | undefined;
+  wechatGroupUrl: string | null;
 } {
   const locale = useLocale();
   const setSettingsOpen = useSetAtom(settingsOpenAtom);
@@ -37,6 +43,7 @@ export function useWhatsNewDialog(): {
     version: string;
     entry: WhatsNewEntry | null;
     loading: boolean;
+    wechatGroupUrl: string | null;
   } | null>(null);
 
   useEffect(() => {
@@ -50,11 +57,12 @@ export function useWhatsNewDialog(): {
           dismissWhatsNew();
           return;
         }
+        const wechatGroupUrl = locale.startsWith("zh") ? wechatGroupInvitationUrl(Date.now()) : null;
         // Open first, load after — the dialog must never wait on the network.
-        setState({ version: notice.version, entry: null, loading: true });
+        setState({ version: notice.version, entry: null, loading: true, wechatGroupUrl });
         const entry = await fetchWhatsNewEntry(notice.version, locale);
         if (cancelled) return;
-        setState({ version: notice.version, entry, loading: false });
+        setState({ version: notice.version, entry, loading: false, wechatGroupUrl });
       })
       .catch(() => {
         // A failed version read means no Tauri (browser dev) — nothing to do.
@@ -84,5 +92,6 @@ export function useWhatsNewDialog(): {
     loading: state?.loading ?? false,
     close,
     configureSearch: search?.enabled && !search.apiKey.trim() ? configureSearch : undefined,
+    wechatGroupUrl: state?.wechatGroupUrl ?? null,
   };
 }

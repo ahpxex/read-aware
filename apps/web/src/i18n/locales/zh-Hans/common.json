@@ -228,6 +228,8 @@
     "description": "如果 ReadAware 对你有帮助，请在 GitHub 上给我们一颗 Star。也欢迎加入 Discord，分享想法，一起打磨下一版。",
     "star": "在 GitHub 上 Star",
     "discord": "加入 Discord",
+    "wechatCaption": "微信扫码加群",
+    "wechatQrLabel": "加入 ReadAware 微信群",
     "madeBy": "由 <author>AHpx</author> 用 <heart/> 打造",
     "love": "热爱"
   }

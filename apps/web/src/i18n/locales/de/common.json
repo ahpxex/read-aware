@@ -226,6 +226,8 @@
     "description": "Mit einem Stern auf GitHub hilfst du anderen, ReadAware zu entdecken. Teile deine Ideen auf Discord und gestalte die nächste Version mit.",
     "star": "Star auf GitHub",
     "discord": "Discord beitreten",
+    "wechatCaption": "Scannen und per WeChat beitreten",
+    "wechatQrLabel": "Der WeChat-Gruppe von ReadAware beitreten",
     "madeBy": "Mit <heart/> von <author>AHpx</author> entwickelt",
     "love": "Liebe"
   }

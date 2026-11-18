@@ -228,6 +228,8 @@
     "description": "A GitHub star helps more readers discover ReadAware. Join us on Discord to share ideas and shape what comes next.",
     "star": "Star on GitHub",
     "discord": "Join Discord",
+    "wechatCaption": "Scan to join on WeChat",
+    "wechatQrLabel": "Join the ReadAware WeChat group",
     "madeBy": "Made with <heart/> by <author>AHpx</author>",
     "love": "love"
   }

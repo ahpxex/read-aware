@@ -97,6 +97,17 @@ export const Uncurated: Story = {
   args: { version: "0.6.0-rc.1", codename: null, entry: null },
 };
 
+/**
+ * Chinese-language readers are also offered the WeChat group, as a code to
+ * scan beside the community text. The container passes the invitation only
+ * while it works; without it the section is the text and the two links alone.
+ */
+export const WithWechatGroup: Story = {
+  args: {
+    wechatGroupUrl: "https://weixin.qq.com/g/storybook-sample-invitation-not-a-real-group-0000000000000000000000",
+  },
+};
+
 /** A release with no codename — the version stands alone. */
 export const WithoutCodename: Story = {
   args: { codename: null, entry: { ...entry, codename: null } },

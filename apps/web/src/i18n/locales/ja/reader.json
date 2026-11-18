@@ -83,7 +83,7 @@
   },
   "pageZoom": "ズーム",
   "pageZoomReset": "ズームをフィットに戻す",
-  "pageZoomLock": "表示をロック（ページをめくっても同じ位置）",
+  "pageZoomLock": "ズーム表示をロック",
   "pageZoomUnlock": "表示のロックを解除",
   "pageZoomHint": "ズーム、フィット、ページ上の読んでいた位置は、この本だけに、この端末で記憶されます。",
   "pageFit": "フィット",

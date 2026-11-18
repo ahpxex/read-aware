@@ -234,10 +234,10 @@ export class FixedLayout extends HTMLElement {
             flex-direction: column;
             overscroll-behavior: contain;
         }
-        :host([view-locked="x"]:not([flow="scrolled"])) {
+        :host([view-locked="x"]) {
             overflow-x: hidden;
         }
-        :host([view-locked="y"]:not([flow="scrolled"])) {
+        :host([view-locked="y"]) {
             overflow-y: hidden;
         }`);
 
@@ -1268,17 +1268,21 @@ export class FixedLayout extends HTMLElement {
     const frame = [this.#left, this.#center, this.#right].find((frame) => frame?.index === index && !frame.hidden);
     return frame?.element.getBoundingClientRect() ?? null;
   }
-  // READAWARE: a locked view (paged flows only). The reader zoomed into the
-  // part of the page they read — a column, the text inside its margins — and
-  // froze it there. A page is read along its long side, so the lock holds the
-  // other axis (`lockedAxisOfPage`): nothing pans the view that way — not the
-  // wheel, a drag, a key or a swipe, which turn pages as at the fit — and a
-  // page turn leaves it where it is, so every page shows that same column.
-  // Along the page the view moves as it does unlocked: it pans to the page's
-  // end, turns there, and the next page opens where reading it begins. A zoom
-  // still moves the view either way (programmatic scrolling survives
-  // `overflow: hidden`), and it stays locked at the new zoom. A continuous
-  // scroll has no lock: it is read by scrolling.
+  // READAWARE: a locked view. The reader zoomed into the part of the page
+  // they read — a column, the text inside its margins — and froze it there.
+  // The lock holds the axis across the reading and leaves the one along it:
+  //
+  // - A paged flow is read along the page's long side (`lockedAxisOfPage`).
+  //   Across the page nothing pans the view — not the wheel, a drag, a key
+  //   or a swipe, which turn pages as at the fit — and a page turn leaves it
+  //   where it is, so every page shows that same column. Along the page the
+  //   view moves as it does unlocked: it pans to the page's end, turns
+  //   there, and the next page opens where reading it begins.
+  // - A continuous scroll is read down the stack whatever shape its pages
+  //   are, so the lock holds it sideways and it scrolls on as ever.
+  //
+  // A zoom still moves the view either way (programmatic scrolling survives
+  // `overflow: hidden`), and it stays locked at the new zoom.
   get viewLocked() {
     return this.#viewLocked;
   }
@@ -1286,20 +1290,29 @@ export class FixedLayout extends HTMLElement {
     this.#viewLocked = locked;
     this.#syncLockedAxis();
   }
-  /** The axis a locked paged view cannot be panned along; null when unlocked, or scrolled. */
+  /** The axis a locked view cannot be panned or scrolled along; null when unlocked. */
   get lockedAxis(): PanAxis | null {
-    return this.scrolled ? null : this.#lockedAxis;
+    return this.#lockedAxis;
   }
-  // Decided from the page being read each time one is laid out, not when the
-  // lock is set: a book opens locked before any page shows, and its pages
-  // need not all be the same way up. The host's `view-locked` attribute
-  // carries the axis to the stylesheet, which takes native scrolling off it.
+  // Decided from the flow and the page being read — each time one is laid
+  // out and whenever the flow changes — not when the lock is set: a book
+  // opens locked before any page shows, and its pages need not all be the
+  // same way up. The host's `view-locked` attribute carries the axis to the
+  // stylesheet, which takes native scrolling off it; written only when the
+  // axis changes, since a live zoom lays the page out at every step.
   #syncLockedAxis(side = this.#side) {
-    const shown = this.#center ?? (side === "left" ? (this.#left ?? this.#right) : (this.#right ?? this.#left));
-    // A spread is never blank on the side being read unless it has no page at all.
-    const page = shown?.blank ? null : shown;
-    this.#lockedAxis = this.#viewLocked && page ? lockedAxisOfPage(page.width, page.height) : null;
-    if (this.#lockedAxis) this.setAttribute("view-locked", this.#lockedAxis);
+    let axis: PanAxis | null = null;
+    if (this.#viewLocked) {
+      if (this.scrolled) axis = "x";
+      else {
+        const shown = this.#center ?? (side === "left" ? (this.#left ?? this.#right) : (this.#right ?? this.#left));
+        // A spread is never blank on the side being read unless it has no page at all.
+        if (shown && !shown.blank) axis = lockedAxisOfPage(shown.width, shown.height);
+      }
+    }
+    if (axis === this.#lockedAxis) return;
+    this.#lockedAxis = axis;
+    if (axis) this.setAttribute("view-locked", axis);
     else this.removeAttribute("view-locked");
   }
   // READAWARE: a zoomed paged spread is panned inside the viewport. The
@@ -1316,8 +1329,8 @@ export class FixedLayout extends HTMLElement {
   /** Which edges of a paged spread the viewport rests against — all four when it fits, both of a locked axis. */
   get panEdges(): PanEdges {
     const slack = 1;
-    const lockedX = this.lockedAxis === "x";
-    const lockedY = this.lockedAxis === "y";
+    const lockedX = this.#lockedAxis === "x";
+    const lockedY = this.#lockedAxis === "y";
     return {
       left: lockedX || this.scrollLeft <= slack,
       top: lockedY || this.scrollTop <= slack,
@@ -1515,6 +1528,9 @@ export class FixedLayout extends HTMLElement {
       );
   }
   #rebuildSpreads(context: object = {}) {
+    // The flow may have changed, with a book or before one: a locked view
+    // holds a different axis in a continuous scroll than on a page.
+    this.#syncLockedAxis();
     if (!this.book) return;
     const currentIndex = this.index;
     this.#buildSpreads();

@@ -170,7 +170,7 @@
       "zoom-in": "ページを拡大（PDF・コミック）",
       "zoom-out": "ページを縮小（PDF・コミック）",
       "zoom-reset": "ズームをフィットに戻す（PDF・コミック）",
-      "zoom-lock": "ズーム表示をロック（ページをめくっても同じ位置、PDF・コミック）",
+      "zoom-lock": "ズーム表示をロック（PDF・コミック）",
       "selection-copy": "コピー",
       "selection-highlight": "ハイライト",
       "selection-underline": "下線",

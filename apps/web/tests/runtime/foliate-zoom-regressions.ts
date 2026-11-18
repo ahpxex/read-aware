@@ -458,28 +458,47 @@ export async function runZoomRegressions(modules: Modules): Promise<Result[]> {
     }
   });
 
-  await check("a continuous scroll has no lock", async () => {
-    const reader = await open("scrolled", 1, { prepare: (renderer) => renderer.setViewLocked(true) });
+  await check("a locked continuous scroll holds sideways and scrolls on, whatever shape its pages are", async () => {
+    for (const source of [file, landscapeFile]) {
+      // Locked before its first page shows, as a remembered lock is.
+      const reader = await open("scrolled", 1, { source, prepare: (renderer) => renderer.setViewLocked(true) });
+      try {
+        const { renderer } = reader;
+        renderer.setZoom({ fit: "width", factor: 2 });
+        assert(renderer.lockedAxis === "x", `A continuous scroll locked ${renderer.lockedAxis}`);
+        assert(overflowOf(renderer) === "hidden auto", `Locked, it scrolls natively as ${overflowOf(renderer)}`);
+        // A zoom still moves it sideways, and the stack scrolls as ever.
+        assert(renderer.scrollLeft > 0, "The zoom did not keep the view on its anchor");
+        const top = renderer.scrollTop;
+        renderer.scrollTop = top + 300;
+        near(renderer.scrollTop, top + 300, "scrolled distance");
+        renderer.setViewLocked(false);
+        assert(renderer.lockedAxis === null, "An unlocked scroll still holds an axis");
+        assert(overflowOf(renderer) === "auto auto", `Unlocked, it scrolls natively as ${overflowOf(renderer)}`);
+      } finally {
+        await reader.close();
+      }
+    }
+  });
+
+  await check("a lock follows the flow: sideways in a scroll, across the page once paged", async () => {
+    // A landscape page holds the other axis than a scroll does, so a stale
+    // one would either stop the scroll or leave it free sideways.
+    const reader = await open("paginated", 1, { source: landscapeFile });
     try {
       const { renderer } = reader;
-      renderer.setZoom({ fit: "width", factor: 2 });
-      assert(renderer.lockedAxis === null, `A continuous scroll locked ${renderer.lockedAxis}`);
-      assert(overflowOf(renderer) === "auto auto", `A continuous scroll scrolls natively as ${overflowOf(renderer)}`);
-    } finally {
-      await reader.close();
-    }
-    // Nor does a locked paged view keep its hold once it becomes one.
-    const paged = await open("paginated", 1);
-    try {
-      const { renderer } = paged;
       renderer.setZoom({ fit: "page", factor: 3 });
       renderer.setViewLocked(true);
-      assert(renderer.lockedAxis === "x", "The paged view was not locked to begin with");
+      assert(renderer.lockedAxis === "y", `A landscape page locked ${renderer.lockedAxis}`);
       renderer.setLayout("scrolled", 1);
-      assert(renderer.lockedAxis === null, `Switched to a continuous scroll, still locked ${renderer.lockedAxis}`);
-      assert(overflowOf(renderer) === "auto auto", `Switched, it scrolls natively as ${overflowOf(renderer)}`);
+      assert(renderer.lockedAxis === "x", `Switched to a continuous scroll, it locked ${renderer.lockedAxis}`);
+      assert(overflowOf(renderer) === "hidden auto", `Switched, it scrolls natively as ${overflowOf(renderer)}`);
+      await waitFor("the scroll's page", () => renderer.index === 1 && !!reader.page());
+      renderer.setLayout("paginated", 1);
+      await waitFor("the paged spread", () => renderer.lockedAxis === "y");
+      assert(overflowOf(renderer) === "auto hidden", `Paged again, it scrolls natively as ${overflowOf(renderer)}`);
     } finally {
-      await paged.close();
+      await reader.close();
     }
   });
 

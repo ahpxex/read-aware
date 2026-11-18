@@ -83,7 +83,7 @@
   },
   "pageZoom": "縮放",
   "pageZoomReset": "縮放還原為適配",
-  "pageZoomLock": "鎖定視圖：翻頁保持此位置",
+  "pageZoomLock": "鎖定縮放視圖",
   "pageZoomUnlock": "解除視圖鎖定",
   "pageZoomHint": "縮放、適配和頁面上的閱讀位置只對這本書生效，僅儲存在本裝置。",
   "pageFit": "適配",

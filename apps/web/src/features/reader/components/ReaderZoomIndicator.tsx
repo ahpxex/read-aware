@@ -8,8 +8,6 @@ type Props = {
   feedback: ZoomFeedback;
   /** The reader controls are showing; a zoomed or locked view then stays up with them. */
   controlsVisible: boolean;
-  /** Paged flows can lock a zoomed view for page turns; a continuous scroll cannot. */
-  canLock: boolean;
   locked: boolean;
   onToggleLock: () => void;
   onReset: () => void;
@@ -18,14 +16,14 @@ type Props = {
 /**
  * The zoom of a fixed-layout page: shown briefly while it changes, and —
  * while the reader controls are up and the page is zoomed or its view
- * locked — kept up with a lock for page turns and a one-click way back to
- * the fit. Same surface as the progress readout; only its buttons take
+ * locked — kept up with a lock that holds the view still across the reading
+ * and a one-click way back to the fit. Same surface as the progress readout; only its buttons take
  * pointer input, so pinches pass through to the page.
  */
-export function ReaderZoomIndicator({ feedback, controlsVisible, canLock, locked, onToggleLock, onReset }: Props) {
+export function ReaderZoomIndicator({ feedback, controlsVisible, locked, onToggleLock, onReset }: Props) {
   const { t } = useTranslation("reader");
-  const indicator = useZoomIndicator(feedback, controlsVisible, canLock && locked);
-  const showLock = canLock && (indicator?.resettable || locked);
+  const indicator = useZoomIndicator(feedback, controlsVisible, locked);
+  const showLock = indicator?.resettable || locked;
   return (
     <div
       role="status"

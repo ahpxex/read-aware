@@ -170,7 +170,7 @@
       "zoom-in": "放大页面（PDF 与漫画）",
       "zoom-out": "缩小页面（PDF 与漫画）",
       "zoom-reset": "缩放复位到适配（PDF 与漫画）",
-      "zoom-lock": "锁定缩放视图，翻页保持位置（PDF 与漫画）",
+      "zoom-lock": "锁定缩放视图（PDF 与漫画）",
       "selection-copy": "复制",
       "selection-highlight": "高亮",
       "selection-underline": "下划线",

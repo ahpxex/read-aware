@@ -41,11 +41,13 @@ export const resolveFixedLayoutFit = (fit: FixedLayoutFit, scrolled: boolean): "
 export const sameFixedLayoutZoom = (a: FixedLayoutZoom, b: FixedLayoutZoom): boolean =>
   a.fit === b.fit && a.factor === b.factor;
 
-// A zoomed paged view can be locked (`FixedLayout.setViewLocked`). A page is
-// read along its long side — down a portrait page, across a landscape one —
-// so that is the way a locked view still moves, and the lock holds the other
-// axis: the column a reader zoomed into stays put while they read through the
-// page and on into the next. A square page reads downwards.
+// A zoomed view can be locked (`FixedLayout.setViewLocked`): held still
+// across the reading, free along it. A page in a paged flow is read along its
+// long side — down a portrait page, across a landscape one — so that is the
+// way its locked view still moves, and the lock holds the other axis: the
+// column a reader zoomed into stays put while they read through the page and
+// on into the next. A square page reads downwards. (A continuous scroll is
+// always read downwards, and locks sideways.)
 export type PanAxis = "x" | "y";
 
 /** The axis a locked view holds still on a page of this shape. */

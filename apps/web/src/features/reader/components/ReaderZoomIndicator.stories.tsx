@@ -11,9 +11,7 @@ type PreviewProps = {
   factor: number;
   /** The reader controls are showing. */
   controlsVisible: boolean;
-  /** A paged flow, which can lock a zoomed view; a continuous scroll cannot. */
-  canLock: boolean;
-  /** The view starts locked for page turns. */
+  /** The view starts locked. */
   locked: boolean;
 };
 
@@ -23,7 +21,7 @@ type PreviewProps = {
  * toggles, and a reset that returns the zoom to the fit. The buttons below
  * the page step the zoom the way the zoom keys do.
  */
-function ZoomIndicatorPreview({ factor, controlsVisible, canLock, locked: initiallyLocked }: PreviewProps) {
+function ZoomIndicatorPreview({ factor, controlsVisible, locked: initiallyLocked }: PreviewProps) {
   const [feedback] = useState(createZoomFeedback);
   const [zoom, setZoom] = useState(factor);
   const [locked, setLocked] = useState(initiallyLocked);
@@ -40,7 +38,6 @@ function ZoomIndicatorPreview({ factor, controlsVisible, canLock, locked: initia
         <ReaderZoomIndicator
           feedback={feedback}
           controlsVisible={controlsVisible}
-          canLock={canLock}
           locked={locked}
           onToggleLock={() => setLocked((value) => !value)}
           onReset={() => setZoom(1)}
@@ -61,8 +58,8 @@ function ZoomIndicatorPreview({ factor, controlsVisible, canLock, locked: initia
 /**
  * The zoom readout of a fixed-layout page (PDF, comics). It comes up briefly
  * whenever the zoom changes; while the reader controls are up and the page is
- * zoomed off its fit, or its view is locked, it stays up with a lock for page
- * turns and a one-click reset to the fit.
+ * zoomed off its fit, or its view is locked, it stays up with a lock that
+ * holds the view still across the reading and a one-click reset to the fit.
  *
  * Each story mounts its own feedback channel; a change to the `factor`
  * control remounts the preview at that zoom.
@@ -71,7 +68,7 @@ const meta = {
   title: "Interface/Reader/ReaderZoomIndicator",
   component: ZoomIndicatorPreview,
   parameters: { layout: "padded" },
-  args: { factor: 1.5, controlsVisible: true, canLock: true, locked: false },
+  args: { factor: 1.5, controlsVisible: true, locked: false },
   argTypes: { factor: { control: { type: "number", min: 0.5, max: 6, step: 0.05 } } },
   render: (args) => <ZoomIndicatorPreview key={args.factor} {...args} />,
 } satisfies Meta<typeof ZoomIndicatorPreview>;
@@ -79,24 +76,21 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-/** Zoomed in a paged flow with the controls up: the readout stays, offering the lock and the reset. */
+/** Zoomed with the controls up: the readout stays, offering the lock and the reset. */
 export const Zoomed: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await waitFor(() => expect(canvas.getByText("150%")).toBeVisible());
-    await expect(canvas.getByRole("button", { name: "Lock this view for page turns" })).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
+    await expect(canvas.getByRole("button", { name: "Lock the zoomed view" })).toHaveAttribute("aria-pressed", "false");
     await expect(canvas.getByRole("button", { name: "Reset zoom to fit" })).toBeVisible();
   },
 };
 
 /** Locking the view flips the lock's icon, label and pressed state. */
-export const LockForPageTurns: Story = {
+export const LockTheView: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await userEvent.click(await canvas.findByRole("button", { name: "Lock this view for page turns" }));
+    await userEvent.click(await canvas.findByRole("button", { name: "Lock the zoomed view" }));
     await expect(await canvas.findByRole("button", { name: "Unlock the view" })).toHaveAttribute(
       "aria-pressed",
       "true",
@@ -104,7 +98,7 @@ export const LockForPageTurns: Story = {
   },
 };
 
-/** A zoomed view locked for page turns: the next page opens at this zoom and place. */
+/** A locked zoomed view: reading on keeps this zoom and this column. */
 export const Locked: Story = {
   args: { factor: 2, locked: true },
   play: async ({ canvasElement }) => {
@@ -128,23 +122,12 @@ export const LockedAtFit: Story = {
   },
 };
 
-/** A continuous scroll cannot lock a view, so a zoomed page offers only the reset. */
-export const ContinuousScroll: Story = {
-  args: { factor: 1.25, canLock: false },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await waitFor(() => expect(canvas.getByText("125%")).toBeVisible());
-    await expect(canvas.getByRole("button", { name: "Reset zoom to fit" })).toBeVisible();
-    await expect(canvas.queryByRole("button", { name: "Lock this view for page turns" })).toBeNull();
-  },
-};
-
 /**
  * The reset returns the zoom to 100%; with nothing left to reset and no lock,
  * the readout goes once the zoom has held still.
  */
 export const ResetToFit: Story = {
-  args: { factor: 1.25, canLock: false },
+  args: { factor: 1.25 },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(await canvas.findByRole("button", { name: "Reset zoom to fit" }));

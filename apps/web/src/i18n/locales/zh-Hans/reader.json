@@ -83,7 +83,7 @@
   },
   "pageZoom": "缩放",
   "pageZoomReset": "缩放复位到适配",
-  "pageZoomLock": "锁定视图：翻页保持此位置",
+  "pageZoomLock": "锁定缩放视图",
   "pageZoomUnlock": "解除视图锁定",
   "pageZoomHint": "缩放、适配和页面上的阅读位置只对这本书生效，仅保存在本设备。",
   "pageFit": "适配",

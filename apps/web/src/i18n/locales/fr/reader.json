@@ -83,7 +83,7 @@
   },
   "pageZoom": "Zoom",
   "pageZoomReset": "Réinitialiser le zoom",
-  "pageZoomLock": "Verrouiller cette vue pour tourner les pages",
+  "pageZoomLock": "Verrouiller la vue zoomée",
   "pageZoomUnlock": "Déverrouiller la vue",
   "pageZoomHint": "Le zoom, l’ajustement et votre position sur la page sont mémorisés pour ce livre sur cet appareil.",
   "pageFit": "Ajuster",

@@ -14,7 +14,7 @@
  * zoomed page reopens on the same passage rather than at its corner, and
  * whether that view is locked: held still across the page, so reading on
  * through it and into the next keeps showing the same column
- * (`setViewLocked`; paged flows only).
+ * (`setViewLocked`).
  */
 import { useCallback, useEffect, useMemo, useRef, type RefObject } from "react";
 import { useAtomValue } from "jotai";
@@ -83,7 +83,7 @@ export type FixedLayoutZoomInput = {
   stepZoom: (direction: 1 | -1, origin?: DomainActor) => void;
   /** Back to the fit, which also releases a locked view. */
   resetZoom: (origin?: DomainActor) => void;
-  /** The book's zoomed view is locked: held still across the page, free along it. */
+  /** The book's zoomed view is locked: held still across the reading, free along it. */
   locked: boolean;
   toggleLock: (origin?: DomainActor) => void;
 };

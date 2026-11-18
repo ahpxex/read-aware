@@ -1557,8 +1557,7 @@ export function FoliateReaderView({
       else fixedLayoutZoom.stepZoom(shortcut === "zoom-in" ? 1 : -1);
       return;
     }
-    // Paged flows only: a continuous scroll is read by scrolling.
-    if (isFixedLayoutRef.current && shortcut === "zoom-lock" && readingModeRef.current !== "scroll") {
+    if (isFixedLayoutRef.current && shortcut === "zoom-lock") {
       event.preventDefault();
       fixedLayoutZoom.toggleLock();
       return;
@@ -2966,7 +2965,6 @@ export function FoliateReaderView({
         <ReaderZoomIndicator
           feedback={fixedLayoutZoom.feedback}
           controlsVisible={shellVisible}
-          canLock={readingMode !== "scroll"}
           locked={fixedLayoutZoom.locked}
           onToggleLock={() => fixedLayoutZoom.toggleLock()}
           onReset={() => fixedLayoutZoom.resetZoom()}

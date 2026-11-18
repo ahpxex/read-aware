@@ -83,7 +83,7 @@
   },
   "pageZoom": "Zoom",
   "pageZoomReset": "Reset zoom to fit",
-  "pageZoomLock": "Lock this view for page turns",
+  "pageZoomLock": "Lock the zoomed view",
   "pageZoomUnlock": "Unlock the view",
   "pageZoomHint": "Zoom, fit and your place on the page are remembered for this book on this device.",
   "pageFit": "Fit",

@@ -171,6 +171,89 @@
     "leadIn": ". ",
     "entries": [
       {
+        "version": "0.6.11",
+        "date": "2026-11-18",
+        "codename": "Cambria",
+        "summary": "This Cambria release reads PDFs by the sentence, moves notes into a card beside the passage, adds a Notes page and a redesigned Agent page, lets you decide when the Agent reads ahead, and turns restoring a backup into a merge.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Sentence Reader on PDFs",
+                "body": "Sentence Reader steps through a PDF one sentence or paragraph at a time when the PDF has a text layer, starting from the part of the page you are on. Scanned PDFs without text still do not offer it."
+              },
+              {
+                "title": "Notes in a card beside the passage",
+                "body": "A passage's notes open in a card next to it, oldest first with their dates, with a field to add another. Closing the card saves what you wrote, and a noted passage shows a dashed line."
+              },
+              {
+                "title": "A Notes page",
+                "body": "Notes is a new page beside Library and Agent. It lists the books you have marked and shows each book's highlights and notes by chapter, with filters and a search."
+              },
+              {
+                "title": "A redesigned Agent page",
+                "body": "An empty conversation opens with suggested prompts, Threads lists your conversations in a searchable palette, and conversations are named automatically after their first exchange."
+              },
+              {
+                "title": "You decide when the Agent reads ahead",
+                "body": "When an answer needs text past where you are in a book, the Agent asks with a card, and your approval applies to that reply only. Answers now stream as they are written."
+              },
+              {
+                "title": "Collections as cover stacks",
+                "body": "A collection on the shelf is a stack of its covers. It stands among the books in shelf order and opens as a page of its own."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "title": "Restoring a backup merges it",
+                "body": "Restoring a full backup adds what only the backup has and replaces nothing in the current library, with one confirmation instead of a record-by-record review."
+              },
+              {
+                "title": "Smoother PDF zoom",
+                "body": "A pinch zoom follows your fingers, and the zoom lock now works in continuous scroll, where it stops the page drifting sideways while you read down it."
+              },
+              {
+                "title": "The Agent knows where you are",
+                "body": "In a PDF the Agent knows which part of the page is on screen. It can also tell which books' files are on this device, which sync can still download and which are gone."
+              },
+              {
+                "title": "Every page in one place",
+                "body": "In Settings → Customize each page sits either in the navigation or in the shelf header, and Go to in the command palette lists every page."
+              },
+              {
+                "title": "Restrained corners",
+                "body": "Buttons, fields, cards and menus take slightly rounded corners, sized by role."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "title": "Light themes color every PDF",
+                "body": "In Warm and other light themes some PDFs stayed white; the paper color now applies to every PDF."
+              },
+              {
+                "title": "Reply language",
+                "body": "The Agent answers in the language you ask for, and a question that quotes another language is answered in the language of the question."
+              },
+              {
+                "title": "Older backups restore",
+                "body": "A backup written by an earlier version is upgraded and restored instead of being refused."
+              },
+              {
+                "title": "Session timer and reading stats agree",
+                "body": "The timer shown while reading by sentence and the reading statistics now count the same active time."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.6.10",
         "date": "2026-11-12",
         "codename": "Cambria",

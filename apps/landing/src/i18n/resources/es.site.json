@@ -171,6 +171,89 @@
     "leadIn": ". ",
     "entries": [
       {
+        "version": "0.6.11",
+        "date": "2026-11-18",
+        "codename": "Cambria",
+        "summary": "Esta versión de Cambria lee los PDF frase a frase, mueve las notas a una tarjeta junto al pasaje, añade una página de Notas y una página de Agente rediseñada, te deja decidir cuándo el Agente lee hacia adelante y convierte la restauración de una copia de seguridad en una fusión.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Modo frase en los PDF",
+                "body": "El modo frase avanza por un PDF una frase o un párrafo cada vez cuando el PDF tiene una capa de texto, empezando por la parte de la página en la que estás. Los PDF escaneados sin texto siguen sin ofrecerlo."
+              },
+              {
+                "title": "Notas en una tarjeta junto al pasaje",
+                "body": "Las notas de un pasaje se abren en una tarjeta a su lado, las más antiguas primero con sus fechas, con un campo para añadir otra. Al cerrar la tarjeta se guarda lo que escribiste, y un pasaje con notas muestra una línea discontinua."
+              },
+              {
+                "title": "Una página de Notas",
+                "body": "Notas es una página nueva junto a Biblioteca y Agente. Enumera los libros que has marcado y muestra los resaltados y las notas de cada libro por capítulo, con filtros y una búsqueda."
+              },
+              {
+                "title": "Una página de Agente rediseñada",
+                "body": "Una conversación vacía se abre con preguntas sugeridas, Hilos lista tus conversaciones en una paleta con búsqueda, y las conversaciones se nombran automáticamente a partir de su primer intercambio."
+              },
+              {
+                "title": "Tú decides cuándo el Agente lee hacia adelante",
+                "body": "Cuando una respuesta necesita texto más allá de donde estás en un libro, el Agente lo pregunta con una tarjeta, y tu aprobación se aplica solo a esa respuesta. Las respuestas ahora fluyen a medida que se escriben."
+              },
+              {
+                "title": "Colecciones como pilas de portadas",
+                "body": "Una colección en la estantería es una pila de sus portadas. Se coloca entre los libros según el orden de la estantería y se abre como una página propia."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "title": "Restaurar una copia de seguridad la fusiona",
+                "body": "Restaurar una copia de seguridad completa añade lo que solo existe en la copia y no reemplaza nada de la biblioteca actual, con una sola confirmación en lugar de una revisión registro a registro."
+              },
+              {
+                "title": "Zoom de PDF más fluido",
+                "body": "El zoom con pellizco sigue tus dedos, y el bloqueo de zoom ahora funciona en el desplazamiento continuo, donde impide que la página se desplace lateralmente mientras lees hacia abajo."
+              },
+              {
+                "title": "El Agente sabe dónde estás",
+                "body": "En un PDF el Agente sabe qué parte de la página está en pantalla. También puede distinguir qué archivos de libros están en este dispositivo, cuáles puede descargar todavía la sincronización y cuáles ya no están."
+              },
+              {
+                "title": "Todas las páginas en un solo lugar",
+                "body": "En Ajustes → Personalizar cada página está en la navegación principal o en la barra de la estantería, e «Ir a» en la paleta de comandos enumera todas las páginas."
+              },
+              {
+                "title": "Esquinas contenidas",
+                "body": "Los botones, los campos, las tarjetas y los menús usan esquinas ligeramente redondeadas, con un tamaño según su rol."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "title": "Los temas claros colorean todos los PDF",
+                "body": "En Cálido y otros temas claros algunos PDF seguían blancos; el color del papel ahora se aplica a todos los PDF."
+              },
+              {
+                "title": "Idioma de las respuestas",
+                "body": "El Agente responde en el idioma que le pidas, y una pregunta que cita otro idioma recibe respuesta en el idioma de la pregunta."
+              },
+              {
+                "title": "Las copias de seguridad antiguas se restauran",
+                "body": "Una copia de seguridad creada por una versión anterior se actualiza y se restaura en lugar de rechazarse."
+              },
+              {
+                "title": "El temporizador de sesión y las estadísticas de lectura coinciden",
+                "body": "El temporizador que se muestra al leer por frases y las estadísticas de lectura ahora cuentan el mismo tiempo activo."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.6.10",
         "date": "2026-11-12",
         "codename": "Cambria",

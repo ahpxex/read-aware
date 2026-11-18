@@ -171,6 +171,89 @@
     "leadIn": " : ",
     "entries": [
       {
+        "version": "0.6.11",
+        "date": "2026-11-18",
+        "codename": "Cambria",
+        "summary": "Cette version de Cambria lit les PDF phrase par phrase, place les notes dans une carte à côté du passage, ajoute une page Notes et une page Agent repensée, vous laisse décider quand l'Agent lit en avant et transforme la restauration d'une sauvegarde en fusion.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Mode phrase sur les PDF",
+                "body": "Le mode phrase avance dans un PDF une phrase ou un paragraphe à la fois lorsque le PDF possède une couche de texte, en partant de la partie de la page où vous vous trouvez. Les PDF numérisés sans texte ne le proposent toujours pas."
+              },
+              {
+                "title": "Les notes dans une carte à côté du passage",
+                "body": "Les notes d'un passage s'ouvrent dans une carte à côté de lui, de la plus ancienne à la plus récente avec leurs dates, avec un champ pour en ajouter une autre. Fermer la carte enregistre ce que vous avez écrit, et un passage annoté porte une ligne en pointillés."
+              },
+              {
+                "title": "Une page Notes",
+                "body": "Notes est une nouvelle page à côté de Bibliothèque et Agent. Elle liste les livres que vous avez marqués et montre les surlignages et notes de chaque livre par chapitre, avec des filtres et une recherche."
+              },
+              {
+                "title": "Une page Agent repensée",
+                "body": "Une conversation vide s'ouvre sur des suggestions de messages, Fils liste vos conversations dans une palette consultable, et les conversations sont nommées automatiquement d'après leur premier échange."
+              },
+              {
+                "title": "Vous décidez quand l'Agent lit en avant",
+                "body": "Lorsqu'une réponse a besoin de texte au-delà de votre position dans un livre, l'Agent le demande avec une carte, et votre approbation ne vaut que pour cette réponse. Les réponses s'affichent désormais au fil de leur écriture."
+              },
+              {
+                "title": "Des collections en piles de couvertures",
+                "body": "Une collection dans la bibliothèque est une pile de ses couvertures. Elle se place parmi les livres dans l'ordre de la bibliothèque et s'ouvre comme une page à part entière."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "title": "La restauration d'une sauvegarde fusionne",
+                "body": "Restaurer une sauvegarde complète ajoute ce que seule la sauvegarde possède et ne remplace rien dans la bibliothèque actuelle, avec une seule confirmation au lieu d'une revue enregistrement par enregistrement."
+              },
+              {
+                "title": "Zoom PDF plus fluide",
+                "body": "Un zoom à deux doigts suit vos gestes, et le verrouillage du zoom fonctionne désormais dans le défilement continu, où il empêche la page de dériver latéralement pendant que vous la lisez."
+              },
+              {
+                "title": "L'Agent sait où vous êtes",
+                "body": "Dans un PDF, l'Agent sait quelle partie de la page est à l'écran. Il sait aussi quels fichiers de livres se trouvent sur cet appareil, lesquels la synchronisation peut encore télécharger et lesquels ont disparu."
+              },
+              {
+                "title": "Toutes les pages au même endroit",
+                "body": "Dans Réglages → Personnaliser, chaque page se trouve soit dans la navigation principale soit dans la barre de la bibliothèque, et Aller à dans la palette de commandes liste toutes les pages."
+              },
+              {
+                "title": "Des coins discrets",
+                "body": "Boutons, champs, cartes et menus adoptent des coins légèrement arrondis, dimensionnés selon leur rôle."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "title": "Les thèmes clairs colorent tous les PDF",
+                "body": "Dans Chaud et d'autres thèmes clairs, certains PDF restaient blancs ; la couleur du papier s'applique désormais à tous les PDF."
+              },
+              {
+                "title": "Langue des réponses",
+                "body": "L'Agent répond dans la langue que vous demandez, et une question qui cite une autre langue reçoit une réponse dans la langue de la question."
+              },
+              {
+                "title": "Les sauvegardes plus anciennes se restaurent",
+                "body": "Une sauvegarde écrite par une version antérieure est mise à niveau et restaurée au lieu d'être refusée."
+              },
+              {
+                "title": "Minuteur de session et statistiques de lecture d'accord",
+                "body": "Le minuteur affiché pendant la lecture par phrase et les statistiques de lecture comptent désormais le même temps actif."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.6.10",
         "date": "2026-11-12",
         "codename": "Cambria",

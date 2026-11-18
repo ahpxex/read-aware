@@ -171,6 +171,89 @@
     "leadIn": ". ",
     "entries": [
       {
+        "version": "0.6.11",
+        "date": "2026-11-18",
+        "codename": "Cambria",
+        "summary": "Dieses Cambria-Release liest PDFs Satz für Satz, öffnet die Notizen einer Textstelle in einer Karte daneben, fügt eine Notizen-Seite und eine neu gestaltete Agent-Seite hinzu, lässt dich entscheiden, wann der Agent vorausliest, und macht aus dem Wiederherstellen eines Backups eine Zusammenführung.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Satzmodus für PDFs",
+                "body": "Der Satzmodus geht ein PDF Satz für Satz oder Absatz für Absatz durch, sofern das PDF eine Textebene hat, und beginnt bei dem Teil der Seite, auf dem du gerade liest. Gescannte PDFs ohne Text bieten ihn weiterhin nicht."
+              },
+              {
+                "title": "Notizen in einer Karte neben der Textstelle",
+                "body": "Die Notizen zu einer Textstelle öffnen sich in einer Karte daneben, die ältesten zuerst, jeweils mit Datum, und über ein Feld fügst du eine weitere hinzu. Beim Schließen der Karte wird gespeichert, was du geschrieben hast, und eine notierte Textstelle zeigt eine gestrichelte Linie."
+              },
+              {
+                "title": "Eine Notizen-Seite",
+                "body": "Notizen ist eine neue Seite neben Bibliothek und Agent. Sie listet die Bücher, die du markiert hast, und zeigt die Markierungen und Notizen jedes Buchs nach Kapiteln, mit Filtern und einer Suche."
+              },
+              {
+                "title": "Eine neu gestaltete Agent-Seite",
+                "body": "Eine leere Unterhaltung öffnet sich mit vorgeschlagenen Prompts, Threads listet deine Unterhaltungen in einer durchsuchbaren Palette, und Unterhaltungen werden automatisch nach ihrem ersten Austausch benannt."
+              },
+              {
+                "title": "Du entscheidest, wann der Agent vorausliest",
+                "body": "Wenn eine Antwort Text braucht, der hinter deiner Stelle im Buch liegt, fragt der Agent mit einer Karte, und deine Zustimmung gilt nur für diese Antwort. Antworten streamen jetzt, während sie geschrieben werden."
+              },
+              {
+                "title": "Sammlungen als Cover-Stapel",
+                "body": "Eine Sammlung im Regal ist ein Stapel aus ihren Covern. Sie steht zwischen den Büchern, in der Reihenfolge des Regals, und öffnet sich als eigene Seite."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "title": "Wiederherstellen führt Backup und Bibliothek zusammen",
+                "body": "Das Wiederherstellen eines vollständigen Backups fügt hinzu, was nur das Backup hat, und ersetzt nichts in der aktuellen Bibliothek, mit einer Bestätigung statt einer Prüfung Datensatz für Datensatz."
+              },
+              {
+                "title": "Flüssigerer PDF-Zoom",
+                "body": "Der Zweifinger-Zoom folgt deinen Fingern, und die Zoom-Sperre funktioniert jetzt im fortlaufenden Scrollen, wo sie verhindert, dass die Seite seitlich verrutscht, während du sie hinunterliest."
+              },
+              {
+                "title": "Der Agent weiß, wo du bist",
+                "body": "In einem PDF weiß der Agent, welcher Teil der Seite auf dem Bildschirm liegt. Er erkennt auch, von welchen Büchern die Dateien auf diesem Gerät liegen, welche die Synchronisierung noch herunterladen kann und welche fehlen."
+              },
+              {
+                "title": "Jede Seite an einem Ort",
+                "body": "Unter Einstellungen → Anpassen liegt jede Seite entweder in der Hauptnavigation oder in der Regal-Kopfleiste, und „Gehe zu“ in der Befehlspalette listet jede Seite."
+              },
+              {
+                "title": "Zurückgenommene Ecken",
+                "body": "Buttons, Felder, Karten und Menüs bekommen schwach abgerundete Ecken, bemessen nach ihrer Rolle."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "title": "Helle Designs färben jedes PDF",
+                "body": "In „Warm“ und anderen hellen Designs blieben manche PDFs weiß; die Papierfarbe gilt jetzt für jedes PDF."
+              },
+              {
+                "title": "Antwortsprache",
+                "body": "Der Agent antwortet in der Sprache, um die du bittest, und eine Frage, die eine andere Sprache zitiert, wird in der Sprache der Frage beantwortet."
+              },
+              {
+                "title": "Ältere Backups lassen sich wiederherstellen",
+                "body": "Ein Backup, das eine frühere Version geschrieben hat, wird aktualisiert und wiederhergestellt, statt abgelehnt zu werden."
+              },
+              {
+                "title": "Sitzungstimer und Lesestatistiken stimmen überein",
+                "body": "Der Timer, der beim satzweisen Lesen angezeigt wird, und die Lesestatistiken zählen jetzt dieselbe aktive Zeit."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.6.10",
         "date": "2026-11-12",
         "codename": "Cambria",

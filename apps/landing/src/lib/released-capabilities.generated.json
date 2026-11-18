@@ -1,7 +1,7 @@
 {
-  "appVersion": "0.6.10",
-  "ref": "v0.6.10",
-  "commit": "319bae2f549fcd5b9b7e4be2b5d2f498e5d3e703",
+  "appVersion": "0.6.11",
+  "ref": "v0.6.11",
+  "commit": "bdbbdba18a22768f419a14bfaf94bd7471be820a",
   "permissions": [
     "library:read",
     "library:write",
@@ -49,7 +49,7 @@
         ]
       },
       "conversations": {
-        "version": "1.6.0",
+        "version": "1.7.0",
         "permissions": [
           "conversations:read",
           "conversations:write"
@@ -157,7 +157,7 @@
         "permissions": []
       },
       "ui": {
-        "version": "1.17.0",
+        "version": "1.18.0",
         "permissions": []
       },
       "schedules": {

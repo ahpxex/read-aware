@@ -75,4 +75,36 @@ describe("agent eval assertions", () => {
     expect(result.passed).toBe(true);
     expect(result.score).toBe(1);
   });
+
+  describe("reply script", () => {
+    const chinese = "你的书架上现在有三本书：《群山回响》《The Glass Orchard》和《长夜将尽》，其中两本还在读。";
+    const english =
+      "You have three books on your shelf: 群山回响, The Glass Orchard and 长夜将尽. Two of them are still in progress.";
+    const scriptCheck = (answer: string, text: string, script?: "cjk" | "latin") =>
+      evaluateAgentTrace(
+        observation({ answer, turns: [{ turn: 1, input: { text }, answer, thinking: "", chunks: [] }] }),
+        { answer: { script } },
+      ).checks.find((entry) => entry.id === "answer.script-consistency")!;
+
+    test("takes a Latin-script question to expect a Latin-script reply unless the scenario says otherwise", () => {
+      expect(scriptCheck(english, "Which books are on my shelf?").passed).toBe(true);
+      expect(scriptCheck(chinese, "Which books are on my shelf?").passed).toBe(false);
+      // The reader asked for Chinese in English: the declared script decides, in both directions.
+      expect(scriptCheck(chinese, "Please answer in Chinese: which books are on my shelf?", "cjk").passed).toBe(true);
+      expect(scriptCheck(english, "Please answer in Chinese: which books are on my shelf?", "cjk").passed).toBe(false);
+    });
+
+    test("holds a Chinese question to a declared script and leaves an undeclared one unchecked", () => {
+      expect(scriptCheck(english, "请用英文回答：我书架上有哪些书？", "latin").passed).toBe(true);
+      expect(scriptCheck(chinese, "请用英文回答：我书架上有哪些书？", "latin").passed).toBe(false);
+      expect(scriptCheck(english, "我书架上有哪些书？").passed).toBe(true);
+    });
+
+    test("reads a short Chinese reply that quotes a long English title as Chinese", () => {
+      // 28% of its characters are CJK: fewer than the letters of the title it has to quote.
+      const reply = "是的，已经读完了。书架上《The Glass Orchard》（P. Vine）的状态是“已读完”（finished）。";
+      expect(scriptCheck(reply, "我书架上的 The Glass Orchard 读完了吗？", "cjk").passed).toBe(true);
+      expect(scriptCheck(reply, "我书架上的 The Glass Orchard 读完了吗？", "latin").passed).toBe(false);
+    });
+  });
 });

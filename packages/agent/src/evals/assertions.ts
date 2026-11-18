@@ -4,6 +4,12 @@ export interface AgentTraceExpectation {
   answer?: {
     mustContain?: string[];
     mustNotContain?: string[];
+    /**
+     * The script the reply must be written in. Declare it when the reader's
+     * script does not settle it: they asked to be answered in another
+     * language, or the message quotes words in a second script.
+     */
+    script?: "cjk" | "latin";
   };
   tools?: {
     required?: string[];
@@ -66,9 +72,12 @@ export function evaluateAgentTrace(
       hasEmoji ? "answer contains emoji despite the product-wide ban" : "answer contains no emoji",
     ),
   );
-  // 语言红线（system prompt: "Answer entirely in the language the user writes
-  // in"）：拉丁文字提问、回复却大半是 CJK = 漂移。阈值 0.3 容忍合法引用
-  // 中文书源文的场景；中文提问的场景 userCjkRatio 高，检查自动不适用。
+  // 语言红线（system prompt "Reply language"）：回复整篇用读者要的语言。
+  // 未声明时只查最常见的漂移——拉丁文字提问、回复却大半是 CJK；阈值 0.3
+  // 容忍合法引用中文书源文，中文提问的场景 userCjkRatio 高，检查自动不适用。
+  // 场景声明了 answer.script（读者点名了回复语言，或提问里混着另一种文字）
+  // 就按声明判，比的是 CJK 字数与拉丁词数：一个汉字是一个词大小的单位，
+  // 按字符比会让带一个英文书名的中文短答看上去像英文。
   const cjkCount = (text: string) => (text.match(/[一-鿿぀-ヿ가-힯]/g) ?? []).length;
   const userText = observation.turns
     .map((turn) => {
@@ -76,19 +85,39 @@ export function evaluateAgentTrace(
       return typeof input?.text === "string" ? input.text : "";
     })
     .join("\n");
-  const userCjkRatio = userText.length ? cjkCount(userText) / userText.length : 0;
-  const answerCjkRatio = observation.answer.length ? cjkCount(observation.answer) / observation.answer.length : 0;
-  const scriptDrift = userCjkRatio < 0.02 && answerCjkRatio > 0.3 && observation.answer.length > 40;
-  checks.push(
-    check(
-      "answer.script-consistency",
-      "quality",
-      !scriptDrift,
-      scriptDrift
-        ? `answer drifted to a CJK script (${Math.round(answerCjkRatio * 100)}% CJK) for a Latin-script prompt`
-        : "answer script matches the reader's script",
-    ),
-  );
+  const answerCjk = cjkCount(observation.answer);
+  const declaredScript = expectation.answer?.script;
+  if (declaredScript) {
+    const latinWords = (observation.answer.match(/[A-Za-zÀ-ɏ]+/g) ?? []).length;
+    const actual = answerCjk > latinWords ? "cjk" : "latin";
+    const counts = `${answerCjk} CJK characters, ${latinWords} Latin-script words`;
+    checks.push(
+      check(
+        "answer.script-consistency",
+        "quality",
+        actual === declaredScript,
+        actual === declaredScript
+          ? `answer is in the expected ${declaredScript === "cjk" ? "CJK" : "Latin"} script (${counts})`
+          : `answer is not in the expected ${declaredScript === "cjk" ? "CJK" : "Latin"} script (${counts})`,
+        declaredScript,
+        actual,
+      ),
+    );
+  } else {
+    const userCjkRatio = userText.length ? cjkCount(userText) / userText.length : 0;
+    const answerCjkRatio = observation.answer.length ? answerCjk / observation.answer.length : 0;
+    const scriptDrift = userCjkRatio < 0.02 && answerCjkRatio > 0.3 && observation.answer.length > 40;
+    checks.push(
+      check(
+        "answer.script-consistency",
+        "quality",
+        !scriptDrift,
+        scriptDrift
+          ? `answer drifted to a CJK script (${Math.round(answerCjkRatio * 100)}% CJK) for a Latin-script prompt`
+          : "answer script matches the reader's script",
+      ),
+    );
+  }
   const toolNames = observation.tools.map((tool) => tool.name);
   const interactionKinds = observation.interactions
     .filter((interaction) => interaction.phase === "request")

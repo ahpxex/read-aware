@@ -1,10 +1,12 @@
 import type { Id } from "@read-aware/core";
 import { assessmentFromChecks, combineAssessments, evaluateAgentTrace } from "../../assertions";
 import { defineAgentEvalScenario, type AgentEvalScenario } from "../../agent-harness";
+import { seedMemory } from "../../../testing/fixtures";
 import type { AgentEvalObservation, EvalAssessment, EvalSuite, JsonObject } from "../../types";
 
 const BOOK_ALPHA = "eval-interaction-alpha" as Id;
 const BOOK_BETA = "eval-interaction-beta" as Id;
+const BOOK_GAMMA = "eval-interaction-gamma" as Id;
 
 function bookStateAssessment(
   observation: AgentEvalObservation,
@@ -37,6 +39,16 @@ function bookStateAssessment(
     },
   ]);
 }
+
+/** A shelf whose tool results carry both scripts, for the reply-language scenarios. */
+const LANGUAGE_SHELF = {
+  profile: "The reader has already completed onboarding.",
+  books: [
+    { id: BOOK_ALPHA, title: "群山回响", author: "李远", status: "reading" as const },
+    { id: BOOK_BETA, title: "The Glass Orchard", author: "P. Vine", status: "finished" as const },
+    { id: BOOK_GAMMA, title: "长夜将尽", author: "苏棠", status: "reading" as const },
+  ],
+};
 
 const observeBooks = ({ stores }: Parameters<NonNullable<AgentEvalScenario["observeState"]>>[0]) => ({
   books: stores.books.map((book) => ({ id: book.id, title: book.title, starred: book.starred })),
@@ -187,6 +199,102 @@ export const interactionsEvalSuite: EvalSuite<AgentEvalScenario> = {
           ]),
         );
       },
+    }),
+    // 回复语言：读者点名的语言优先；没点名时看读者自己的句子，引用的词、书名不算。
+    // 书架同时有中英文书名，工具结果两种文字都有，漂移压力来自这里。
+    defineAgentEvalScenario({
+      id: "reply-language-requested-chinese",
+      description: "英文提问但明确要求用中文回答：用中文回答。",
+      tags: ["language", "global"],
+      scope: { kind: "global", threadId: "interaction-language-requested-zh" },
+      seed: LANGUAGE_SHELF,
+      turns: [{ text: "Please answer in Chinese: which books are on my shelf right now?" }],
+      expectation: { answer: { script: "cjk" }, tools: { required: ["list_books"], noErrors: true } },
+      rubric: ["The answer is written in Chinese because the reader asked for it, although they wrote in English"],
+    }),
+    defineAgentEvalScenario({
+      id: "reply-language-requested-english",
+      description: "中文提问但明确要求用英文回答：用英文回答。",
+      tags: ["language", "global"],
+      scope: { kind: "global", threadId: "interaction-language-requested-en" },
+      seed: LANGUAGE_SHELF,
+      turns: [{ text: "请用英文回答：我书架上现在都有哪些书？" }],
+      expectation: { answer: { script: "latin" }, tools: { required: ["list_books"], noErrors: true } },
+      rubric: ["The answer is written in English because the reader asked for it, although they wrote in Chinese"],
+    }),
+    defineAgentEvalScenario({
+      id: "reply-language-chinese-question-english-title",
+      description: "中文提问里夹一个字母数更多的英文书名：仍用中文回答。",
+      tags: ["language", "global"],
+      scope: { kind: "global", threadId: "interaction-language-zh-quotes-en" },
+      seed: LANGUAGE_SHELF,
+      turns: [{ text: "我书架上的 The Glass Orchard 读完了吗？" }],
+      expectation: { answer: { script: "cjk" }, tools: { required: ["list_books"], noErrors: true } },
+      rubric: ["The answer is written in Chinese: the English title is quoted, the question itself is Chinese"],
+    }),
+    defineAgentEvalScenario({
+      id: "reply-language-english-question-chinese-title",
+      description: "英文提问里夹中文书名：仍用英文回答。",
+      tags: ["language", "global"],
+      scope: { kind: "global", threadId: "interaction-language-en-quotes-zh" },
+      seed: LANGUAGE_SHELF,
+      turns: [{ text: "Have I finished 群山回响 and 长夜将尽 yet?" }],
+      expectation: { answer: { script: "latin" }, tools: { required: ["list_books"], noErrors: true } },
+      rubric: ["The answer is written in English: the Chinese titles are quoted, the question itself is English"],
+    }),
+    defineAgentEvalScenario({
+      id: "reply-language-english-question-chinese-shelf",
+      description: "纯英文提问、书架大半是中文书：用英文回答，不被工具结果带成中文。",
+      tags: ["language", "global"],
+      scope: { kind: "global", threadId: "interaction-language-en-plain" },
+      seed: LANGUAGE_SHELF,
+      turns: [{ text: "Which books are on my shelf right now, and which ones am I still reading?" }],
+      expectation: { answer: { script: "latin" }, tools: { required: ["list_books"], noErrors: true } },
+      rubric: ["The answer is written in English, apart from the Chinese book titles themselves"],
+    }),
+    defineAgentEvalScenario({
+      id: "reply-language-saved-preference",
+      description: "记忆里存着明确的回复语言要求：英文提问也用中文回答。",
+      tags: ["language", "memory", "global"],
+      scope: { kind: "global", threadId: "interaction-language-saved" },
+      seed: {
+        ...LANGUAGE_SHELF,
+        memories: [
+          seedMemory({
+            id: "reply-language-preference",
+            scope: "user",
+            kind: "preference",
+            content: "The reader asked to always be answered in Chinese, even when they write in English.",
+            importance: 0.9,
+          }),
+        ],
+      },
+      turns: [{ text: "Which books are on my shelf right now?" }],
+      expectation: { answer: { script: "cjk" }, tools: { required: ["list_books"], noErrors: true } },
+      rubric: ["The answer is written in Chinese, following the saved request about reply language"],
+    }),
+    defineAgentEvalScenario({
+      id: "reply-language-standing-request",
+      description: "上一轮要求以后都用中文回答：下一轮英文提问仍用中文回答。",
+      tags: ["language", "multi-turn", "global"],
+      scope: { kind: "global", threadId: "interaction-language-standing" },
+      seed: LANGUAGE_SHELF,
+      turns: [
+        { text: "From now on, always answer me in Chinese, even when I write in English." },
+        { text: "Which books are on my shelf right now?" },
+      ],
+      expectation: { answer: { script: "cjk" }, tools: { required: ["list_books"], noErrors: true } },
+      rubric: ["The second answer is written in Chinese, following the request made in the previous turn"],
+    }),
+    defineAgentEvalScenario({
+      id: "reply-language-profile-language-is-not-a-request",
+      description: "画像只写了读者的语言、没有要求回复语言：英文提问仍用英文回答。",
+      tags: ["language", "global"],
+      scope: { kind: "global", threadId: "interaction-language-profile" },
+      seed: { ...LANGUAGE_SHELF, profile: "背景：软件工程师\n阅读目标：读完书架上的小说\n语言：中文" },
+      turns: [{ text: "Which books are on my shelf right now?" }],
+      expectation: { answer: { script: "latin" }, tools: { required: ["list_books"], noErrors: true } },
+      rubric: ["The answer is written in English: the profile names a language the reader knows, not a reply language"],
     }),
     defineAgentEvalScenario({
       id: "multi-turn-recall-via-rewind",

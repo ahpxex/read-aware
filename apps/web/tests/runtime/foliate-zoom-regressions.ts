@@ -55,7 +55,14 @@ export async function runZoomRegressions(modules: Modules): Promise<Result[]> {
       source = file,
       columns = 1,
       prepare,
-    }: { source?: File; columns?: number; prepare?: (renderer: FixedLayout) => void } = {},
+      scrollbars = "native",
+    }: {
+      source?: File;
+      columns?: number;
+      prepare?: (renderer: FixedLayout) => void;
+      /** `none` takes them away: the platform's may take room, and then come and go with the zoom. */
+      scrollbars?: "native" | "none";
+    } = {},
   ) => {
     const book = await modules.pdf.makePDF(source);
     const view = new modules.view.View();
@@ -65,6 +72,7 @@ export async function runZoomRegressions(modules: Modules): Promise<Result[]> {
     const renderer = view.renderer;
     if (!(renderer instanceof modules.fixed.FixedLayout)) throw new Error("Wrong renderer");
     renderer.setLayout(flow, columns);
+    if (scrollbars === "none") renderer.style.setProperty("scrollbar-width", "none");
     // As the app sets a book's remembered view up: before its first page shows.
     prepare?.(renderer as FixedLayout);
     await view.goTo(index);
@@ -185,6 +193,13 @@ export async function runZoomRegressions(modules: Modules): Promise<Result[]> {
     // the reading area), then the settling layout. What the preview showed and
     // what the layout shows must be the same box — through the centering of a
     // page smaller than the reading area and the ends of the scroll range too.
+    //
+    // A preview is worked out from the reading area as the pinch found it, so
+    // this is checked where a zoom leaves that area alone: without scrollbars
+    // that take room. Where they do, one that a zoom brings out or sends away
+    // changes the reading area under the preview, and a centered page ends
+    // half that scrollbar's breadth from where the preview showed it; the
+    // resize lays the preview out for the new area (see the next check).
     const cases = [
       { flow: "scrolled", fit: "width", from: 1, steps: [1.3, 1.9, 2.6], anchor: { x: 250, y: 180 } },
       { flow: "scrolled", fit: "width", from: 2.4, steps: [1.8, 1.1, 0.7], anchor: { x: 620, y: 400 } },
@@ -203,6 +218,7 @@ export async function runZoomRegressions(modules: Modules): Promise<Result[]> {
       const reader = await open(flow, 1, {
         source: "landscape" in rest ? landscapeFile : file,
         columns: "columns" in rest ? rest.columns : 1,
+        scrollbars: "none",
       });
       try {
         const { renderer } = reader;

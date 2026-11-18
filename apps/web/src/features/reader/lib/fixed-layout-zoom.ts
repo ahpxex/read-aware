@@ -15,6 +15,7 @@ import {
   sameFixedLayoutZoom,
   type FixedLayoutFit,
   type FixedLayoutZoom,
+  type PanAxis,
 } from "../../../../foliate-js/src/fixed-zoom";
 import type { TFunction } from "i18next";
 
@@ -28,6 +29,7 @@ export {
   sameFixedLayoutZoom,
   type FixedLayoutFit,
   type FixedLayoutZoom,
+  type PanAxis,
 };
 
 /** The factors a zoom-in/out step lands on — the familiar viewer ladder. */
@@ -55,6 +57,16 @@ export function wheelZoomRatio(deltaY: number, deltaMode: number): number {
   const pixels = deltaMode === 1 ? deltaY * 16 : deltaMode === 2 ? deltaY * 400 : deltaY;
   return Math.exp(-Math.max(-WHEEL_ZOOM_EVENT_CAP, Math.min(WHEEL_ZOOM_EVENT_CAP, pixels)) / 100);
 }
+
+/**
+ * Whether a wheel event may pan a zoomed page whose view is locked along
+ * `lockedAxis` (null: not locked). An event that runs mostly along the locked
+ * axis is a page turn, as at the fit — panning the page by its drift the
+ * other way would spend the gesture on a few pixels, and a sideways swipe
+ * over a locked column would never turn the page.
+ */
+export const wheelPansView = (deltaX: number, deltaY: number, lockedAxis: PanAxis | null): boolean =>
+  lockedAxis === null || (Math.abs(deltaX) > Math.abs(deltaY) ? "x" : "y") !== lockedAxis;
 
 /** The label a zoom shows: its factor as a percentage of the fit. */
 export const zoomPercent = (factor: number): number => Math.round(factor * 100);

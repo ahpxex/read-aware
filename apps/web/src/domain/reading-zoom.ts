@@ -2,8 +2,8 @@
  * How each fixed-layout book (PDF, comics) was last viewed on this device:
  * its zoom — a fit and a factor over it (see `foliate-js/src/fixed-zoom.ts`)
  * — and where on the page being read the viewport's center rested
- * (`FixedLayout.viewFocus`) — and whether that view is locked for page turns
- * (`FixedLayout.setViewLocked`). The reading position itself names only the page
+ * (`FixedLayout.viewFocus`) — and whether that view is locked, held still
+ * across the page while it is read through (`FixedLayout.setViewLocked`). The reading position itself names only the page
  * and roams with the library; this is the rest of the view, which answers to
  * this screen and window and so stays on this device.
  *
@@ -76,7 +76,7 @@ export function saveFixedLayoutFocus(bookId: string, focus: ViewFocus, origin: D
   updateView(bookId, { focus: normalizeFocus(focus) }, origin);
 }
 
-/** Remember whether a book's zoomed view is locked for page turns. */
+/** Remember whether a book's zoomed view is locked. */
 export function saveFixedLayoutLock(bookId: string, locked: boolean, origin: DomainActor): void {
   updateView(bookId, { locked: locked ? true : undefined }, origin);
 }

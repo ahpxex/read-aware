@@ -1,17 +1,20 @@
 import { PDFDocument, PDFName, PDFString, StandardFonts, rgb } from "pdf-lib";
 
-export async function makePDFFixture(): Promise<Uint8Array<ArrayBuffer>> {
+/** Three pages of `size` page units (portrait by default), the second with text, a link and a filled square. */
+export async function makePDFFixture(size: [number, number] = [600, 800]): Promise<Uint8Array<ArrayBuffer>> {
   const pdf = await PDFDocument.create();
   pdf.setTitle("PDF Engine Fixture");
   pdf.setAuthor("Test Writer");
   pdf.setCreationDate(new Date("2024-01-01T00:00:00Z"));
   pdf.setModificationDate(new Date("2024-01-01T00:00:00Z"));
   const font = await pdf.embedFont(StandardFonts.Helvetica);
-  const pages = [pdf.addPage([600, 800]), pdf.addPage([600, 800]), pdf.addPage([600, 800])];
-  pages[1].drawText("Hello PDF world", { x: 30, y: 740, size: 24, font });
-  pages[1].drawText("Go to final chapter", { x: 30, y: 700, size: 16, font });
-  pages[1].drawRectangle({ x: 30, y: 400, width: 200, height: 200, color: rgb(0, 0, 0) });
-  pages[2].drawText("Final chapter", { x: 30, y: 740, size: 24, font });
+  const pages = [pdf.addPage(size), pdf.addPage(size), pdf.addPage(size)];
+  // Laid out from the top edge, so the content sits the same on any page size.
+  const top = size[1];
+  pages[1].drawText("Hello PDF world", { x: 30, y: top - 60, size: 24, font });
+  pages[1].drawText("Go to final chapter", { x: 30, y: top - 100, size: 16, font });
+  pages[1].drawRectangle({ x: 30, y: top - 400, width: 200, height: 200, color: rgb(0, 0, 0) });
+  pages[2].drawText("Final chapter", { x: 30, y: top - 60, size: 24, font });
   const outline = pdf.context.obj({ Type: "Outlines", Count: 2 });
   const outlineRef = pdf.context.register(outline);
   const first = pdf.context.obj({
@@ -43,7 +46,7 @@ export async function makePDFFixture(): Promise<Uint8Array<ArrayBuffer>> {
     pdf.context.obj({
       Type: "Annot",
       Subtype: "Link",
-      Rect: [30, 695, 190, 720],
+      Rect: [30, top - 105, 190, top - 80],
       Border: [0, 0, 0],
       Dest: PDFString.of("final"),
     }),

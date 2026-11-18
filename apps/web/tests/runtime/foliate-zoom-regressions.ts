@@ -42,11 +42,18 @@ export async function runZoomRegressions(modules: Modules): Promise<Result[]> {
       await new Promise((resolve) => setTimeout(resolve, 40));
     }
   };
-  const bytes = await makePDFFixture();
-  const file = new File([bytes], "fixture.pdf", { type: "application/pdf" });
+  const file = new File([await makePDFFixture()], "fixture.pdf", { type: "application/pdf" });
+  // The same pages lying on their side, for what depends on a page's shape.
+  const landscapeFile = new File([await makePDFFixture([PAGE.height, PAGE.width])], "landscape.pdf", {
+    type: "application/pdf",
+  });
 
-  const open = async (flow: "scrolled" | "paginated", index = 1) => {
-    const book = await modules.pdf.makePDF(file);
+  const open = async (
+    flow: "scrolled" | "paginated",
+    index = 1,
+    { source = file, prepare }: { source?: File; prepare?: (renderer: FixedLayout) => void } = {},
+  ) => {
+    const book = await modules.pdf.makePDF(source);
     const view = new modules.view.View();
     view.style.cssText = `display:block;position:fixed;left:0;top:0;width:${WIDTH}px;height:${HEIGHT}px;opacity:0;pointer-events:none;z-index:-1`;
     document.body.append(view);
@@ -54,6 +61,8 @@ export async function runZoomRegressions(modules: Modules): Promise<Result[]> {
     const renderer = view.renderer;
     if (!(renderer instanceof modules.fixed.FixedLayout)) throw new Error("Wrong renderer");
     renderer.setLayout(flow, 1);
+    // As the app sets a book's remembered view up: before its first page shows.
+    prepare?.(renderer as FixedLayout);
     await view.goTo(index);
     const page = (i = index) => renderer.getContents().find((content) => content.index === i)?.doc;
     await waitFor("first raster", () => !!page()?.querySelector(".textLayer span"));
@@ -332,32 +341,145 @@ export async function runZoomRegressions(modules: Modules): Promise<Result[]> {
     }
   });
 
-  await check("a locked view never pans, and every page turned to shows the same part", async () => {
-    const reader = await open("paginated", 1);
+  const overflowOf = (renderer: FixedLayout) => {
+    const { overflowX, overflowY } = getComputedStyle(renderer);
+    return `${overflowX} ${overflowY}`;
+  };
+
+  await check(
+    "a locked portrait page holds its column: it pans down the page only, and turns keep the column",
+    async () => {
+      const reader = await open("paginated", 1);
+      try {
+        const { renderer } = reader;
+        renderer.setZoom({ fit: "page", factor: 3 });
+        renderer.scrollLeft = 150;
+        renderer.scrollTop = 200;
+        renderer.setViewLocked(true);
+        assert(renderer.lockedAxis === "x", `A portrait page locked ${renderer.lockedAxis}`);
+        assert(
+          overflowOf(renderer) === "hidden auto",
+          `Locked portrait page scrolls natively as ${overflowOf(renderer)}`,
+        );
+        // Sideways nothing moves it; down the page it pans as it does unlocked.
+        assert(!renderer.panBy(40, 0), "A locked view panned sideways");
+        assert(renderer.panBy(40, 40), "A locked view did not pan down its page");
+        near(renderer.scrollLeft, 150, "locked column after a diagonal pan");
+        near(renderer.scrollTop, 240, "distance panned down the page");
+        let edges = renderer.panEdges;
+        assert(edges.left && edges.right, "A locked column reports room to pan sideways");
+        assert(!edges.top && !edges.bottom, "A page with more above and below reads as at its edges");
+        // To the bottom, where a pan moves nothing — so the reader turns the page.
+        assert(renderer.panBy(0, renderer.scrollHeight), "The page's end was out of reach");
+        assert(renderer.panEdges.bottom, "The view did not reach the page's end");
+        assert(!renderer.panBy(0, 40), "A pan moved a view already at the page's end");
+        await renderer.next();
+        await waitFor("next page", () => renderer.index === 2);
+        // The next page opens at its top, on the same column.
+        near(renderer.scrollTop, 0, "reading start of the page turned to");
+        near(renderer.scrollLeft, 150, "locked column after a turn");
+        assert(
+          overflowOf(renderer) === "hidden auto",
+          `After a turn the page scrolls natively as ${overflowOf(renderer)}`,
+        );
+        // Turning back opens the page at its end, still on that column.
+        await renderer.prev();
+        await waitFor("previous page", () => renderer.index === 1);
+        edges = renderer.panEdges;
+        assert(edges.bottom && !edges.top, "Turning back did not open the page at its end");
+        near(renderer.scrollLeft, 150, "locked column turning back");
+        // A zoom still moves it, and it stays locked there.
+        renderer.setZoom({ fit: "page", factor: 3.5 });
+        assert(renderer.viewLocked && renderer.lockedAxis === "x", "A zoom released the lock");
+        assert(Math.abs(renderer.scrollLeft - 150) > 1, "A zoom could not move a locked view");
+        renderer.setViewLocked(false);
+        assert(renderer.lockedAxis === null, "An unlocked view still holds an axis");
+        assert(overflowOf(renderer) === "auto auto", `Unlocked, the page scrolls natively as ${overflowOf(renderer)}`);
+        assert(renderer.panBy(-30, 0), "An unlocked view did not pan sideways");
+      } finally {
+        await reader.close();
+      }
+    },
+  );
+
+  await check("a locked landscape page holds its band: it pans across the page only", async () => {
+    const reader = await open("paginated", 1, { source: landscapeFile });
     try {
       const { renderer } = reader;
       renderer.setZoom({ fit: "page", factor: 3 });
       renderer.scrollLeft = 150;
       renderer.scrollTop = 200;
       renderer.setViewLocked(true);
-      assert(!renderer.panBy(40, 40), "A locked view panned");
+      assert(renderer.lockedAxis === "y", `A landscape page locked ${renderer.lockedAxis}`);
+      assert(
+        overflowOf(renderer) === "auto hidden",
+        `Locked landscape page scrolls natively as ${overflowOf(renderer)}`,
+      );
+      assert(!renderer.panBy(0, 40), "A locked view panned up and down a landscape page");
+      assert(renderer.panBy(40, 40), "A locked view did not pan across its page");
+      near(renderer.scrollTop, 200, "locked band after a diagonal pan");
+      near(renderer.scrollLeft, 190, "distance panned across the page");
       const edges = renderer.panEdges;
-      assert(edges.left && edges.right && edges.top && edges.bottom, "A locked view reports room to pan");
+      assert(edges.top && edges.bottom, "A locked band reports room to pan up and down");
+      assert(!edges.left && !edges.right, "A page with more to either side reads as at its edges");
       await renderer.next();
       await waitFor("next page", () => renderer.index === 2);
-      near(renderer.scrollLeft, 150, "locked horizontal position after a turn");
-      near(renderer.scrollTop, 200, "locked vertical position after a turn");
+      near(renderer.scrollLeft, 0, "reading start of the page turned to");
+      near(renderer.scrollTop, 200, "locked band after a turn");
       await renderer.prev();
       await waitFor("previous page", () => renderer.index === 1);
-      near(renderer.scrollTop, 200, "locked position turning back");
-      // A zoom still moves it, and it stays locked there.
-      renderer.setZoom({ fit: "page", factor: 3.5 });
-      assert(renderer.viewLocked, "A zoom released the lock");
-      assert(Math.abs(renderer.scrollTop - 200) > 1, "A zoom could not move a locked view");
-      renderer.setViewLocked(false);
-      assert(renderer.panBy(0, 30), "An unlocked view did not pan");
+      assert(renderer.panEdges.right && !renderer.panEdges.left, "Turning back did not open the page at its end");
+      near(renderer.scrollTop, 200, "locked band turning back");
     } finally {
       await reader.close();
+    }
+  });
+
+  await check("a view locked before its first page shows takes its axis from that page", async () => {
+    for (const [source, axis, overflow] of [
+      [file, "x", "hidden auto"],
+      [landscapeFile, "y", "auto hidden"],
+    ] as const) {
+      const reader = await open("paginated", 1, {
+        source,
+        prepare: (renderer) => {
+          renderer.setZoom({ fit: "page", factor: 3 });
+          renderer.setViewLocked(true);
+          assert(renderer.viewLocked, "The lock was not taken before a page showed");
+        },
+      });
+      try {
+        const { renderer } = reader;
+        assert(renderer.lockedAxis === axis, `Opened locked ${renderer.lockedAxis}, expected ${axis}`);
+        assert(overflowOf(renderer) === overflow, `Opened scrolling natively as ${overflowOf(renderer)}`);
+      } finally {
+        await reader.close();
+      }
+    }
+  });
+
+  await check("a continuous scroll has no lock", async () => {
+    const reader = await open("scrolled", 1, { prepare: (renderer) => renderer.setViewLocked(true) });
+    try {
+      const { renderer } = reader;
+      renderer.setZoom({ fit: "width", factor: 2 });
+      assert(renderer.lockedAxis === null, `A continuous scroll locked ${renderer.lockedAxis}`);
+      assert(overflowOf(renderer) === "auto auto", `A continuous scroll scrolls natively as ${overflowOf(renderer)}`);
+    } finally {
+      await reader.close();
+    }
+    // Nor does a locked paged view keep its hold once it becomes one.
+    const paged = await open("paginated", 1);
+    try {
+      const { renderer } = paged;
+      renderer.setZoom({ fit: "page", factor: 3 });
+      renderer.setViewLocked(true);
+      assert(renderer.lockedAxis === "x", "The paged view was not locked to begin with");
+      renderer.setLayout("scrolled", 1);
+      assert(renderer.lockedAxis === null, `Switched to a continuous scroll, still locked ${renderer.lockedAxis}`);
+      assert(overflowOf(renderer) === "auto auto", `Switched, it scrolls natively as ${overflowOf(renderer)}`);
+    } finally {
+      await paged.close();
     }
   });
 

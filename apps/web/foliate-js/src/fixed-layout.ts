@@ -15,10 +15,12 @@ import { RendererResizeObserver } from "./resize-observer.js";
 import { getViewport, parseViewport, type Dimensions } from "./viewport.js";
 import {
   DEFAULT_FIXED_LAYOUT_ZOOM,
+  lockedAxisOfPage,
   normalizeFixedLayoutZoom,
   resolveFixedLayoutFit,
   sameFixedLayoutZoom,
   type FixedLayoutZoom,
+  type PanAxis,
 } from "./fixed-zoom.js";
 
 // READAWARE: rendering budgets, canvas-memory driven. A PDF page rastered at
@@ -159,6 +161,9 @@ export class FixedLayout extends HTMLElement {
   #zoomLive = false;
   #zoomSettleTimer: ReturnType<typeof setTimeout> | 0 = 0;
   #viewLocked = false;
+  // The axis the lock holds on the page being read; null while unlocked, or
+  // before a page shows (see `#syncLockedAxis`).
+  #lockedAxis: PanAxis | null = null;
   #detailTimer: ReturnType<typeof setTimeout> | 0 = 0;
   #flow: string | null = null;
   #maxColumnCount: number | undefined;
@@ -229,8 +234,11 @@ export class FixedLayout extends HTMLElement {
             flex-direction: column;
             overscroll-behavior: contain;
         }
-        :host([view-locked]:not([flow="scrolled"])) {
-            overflow: hidden;
+        :host([view-locked="x"]:not([flow="scrolled"])) {
+            overflow-x: hidden;
+        }
+        :host([view-locked="y"]:not([flow="scrolled"])) {
+            overflow-y: hidden;
         }`);
 
     this.#observer.observe(this);
@@ -575,6 +583,7 @@ export class FixedLayout extends HTMLElement {
       transform(left, "left");
       transform(right, "right");
     }
+    this.#syncLockedAxis(side);
   }
   // READAWARE: create (or reuse) the frames of one spread. Creations are
   // memoized by promise so a background preload and a user navigation
@@ -1259,52 +1268,72 @@ export class FixedLayout extends HTMLElement {
     const frame = [this.#left, this.#center, this.#right].find((frame) => frame?.index === index && !frame.hidden);
     return frame?.element.getBoundingClientRect() ?? null;
   }
-  // READAWARE: a locked view (paged flows only). The reader froze a zoomed
-  // spread on the part of the page they read, so every page turned to shows
-  // that same part: nothing pans it — not the wheel, a drag, a key or a
-  // swipe, all of which turn pages as at the fit — and a page turn keeps the
-  // scroll position rather than opening at the page's start. A zoom still
-  // moves it (programmatic scrolling survives `overflow: hidden`), and the
-  // view stays locked at the new zoom. A continuous scroll has no lock: it is
-  // read by scrolling.
+  // READAWARE: a locked view (paged flows only). The reader zoomed into the
+  // part of the page they read — a column, the text inside its margins — and
+  // froze it there. A page is read along its long side, so the lock holds the
+  // other axis (`lockedAxisOfPage`): nothing pans the view that way — not the
+  // wheel, a drag, a key or a swipe, which turn pages as at the fit — and a
+  // page turn leaves it where it is, so every page shows that same column.
+  // Along the page the view moves as it does unlocked: it pans to the page's
+  // end, turns there, and the next page opens where reading it begins. A zoom
+  // still moves the view either way (programmatic scrolling survives
+  // `overflow: hidden`), and it stays locked at the new zoom. A continuous
+  // scroll has no lock: it is read by scrolling.
   get viewLocked() {
     return this.#viewLocked;
   }
   setViewLocked(locked: boolean) {
     this.#viewLocked = locked;
-    this.toggleAttribute("view-locked", locked);
+    this.#syncLockedAxis();
+  }
+  /** The axis a locked paged view cannot be panned along; null when unlocked, or scrolled. */
+  get lockedAxis(): PanAxis | null {
+    return this.scrolled ? null : this.#lockedAxis;
+  }
+  // Decided from the page being read each time one is laid out, not when the
+  // lock is set: a book opens locked before any page shows, and its pages
+  // need not all be the same way up. The host's `view-locked` attribute
+  // carries the axis to the stylesheet, which takes native scrolling off it.
+  #syncLockedAxis(side = this.#side) {
+    const shown = this.#center ?? (side === "left" ? (this.#left ?? this.#right) : (this.#right ?? this.#left));
+    // A spread is never blank on the side being read unless it has no page at all.
+    const page = shown?.blank ? null : shown;
+    this.#lockedAxis = this.#viewLocked && page ? lockedAxisOfPage(page.width, page.height) : null;
+    if (this.#lockedAxis) this.setAttribute("view-locked", this.#lockedAxis);
+    else this.removeAttribute("view-locked");
   }
   // READAWARE: a zoomed paged spread is panned inside the viewport. The
   // host scrolls natively, but the reader claims the wheel in paged flows to
   // turn pages, so it asks here first: a pan that moves the spread wins.
-  /** Pan a zoomed paged spread; true when it moved. Scrolled flows scroll natively; a locked view never pans. */
+  /** Pan a zoomed paged spread; true when it moved. Scrolled flows scroll natively; a locked axis never pans. */
   panBy(dx: number, dy: number): boolean {
-    if (this.scrolled || this.#viewLocked) return false;
+    if (this.scrolled) return false;
     const { scrollLeft, scrollTop } = this;
-    this.scrollLeft = scrollLeft + dx;
-    this.scrollTop = scrollTop + dy;
+    if (this.#lockedAxis !== "x") this.scrollLeft = scrollLeft + dx;
+    if (this.#lockedAxis !== "y") this.scrollTop = scrollTop + dy;
     return this.scrollLeft !== scrollLeft || this.scrollTop !== scrollTop;
   }
-  /** Which edges of a paged spread the viewport rests against — all four when it fits, or is locked. */
+  /** Which edges of a paged spread the viewport rests against — all four when it fits, both of a locked axis. */
   get panEdges(): PanEdges {
-    if (this.#viewLocked && !this.scrolled) return { left: true, top: true, right: true, bottom: true };
     const slack = 1;
+    const lockedX = this.lockedAxis === "x";
+    const lockedY = this.lockedAxis === "y";
     return {
-      left: this.scrollLeft <= slack,
-      top: this.scrollTop <= slack,
-      right: this.scrollLeft + this.clientWidth >= this.scrollWidth - slack,
-      bottom: this.scrollTop + this.clientHeight >= this.scrollHeight - slack,
+      left: lockedX || this.scrollLeft <= slack,
+      top: lockedY || this.scrollTop <= slack,
+      right: lockedX || this.scrollLeft + this.clientWidth >= this.scrollWidth - slack,
+      bottom: lockedY || this.scrollTop + this.clientHeight >= this.scrollHeight - slack,
     };
   }
   /** Show a newly turned-to spread from its reading start, or — turning back — its end. */
   #revealEdge(edge: PageEdge) {
-    // A locked view keeps showing the same part of every page.
-    if (this.scrolled || this.#viewLocked) return;
+    if (this.scrolled) return;
     const start = edge === "start";
     const inlineStart = this.rtl ? this.scrollWidth : 0;
     const inlineEnd = this.rtl ? 0 : this.scrollWidth;
-    this.scrollTop = start ? 0 : this.scrollHeight;
-    this.scrollLeft = start ? inlineStart : inlineEnd;
+    // A locked axis keeps showing the same part of every page.
+    if (this.#lockedAxis !== "y") this.scrollTop = start ? 0 : this.scrollHeight;
+    if (this.#lockedAxis !== "x") this.scrollLeft = start ? inlineStart : inlineEnd;
   }
   // READAWARE: keep each zoomed page's sharp overlay over what is on screen
   // (see pdf-detail.ts), once the viewport has paused.

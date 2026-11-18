@@ -12,8 +12,9 @@
  *
  * It also keeps where on the page the reader was looking (`viewFocus`), so a
  * zoomed page reopens on the same passage rather than at its corner, and
- * whether that view is locked, so page turns keep showing the same part of
- * every page (`setViewLocked`; paged flows only).
+ * whether that view is locked: held still across the page, so reading on
+ * through it and into the next keeps showing the same column
+ * (`setViewLocked`; paged flows only).
  */
 import { useCallback, useEffect, useMemo, useRef, type RefObject } from "react";
 import { useAtomValue } from "jotai";
@@ -30,6 +31,7 @@ import {
   clampZoomFactor,
   sameFixedLayoutZoom,
   stepZoomFactor,
+  wheelPansView,
   wheelZoomRatio,
   type FixedLayoutZoom,
 } from "../lib/fixed-layout-zoom";
@@ -70,18 +72,18 @@ export type FixedLayoutZoomInput = {
   restoreFocus: (renderer: FoliateRenderer | undefined, following?: () => boolean) => () => void;
   /** A ctrl+wheel in the reader; true when it zoomed (the caller stops routing it). */
   handleZoomWheel: (event: WheelEvent) => boolean;
-  /** Pan a zoomed paged spread by a wheel event; true when the spread moved. */
+  /** Pan a zoomed paged spread by a wheel event; true when the spread moved. A locked axis never pans. */
   panByWheel: (event: WheelEvent) => boolean;
-  /** Pan a zoomed paged spread a screenful by keyboard; true when it moved. */
+  /** Pan a zoomed paged spread a screenful by keyboard; true when it moved. A locked axis never pans. */
   panByKey: (axis: "x" | "y", direction: 1 | -1) => boolean;
-  /** Which edges a zoomed paged spread rests against; all of them when it fits. */
+  /** Which edges a zoomed paged spread rests against; all of them when it fits, both of a locked axis. */
   panEdges: () => { left: boolean; right: boolean; top: boolean; bottom: boolean };
   /** Pinch listeners for a section document, for as long as it lives. */
   attachDocument: (doc: Document) => void;
   stepZoom: (direction: 1 | -1, origin?: DomainActor) => void;
   /** Back to the fit, which also releases a locked view. */
   resetZoom: (origin?: DomainActor) => void;
-  /** The book's zoomed view is locked for page turns. */
+  /** The book's zoomed view is locked: held still across the page, free along it. */
   locked: boolean;
   toggleLock: (origin?: DomainActor) => void;
 };
@@ -364,6 +366,7 @@ export function useFixedLayoutZoom({
     (event: WheelEvent): boolean => {
       const renderer = zoomRenderer();
       if (!renderer || renderer.scrolled) return false;
+      if (!wheelPansView(event.deltaX, event.deltaY, renderer.lockedAxis)) return false;
       const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? renderer.clientHeight : 1;
       if (!renderer.panBy(event.deltaX * unit, event.deltaY * unit)) return false;
       if (event.cancelable) event.preventDefault();

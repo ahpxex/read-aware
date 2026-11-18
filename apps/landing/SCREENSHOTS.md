@@ -89,9 +89,13 @@ Install the official APK, push the EPUB to `/sdcard/Download/`, and import it
 through the app's Android file picker. Open Chapter I from the table of
 contents, swipe past the illustration, select the reading settings above,
 and tap the top margin to reveal the toolbar. After changing the Android
-system theme, restart the app so native status-bar colors update too, then go
-to the same page again: do not count on the restart reopening the book where
-it was.
+system theme, restart the app so native status-bar colors update too.
+
+Set the device clock before the book is first opened, not after. Reading
+progress keeps the position observed last, so a clock moved back after a
+position was recorded makes every later position look older than that one:
+they are discarded, and each restart reopens the book where it was before the
+change.
 
 Capture with `adb -s <dedicated-serial> exec-out screencap -p`, inspect the full
 image, and replace the corresponding PNG. Preserve the complete 1080 x 2400

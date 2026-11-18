@@ -59,6 +59,16 @@ export type WheelGesture = {
    * only a new gesture at the edge turns the page.
    */
   claim: (delta: number, timeMs: number) => void;
+  /**
+   * Whether this event is travel left over from a gesture that already
+   * stepped — the rest of the drag, or its momentum. Asked before an event
+   * is offered elsewhere: the swipe that turned a zoomed page must not go on
+   * to pan the page it turned to, which opens where reading it begins. An
+   * event it answers true for is accounted for and must not be fed as well;
+   * one that starts a new gesture answers false and is fed or claimed as
+   * usual.
+   */
+  trailing: (delta: number, timeMs: number) => boolean;
   /** Feed one host-reported gesture phase edge; switches the machine to
    *  phase mode permanently (the source, once present, keeps reporting). */
   notifyPhase: (edge: WheelPhaseEdge) => void;
@@ -94,6 +104,8 @@ export function createWheelGesture({ threshold, quietMs = DEFAULT_QUIET_MS }: Wh
   let stream: "drag" | "momentum" | "idle" | null = null;
   let accum = 0;
   let firedDirection: WheelGestureStep = 0;
+  // The latch came from a step fired here, rather than from a claim.
+  let stepped = false;
   let lastEventAt = Number.NEGATIVE_INFINITY;
   // Latched-phase state for heuristic mode's decay-then-rise detector.
   let peak = 0;
@@ -104,6 +116,7 @@ export function createWheelGesture({ threshold, quietMs = DEFAULT_QUIET_MS }: Wh
   const reset = () => {
     accum = 0;
     firedDirection = 0;
+    stepped = false;
     peak = 0;
     armed = false;
     risingStreak = 0;
@@ -139,49 +152,56 @@ export function createWheelGesture({ threshold, quietMs = DEFAULT_QUIET_MS }: Wh
     return direction;
   };
 
+  const fire = (delta: number, direction: WheelGestureStep): WheelGestureStep => {
+    const step = accumulate(delta, direction);
+    if (step !== 0) {
+      firedDirection = step;
+      stepped = true;
+    }
+    return step;
+  };
+
+  /** Phase mode, latched: whether this event still belongs to the fired gesture. Frees the latch when it does not. */
+  const latchedPhased = (direction: WheelGestureStep, magnitude: number): boolean => {
+    // Coasting after release: once fired the gesture is spent — only a new
+    // touch starts another.
+    if (stream === "momentum") return true;
+    // A reversal while latched is deliberate input — start over the other
+    // way. Same-direction travel is this gesture's own surplus.
+    if (direction === firedDirection || magnitude < REVERSE_MIN_DELTA) return true;
+    reset();
+    return false;
+  };
+
+  /** Heuristic mode, latched: the same question, answered from the stream's shape. */
+  const latchedHeuristic = (direction: WheelGestureStep, magnitude: number): boolean => {
+    const reversed = direction !== firedDirection && magnitude >= REVERSE_MIN_DELTA;
+    peak = Math.max(peak, magnitude);
+    if (magnitude <= peak * ARM_FRACTION) armed = true;
+    risingStreak = armed && magnitude > lastMagnitude * RISE_FACTOR ? risingStreak + 1 : 0;
+    const restarted = risingStreak >= RISE_STREAK_TO_RESTART && magnitude >= RESTART_MIN_DELTA;
+    lastMagnitude = magnitude;
+    if (!reversed && !restarted) return true;
+    reset();
+    return false;
+  };
+
   const feedPhased = (delta: number, direction: WheelGestureStep, magnitude: number): WheelGestureStep => {
-    if (stream === "momentum") {
-      // Coasting after release. It may still complete a light swipe that
-      // hadn't reached the threshold, but once fired the gesture is spent —
-      // only a new touch starts another.
-      if (firedDirection !== 0) return 0;
-      const step = accumulate(delta, direction);
-      if (step !== 0) firedDirection = step;
-      return step;
-    }
-    if (stream === "drag") {
-      if (firedDirection !== 0) {
-        // A reversal while latched is deliberate input — start over the
-        // other way. Same-direction travel is this gesture's own surplus.
-        if (direction === firedDirection || magnitude < REVERSE_MIN_DELTA) return 0;
-        reset();
-      }
-      const step = accumulate(delta, direction);
-      if (step !== 0) firedDirection = step;
-      return step;
-    }
     // "idle": no trackpad gesture is active, so these deltas are mouse-wheel
     // notches (a trackpad always announces a touch first). Ratchet — every
     // `threshold` of travel steps once, no latch, deterministic under a held
     // scroll.
-    return accumulate(delta, direction);
+    if (stream === "idle") return accumulate(delta, direction);
+    // A drag, or the momentum after it — which may still complete a light
+    // swipe that hadn't reached the threshold.
+    if (firedDirection !== 0 && latchedPhased(direction, magnitude)) return 0;
+    return fire(delta, direction);
   };
 
   const feedHeuristic = (delta: number, direction: WheelGestureStep, magnitude: number): WheelGestureStep => {
-    if (firedDirection !== 0) {
-      const reversed = direction !== firedDirection && magnitude >= REVERSE_MIN_DELTA;
-      peak = Math.max(peak, magnitude);
-      if (magnitude <= peak * ARM_FRACTION) armed = true;
-      risingStreak = armed && magnitude > lastMagnitude * RISE_FACTOR ? risingStreak + 1 : 0;
-      const restarted = risingStreak >= RISE_STREAK_TO_RESTART && magnitude >= RESTART_MIN_DELTA;
-      lastMagnitude = magnitude;
-      if (!reversed && !restarted) return 0;
-      reset();
-    }
-
-    const step = accumulate(delta, direction);
+    if (firedDirection !== 0 && latchedHeuristic(direction, magnitude)) return 0;
+    const step = fire(delta, direction);
     if (step !== 0) {
-      firedDirection = step;
       peak = magnitude;
       lastMagnitude = magnitude;
     }
@@ -221,10 +241,21 @@ export function createWheelGesture({ threshold, quietMs = DEFAULT_QUIET_MS }: Wh
     accum = 0;
     peak = firedDirection === 0 ? magnitude : Math.max(peak, magnitude);
     firedDirection = delta > 0 ? 1 : -1;
+    stepped = false;
     lastMagnitude = magnitude;
     armed = false;
     risingStreak = 0;
   };
 
-  return { feed, claim, notifyPhase, reset };
+  const trailing = (delta: number, timeMs: number): boolean => {
+    observe(timeMs);
+    // Only a step latches with `stepped`; a mouse wheel's ratchet never does.
+    if (!stepped) return false;
+    const magnitude = Math.abs(delta);
+    if (magnitude === 0) return true;
+    const direction: WheelGestureStep = delta > 0 ? 1 : -1;
+    return stream === null ? latchedHeuristic(direction, magnitude) : latchedPhased(direction, magnitude);
+  };
+
+  return { feed, claim, trailing, notifyPhase, reset };
 }

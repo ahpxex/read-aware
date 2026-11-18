@@ -1431,15 +1431,25 @@ export function FoliateReaderView({
   //   accumulators, as before.
   // Fixed-layout books come first: ctrl+wheel zooms their pages, and a page
   // zoomed past the viewport pans before it turns — a gesture that moved the
-  // page is spent on that, so only a new one at the edge turns it.
+  // page is spent on that, so only a new one at the edge turns it. And the
+  // gesture that turned it is spent on the turn: what is left of the swipe
+  // does not pan the page it turned to, which opens where reading it begins.
+  // (A locked view pans along the page only; see `panByWheel`.)
   const handleWheelEvent = useEffectEvent((event: WheelEvent) => {
     const gestures = wheelGesturesRef.current;
     if (!gestures) return;
     if (fixedLayoutZoom.handleZoomWheel(event)) return;
     const horizontal = Math.abs(event.deltaX) > Math.abs(event.deltaY);
-    if (readingModeRef.current !== "scroll" && !event.ctrlKey && fixedLayoutZoom.panByWheel(event)) {
-      gestures.pageTurn.claim(horizontal ? event.deltaX : event.deltaY, wheelEventTime(event));
-      return;
+    if (isFixedLayoutRef.current && readingModeRef.current !== "scroll" && !event.ctrlKey) {
+      const delta = horizontal ? event.deltaX : event.deltaY;
+      if (gestures.pageTurn.trailing(delta, wheelEventTime(event))) {
+        if (event.cancelable) event.preventDefault();
+        return;
+      }
+      if (fixedLayoutZoom.panByWheel(event)) {
+        gestures.pageTurn.claim(delta, wheelEventTime(event));
+        return;
+      }
     }
     if (readingModeRef.current !== "scroll" && horizontal) {
       // Without preventDefault the webview may read the swipe as overscroll

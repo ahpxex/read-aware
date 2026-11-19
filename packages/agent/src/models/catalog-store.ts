@@ -1,10 +1,4 @@
-import {
-  AppError,
-  ERR_AI_NETWORK,
-  ERR_AI_PROVIDER,
-  ERR_AI_RATE_LIMITED,
-  ERR_AI_REQUEST_TIMEOUT,
-} from "@read-aware/core";
+import { AppError, ERR_AI_NETWORK, ERR_AI_PROVIDER, ERR_AI_RATE_LIMITED } from "@read-aware/core";
 import type { AgentFetch } from "./transport";
 import {
   parseCatalogCache,
@@ -113,14 +107,13 @@ export class ModelCatalogStore {
     this.publish(provider, { ...previous, refreshing: true });
     const controller = new AbortController();
     const timeoutMs = this.deps.timeoutMs ?? 12_000;
-    // The timeout is the only abort, so it names itself: a bare abort() logs
-    // "signal is aborted without reason" and surfaces as a generic network error.
+    // The timeout is the only abort, so it names itself in the logged cause; a
+    // bare abort() logs "signal is aborted without reason". The published error
+    // stays a retryable network failure.
     const timeout = setTimeout(
       () =>
         controller.abort(
-          new AppError(ERR_AI_REQUEST_TIMEOUT, `Model catalog request timed out after ${timeoutMs} ms: ${provider}`, {
-            retryable: true,
-          }),
+          new DOMException(`Model catalog request timed out after ${timeoutMs} ms: ${provider}`, "TimeoutError"),
         ),
       timeoutMs,
     );

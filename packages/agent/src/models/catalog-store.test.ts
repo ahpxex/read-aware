@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { ERR_AI_REQUEST_TIMEOUT, errorCode } from "@read-aware/core";
+import { ERR_AI_NETWORK, errorCode } from "@read-aware/core";
 import { ModelCatalogStore, MODEL_CATALOG_TTL_MS } from "./catalog-store";
 import { parseCatalogModels, type CatalogModel } from "./catalog-data";
 import { buildProviderRegistry, setModelCatalogReader } from "./registry";
@@ -273,7 +273,9 @@ describe("remote model catalog", () => {
     );
     await kit.store.refresh(provider);
     expect(kit.store.getSnapshot(provider).refreshing).toBe(false);
-    expect(errorCode(kit.store.getSnapshot(provider).error)).toBe(ERR_AI_REQUEST_TIMEOUT);
+    const error = kit.store.getSnapshot(provider).error;
+    expect(errorCode(error)).toBe(ERR_AI_NETWORK);
+    expect((error as Error).cause).toMatchObject({ name: "TimeoutError" });
     finish(Response.json([model()]));
     await new Promise((resolve) => setTimeout(resolve, 5));
     expect(kit.disk.size).toBe(0);

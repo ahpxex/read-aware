@@ -15,19 +15,22 @@ const tauriDevHost = process.env.TAURI_DEV_HOST;
 /**
  * The commit this bundle was built from, stamped into the diagnostics bundle
  * so a report can be checked against the source maps archived for its build
- * (scripts/symbolicate-diagnostics.ts). `-dirty` marks a build from a worktree
- * with uncommitted changes, whose maps exist only on that machine.
+ * (scripts/symbolicate-diagnostics.ts). Read from the checked-out tree: a
+ * manually dispatched release workflow checks out the tag while GITHUB_SHA
+ * names the branch it was dispatched from. `-dirty` marks a local build from
+ * a worktree with uncommitted changes, whose maps exist only on that machine;
+ * CI steps may touch the tree, so it is not applied there.
  */
 function buildCommit(): string {
-  if (process.env.GITHUB_SHA) return process.env.GITHUB_SHA;
   try {
     const run = (args: string[]) =>
       execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
     const commit = run(["rev-parse", "HEAD"]).trim();
+    if (process.env.GITHUB_ACTIONS) return commit;
     return run(["status", "--porcelain"]).trim() ? `${commit}-dirty` : commit;
   } catch {
     // Not a git checkout (a source tarball): the bundle says so instead of guessing.
-    return "unknown";
+    return process.env.GITHUB_SHA ?? "unknown";
   }
 }
 

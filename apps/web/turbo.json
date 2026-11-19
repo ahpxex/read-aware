@@ -3,7 +3,7 @@
   "extends": ["//"],
   "tasks": {
     "build": {
-      "outputs": ["dist/**", "public/foliate-js/*.js"]
+      "outputs": ["dist/**", "sourcemaps/**", "public/foliate-js/*.js"]
     },
     "test": {
       "outputs": ["public/foliate-js/*.js"]

@@ -773,21 +773,24 @@ fn zip_manifest(path: &Path) -> Result<(String, String), CommandError> {
 }
 
 /// Extract a zip into an inert candidate. Plain files only: hidden entries,
-/// __MACOSX, symlinks, and path-traversing names are skipped.
+/// __MACOSX, symlinks, and path-traversing names are skipped. `zip_path` is
+/// what the file dialog returned: a plain path on desktop, a `content://`
+/// URI on Android, which is staged into the app cache before it is read.
 #[tauri::command]
 pub async fn plugins_stage_zip(
     app: tauri::AppHandle,
     zip_path: String,
 ) -> Result<PluginCandidate, CommandError> {
     blocking("plugins_stage_zip", move || {
-        let path = PathBuf::from(&zip_path);
-        let (manifest, prefix) = zip_manifest(&path)?;
+        let source = crate::native_path::materialize(&app, &zip_path)?;
+        let path = source.path.as_path();
+        let (manifest, prefix) = zip_manifest(path)?;
         let id = manifest_id(&manifest)?;
         let plugins = plugins_dir(&app)?;
         let (token, temp, staged) = fresh_candidate_paths(&plugins)?;
         finalize_candidate(&temp, &staged, || {
             fs::create_dir_all(&temp)?;
-            let file = fs::File::open(&path)?;
+            let file = fs::File::open(path)?;
             let mut archive =
                 zip::ZipArchive::new(file).map_err(|e| zip_error("not a valid zip archive", e))?;
             for index in 0..archive.len() {

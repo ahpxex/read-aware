@@ -51,7 +51,7 @@ fn failed_copy_preserves_error_code_and_removes_partial_file() {
 
         let error = stage_reader(source, cache_dir.path()).err().unwrap();
         assert_eq!(error.code, code);
-        assert!(error.message.contains("Failed to stage selected book"));
+        assert!(error.message.contains("Failed to stage the selected file"));
         assert_eq!(std::fs::read_dir(cache_dir.path()).unwrap().count(), 0);
     }
 }

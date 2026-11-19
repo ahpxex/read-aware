@@ -9,7 +9,7 @@ import { open as openFileDialog } from "@tauri-apps/plugin-dialog";
 import { useAtomValue, useSetAtom } from "jotai";
 import { Badge, Button, Caption, Tabs, Toggle, useToast } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
-import { isTauri } from "../../../platform/environment";
+import { isMobileOS, isTauri } from "../../../platform/environment";
 import { settingsSectionRequestAtom } from "../../../state/ui";
 import { libraryBooksAtom } from "../../library/state/library-store";
 import { PluginBookAccessDialog } from "../../plugins/components/PluginBookAccessDialog";
@@ -48,6 +48,9 @@ export function PluginsPanel() {
   const [editingBookAccessId, setEditingBookAccessId] = useState<string | null>(null);
   const [marketRefreshToken, setMarketRefreshToken] = useState(0);
   const desktop = isTauri();
+  // Installing from a folder is a desktop workflow: the mobile system pickers
+  // cannot hand the native side a readable directory, so mobile installs zips.
+  const folderInstall = desktop && !isMobileOS();
   const books = libraryBooks.map(({ id, title }) => ({ id, title }));
   const updateOffer = useOutdatedPluginUpdates(installed, books, { enabled: desktop });
 
@@ -273,16 +276,18 @@ export function PluginsPanel() {
         trailing={
           activeTab === 0 ? (
             <span className="flex items-center gap-1">
-              <Button size="sm" variant="ghost" disabled={!desktop || installing} onClick={() => void handleInstall()}>
-                {installing ? t("settings.installing") : t("settings.install")}
-              </Button>
+              {folderInstall && (
+                <Button size="sm" variant="ghost" disabled={installing} onClick={() => void handleInstall()}>
+                  {installing ? t("settings.installing") : t("settings.install")}
+                </Button>
+              )}
               <Button
                 size="sm"
                 variant="ghost"
                 disabled={!desktop || installing}
                 onClick={() => void handleInstallZip()}
               >
-                {t("settings.installZip")}
+                {installing && !folderInstall ? t("settings.installing") : t("settings.installZip")}
               </Button>
             </span>
           ) : (

@@ -1,4 +1,5 @@
-//! Resolve user-picked path strings for commands that read book files.
+//! Resolve user-picked path strings for commands that read picked files
+//! (books, plugin resources, plugin archives).
 //!
 //! Desktop dialogs hand over plain filesystem paths. Android's document
 //! picker hands over `content://` URIs — openable through the fs plugin's
@@ -52,7 +53,7 @@ pub(crate) fn materialize(app: &AppHandle, raw: &str) -> Result<MaterializedPath
     let source = app
         .fs()
         .open(FilePath::Url(url), options)
-        .map_err(|error| CommandError::context("Failed to open selected book", error))?;
+        .map_err(|error| CommandError::context("Failed to open the selected file", error))?;
     materialize_reader(app, source)
 }
 
@@ -85,7 +86,7 @@ fn stage_reader(mut source: impl Read, cache_dir: &Path) -> Result<MaterializedP
     let mut staged = tempfile::NamedTempFile::new_in(cache_dir)
         .map_err(|error| CommandError::context("Failed to create an import staging file", error))?;
     std::io::copy(&mut source, staged.as_file_mut())
-        .map_err(|error| CommandError::context("Failed to stage selected book", error))?;
+        .map_err(|error| CommandError::context("Failed to stage the selected file", error))?;
     Ok(MaterializedPath {
         path: staged.path().to_path_buf(),
         _staged: Some(staged),

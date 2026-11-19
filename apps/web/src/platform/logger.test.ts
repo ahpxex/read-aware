@@ -42,6 +42,11 @@ test("non-error causes and plain values render as text, and lines are capped", (
   // Cut mid-URL by the cap: what remains no longer parses and is redacted whole.
   const cut = renderLine("m", "x", [`${"y".repeat(3980)} https://user:SECRET@host.example/x`]);
   expect(cut).not.toContain("SECRET");
+  // Cut right after a numeric password, the rest parses as host and port: still redacted.
+  const prefix = `${"y".repeat(4000 - "[m] x · ".length - " https://user:12345".length)} `;
+  const numeric = renderLine("m", "x", [`${prefix}https://user:12345@host.example/x`]);
+  expect(numeric).not.toContain("12345");
+  expect(numeric.endsWith("https://<redacted>…")).toBe(true);
 });
 
 test("no rendered text can start a line of its own", () => {

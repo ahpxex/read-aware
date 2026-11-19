@@ -65,11 +65,12 @@ function describe(value: unknown, depth = 0): string {
 /** One file log line; exported for its tests. */
 export function renderLine(module: string, message: string, detail: unknown[]): string {
   const parts = [`[${module}] ${message}`, ...detail.map((value) => describe(value))];
-  // Capped before redaction, so its cost stays bounded; a URL the cap cuts
-  // in half no longer parses and is redacted whole.
+  // Capped before redaction, so its cost stays bounded. A URL the cap cuts
+  // may still parse (`https://user:12345` reads as a host and port), so the
+  // last URL of a capped line keeps only its scheme.
   const joined = parts.join(" · ");
-  const capped = joined.length > MAX_DETAIL_CHARS ? `${joined.slice(0, MAX_DETAIL_CHARS)}…` : joined;
-  return redactUrls(capped).replace(/\n(?=\S)/g, "\n  ");
+  const line = joined.length > MAX_DETAIL_CHARS ? capLine(joined.slice(0, MAX_DETAIL_CHARS)) : redactUrls(joined);
+  return line.replace(/\n(?=\S)/g, "\n  ");
 }
 
 /**
@@ -90,6 +91,15 @@ const CLOSING = new Set([")", "]", "}", ">", '"', "'", "`", ",", ".", ";"]);
  * parsed host stays to say which server the request went to.
  */
 const SWALLOWED = /%22|%27|%60|%3C|%3E|:\/\/|@|^\/\//i;
+
+/** A capped line, redacted; a URL the cap cut off keeps only its scheme. */
+function capLine(text: string): string {
+  let tailStart = text.length;
+  while (tailStart > 0 && !/\s/.test(text[tailStart - 1]!)) tailStart -= 1;
+  const scheme = text.slice(tailStart).match(/[a-z][a-z0-9+.-]*:\/\//i);
+  if (!scheme) return `${redactUrls(text)}…`;
+  return `${redactUrls(text.slice(0, tailStart + scheme.index!))}${scheme[0]}<redacted>…`;
+}
 
 /** `:12:34` at the very end of `value`, found by a linear scan; `""` otherwise. */
 function framePosition(value: string): string {

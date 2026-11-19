@@ -19,24 +19,33 @@ import { isTauri } from "./environment";
 
 type ForwardLevel = "info" | "warn" | "error";
 
-/** One log call's payload cap in the file — errors, not data dumps. */
-const MAX_DETAIL_CHARS = 2000;
+/**
+ * One log call's payload cap in the file — errors, not data dumps. Room for
+ * an error's stack and its cause's: a plugin failure's cause names the plugin
+ * and carries the Worker-side stack.
+ */
+const MAX_DETAIL_CHARS = 4000;
+/** How many `cause` links a logged error follows. */
+const MAX_CAUSE_DEPTH = 2;
 
 /**
  * Render one detail value for the log file. Errors carry their stack (JSC
  * stacks omit name/message, V8 stacks repeat them — prefer completeness over
- * de-duplication) and one level of `cause`.
+ * de-duplication) and their `cause` chain, each rendered the same way.
  */
-function describe(value: unknown): string {
+function describe(value: unknown, depth = 0): string {
   if (value instanceof Error) {
     const head = `${value.name}: ${value.message}`;
     const stack = value.stack ?? "";
     let text =
       stack.includes(value.message) && stack.startsWith(value.name) ? stack : [head, stack].filter(Boolean).join("\n");
-    if (value.cause instanceof Error) {
-      text += `\ncaused by ${value.cause.name}: ${value.cause.message}`;
-    } else if (value.cause !== undefined) {
-      text += `\ncaused by ${describe(value.cause)}`;
+    if (value.cause !== undefined) {
+      text +=
+        depth < MAX_CAUSE_DEPTH
+          ? `\ncaused by ${describe(value.cause, depth + 1)}`
+          : value.cause instanceof Error
+            ? `\ncaused by ${value.cause.name}: ${value.cause.message}`
+            : "";
     }
     return text;
   }
@@ -48,8 +57,9 @@ function describe(value: unknown): string {
   }
 }
 
-function renderLine(module: string, message: string, detail: unknown[]): string {
-  const parts = [`[${module}] ${message}`, ...detail.map(describe)];
+/** One file log line; exported for its tests. */
+export function renderLine(module: string, message: string, detail: unknown[]): string {
+  const parts = [`[${module}] ${message}`, ...detail.map((value) => describe(value))];
   const line = parts.join(" · ");
   return line.length > MAX_DETAIL_CHARS ? `${line.slice(0, MAX_DETAIL_CHARS)}…` : line;
 }

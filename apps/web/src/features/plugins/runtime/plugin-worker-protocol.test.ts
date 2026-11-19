@@ -19,6 +19,8 @@ test("every Worker envelope is explicit, bounded, and rejects extra authority fi
     { t: "quiesced", error: "failed" },
     { t: "result", id: 1, ok: true, value: registry.encode({ action: () => 42 }) },
     { t: "result", id: 1, ok: false, error: "failed", code: "db/error" },
+    { t: "result", id: 1, ok: false, error: "failed", stack: "Error: failed\n    at action (plugin.js:1:2)" },
+    { t: "migrated", id: 1, ok: false, error: "failed", stack: "Error: failed" },
   ];
   for (const message of valid) {
     expect(parsePluginWorkerMessage(structuredClone(message))).toEqual(structuredClone(message));
@@ -36,6 +38,10 @@ test("every Worker envelope is explicit, bounded, and rejects extra authority fi
     { t: "dispose", handle: null },
     { t: "call", id: 1, method: "x", args: registry.encode({}) },
     { t: "result", id: 1, ok: false, error: "x".repeat(4097) },
+    { t: "result", id: 1, ok: false, error: "failed", stack: "x".repeat(4097) },
+    { t: "result", id: 1, ok: false, error: "failed", stack: ["at x"] },
+    { t: "migrated", id: 1, ok: false, error: "failed", stack: 1 },
+    { t: "result", id: 1, ok: true, value: registry.encode(null), stack: "Error" },
   ])
     expect(() => parsePluginWorkerMessage(message)).toThrow();
   for (const id of [0, -1, 1.5, NaN, Infinity, "1", Number.MAX_SAFE_INTEGER + 1]) {

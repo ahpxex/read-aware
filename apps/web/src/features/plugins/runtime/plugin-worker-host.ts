@@ -50,6 +50,7 @@ import type { ContextShape, HostMessage } from "./plugin-host-protocol";
 export type { ContextShape } from "./plugin-host-protocol";
 import { assertPluginWireBudget, PLUGIN_WIRE_LIMITS } from "./plugin-wire-budget";
 import { PluginCallbackBudget } from "./plugin-callback-budget";
+import { HostCallFailureLog, pluginLabel, workerFailure } from "./plugin-worker-failure";
 import { pluginHostBudget, pluginTrafficBudget, type BudgetLease } from "./plugin-host-budget";
 
 import type { PluginLifecycleController } from "./plugin-lifecycle";
@@ -281,6 +282,8 @@ export function startPluginWorker(
   let quiescing = false;
   let termination: Promise<void> | undefined;
   let invalidMessageReported = false;
+  const plugin = pluginLabel(manifest);
+  const hostCallFailures = new HostCallFailureLog(plugin, (message, ...detail) => log.warn(message, ...detail));
   let acknowledgeQuiescence: ((error?: string) => void) | undefined;
   let acknowledgeDeactivation: (() => void) | undefined;
   const traffic = pluginTrafficBudget.open(manifest.id);
@@ -442,7 +445,7 @@ export function startPluginWorker(
             ),
         );
       else {
-        log.error(`runtime error in "${manifest.id}"`, reason);
+        log.error(`runtime error in "${plugin}"`, reason);
         if (options.onRuntimeError) options.onRuntimeError(reason, source);
         else if (currentInstance)
           updateInstalledPlugin(manifest.id, { error: new AppError("plugin/unavailable", reason) }, source);
@@ -928,9 +931,7 @@ export function startPluginWorker(
               controller.signal.aborted && !pluginCallDrainsCancellation(message.method)
                 ? controller.signal.reason
                 : error;
-            if (message.method.startsWith("services.network.") && !controller.signal.aborted) {
-              log.warn("Plugin network request failed", manifest.id, message.method, failure);
-            }
+            if (!controller.signal.aborted) hostCallFailures.report(message.method, failure);
             post({
               t: "result",
               id: message.id,
@@ -986,11 +987,7 @@ export function startPluginWorker(
               pendingInvokes.settle(message.id, false, error);
             }
           } else
-            pendingInvokes.settle(
-              message.id,
-              false,
-              message.code ? new AppError(message.code, message.error) : new Error(message.error),
-            );
+            pendingInvokes.settle(message.id, false, workerFailure(plugin, message.error, message.code, message.stack));
           return;
         }
 
@@ -1017,7 +1014,7 @@ export function startPluginWorker(
             return;
           }
           if (message.ok) pending.resolve();
-          else pending.reject(new Error(message.error));
+          else pending.reject(workerFailure(plugin, message.error, undefined, message.stack));
           return;
         }
       }

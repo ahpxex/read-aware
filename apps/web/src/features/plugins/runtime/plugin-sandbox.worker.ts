@@ -42,7 +42,7 @@ import { flattenPluginRequest, restorePluginResponse, type PluginNetworkResponse
 import { pluginNetworkAbort, pluginNetworkError } from "./plugin-network-error";
 import { PluginRpcPending } from "./plugin-rpc-pending";
 import { PluginCallbackRegistry } from "./plugin-callback-wire";
-import { PLUGIN_PROTOCOL_VERSION, type WorkerMessage } from "./plugin-worker-protocol";
+import { PLUGIN_FAILURE_STACK_MAX, PLUGIN_PROTOCOL_VERSION, type WorkerMessage } from "./plugin-worker-protocol";
 import { assertPluginWireBudget, PLUGIN_WIRE_LIMITS } from "./plugin-wire-budget";
 import type { HostMessage, ContextShape } from "./plugin-host-protocol";
 
@@ -70,6 +70,12 @@ const codeOf = (error: unknown): string | undefined => {
   }
   return undefined;
 };
+
+/** Where a failure was thrown in the Worker, for the host's log; absent when the value carries no stack. */
+const stackOf = (error: unknown): { stack?: string } =>
+  error instanceof Error && typeof error.stack === "string" && error.stack
+    ? { stack: error.stack.slice(0, PLUGIN_FAILURE_STACK_MAX) }
+    : {};
 
 const codedError = (message: string, code?: string): Error =>
   code ? Object.assign(new Error(message), { code }) : new Error(message);
@@ -486,6 +492,7 @@ self.onmessage = async (event: MessageEvent<unknown>) => {
             ok: false,
             code: codeOf(error),
             error: error instanceof Error ? error.message : String(error),
+            ...stackOf(error),
           });
       }
       return;
@@ -504,6 +511,7 @@ self.onmessage = async (event: MessageEvent<unknown>) => {
           ok: false,
           error: error instanceof Error ? error.message : String(error),
           code: codeOf(error),
+          ...stackOf(error),
         });
       }
       return;
@@ -581,6 +589,7 @@ self.onmessage = async (event: MessageEvent<unknown>) => {
           id: message.id,
           ok: false,
           error: error instanceof Error ? error.message : String(error),
+          ...stackOf(error),
         });
       }
       return;

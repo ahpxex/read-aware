@@ -13,10 +13,11 @@ export type WorkerMessage =
   | { t: "call"; id: number; method: string; args: PluginCallbackWire; reaction?: PluginReactionToken }
   | { t: "cancel"; id: number }
   | { t: "result"; id: number; ok: true; value: PluginCallbackWire }
-  | { t: "result"; id: number; ok: false; error: string; code?: string }
+  /** `stack` is the Worker-side stack of the failure: plugin-controlled text, bounded and log-only. */
+  | { t: "result"; id: number; ok: false; error: string; code?: string; stack?: string }
   | { t: "healthy"; id: number }
   | { t: "migrated"; id: number; ok: true }
-  | { t: "migrated"; id: number; ok: false; error: string }
+  | { t: "migrated"; id: number; ok: false; error: string; stack?: string }
   | { t: "quiesced"; error?: string }
   /** The plugin's own deactivate() has settled; the host may terminate the Worker. */
   | { t: "deactivated" };
@@ -49,8 +50,12 @@ export function rejectedPluginCallbackHandles(value: unknown): string[] {
 }
 const keys = (value: Record<string, unknown>, allowed: string[]) =>
   Object.keys(value).every((key) => allowed.includes(key));
+/** The longest Worker-side stack a failure may carry. */
+export const PLUGIN_FAILURE_STACK_MAX = 4096;
+const stack = (value: Record<string, unknown>) =>
+  value.stack === undefined || string(value.stack, PLUGIN_FAILURE_STACK_MAX);
 const failure = (value: Record<string, unknown>) =>
-  string(value.error, 4096) && (value.code === undefined || string(value.code, 256));
+  string(value.error, 4096) && (value.code === undefined || string(value.code, 256)) && stack(value);
 function wire(value: unknown): value is PluginCallbackWire {
   if (
     !record(value) ||
@@ -119,14 +124,17 @@ export function parsePluginWorkerMessage(
           validPluginCallId(value.id) &&
           (value.ok === true
             ? keys(value, ["t", "id", "ok", "value"]) && wire(value.value)
-            : value.ok === false && keys(value, ["t", "id", "ok", "error", "code"]) && failure(value));
+            : value.ok === false && keys(value, ["t", "id", "ok", "error", "code", "stack"]) && failure(value));
         break;
       case "migrated":
         valid =
           validPluginCallId(value.id) &&
           (value.ok === true
             ? keys(value, ["t", "id", "ok"])
-            : value.ok === false && keys(value, ["t", "id", "ok", "error"]) && string(value.error, 4096));
+            : value.ok === false &&
+              keys(value, ["t", "id", "ok", "error", "stack"]) &&
+              string(value.error, 4096) &&
+              stack(value));
         break;
       case "quiesced":
         valid = keys(value, ["t", "error"]) && (value.error === undefined || string(value.error, 4096));

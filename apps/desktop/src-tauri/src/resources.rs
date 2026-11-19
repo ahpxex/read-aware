@@ -86,8 +86,8 @@ fn used(entries: &HashMap<String, Entry>) -> u64 {
 fn scratch_dir(app: &tauri::AppHandle) -> Result<PathBuf, CommandError> {
     crate::native_path::private_cache_dir(app, "resources")
 }
-/// Snapshots are anonymous files in `scratch`: unlinked at creation, so
-/// releasing the handle (or the process dying) leaves nothing behind.
+/// Snapshots are anonymous files in `scratch` that never outlive their
+/// handle: unlinked at creation on Unix, delete-on-close on Windows.
 fn insert(
     entries: &mut HashMap<String, Entry>,
     scratch: &Path,
@@ -505,7 +505,8 @@ mod tests {
         let mut entries = HashMap::new();
         let info = insert(&mut entries, &scratch, None).unwrap();
         assert!(scratch.is_dir());
-        // Anonymous: the snapshot never shows up as a named file.
+        // Unlinked at creation on Unix (Windows lists it until it is closed).
+        #[cfg(unix)]
         assert_eq!(std::fs::read_dir(&scratch).unwrap().count(), 0);
         assert_eq!(append(&mut entries, &info.id, 0, b"kept").unwrap(), 4);
 

@@ -8,6 +8,7 @@ use std::{
     collections::HashMap,
     fs::File,
     io::{Read, Seek, SeekFrom, Write},
+    path::{Path, PathBuf},
     sync::Mutex,
     time::{Duration, Instant},
 };
@@ -80,8 +81,16 @@ fn prune(entries: &mut HashMap<String, Entry>) {
 fn used(entries: &HashMap<String, Entry>) -> u64 {
     entries.values().map(|entry| entry.size).sum()
 }
+/// Where snapshot files live: the app's private cache, never the platform
+/// default temp directory (see `native_path::private_cache_dir`).
+fn scratch_dir(app: &tauri::AppHandle) -> Result<PathBuf, CommandError> {
+    crate::native_path::private_cache_dir(app, "resources")
+}
+/// Snapshots are anonymous files in `scratch`: unlinked at creation, so
+/// releasing the handle (or the process dying) leaves nothing behind.
 fn insert(
     entries: &mut HashMap<String, Entry>,
+    scratch: &Path,
     source: Option<File>,
 ) -> Result<ResourceInfo, CommandError> {
     prune(entries);
@@ -89,7 +98,10 @@ fn insert(
         return Err(quota());
     }
     let budget = MAX_FILE.min(MAX_TOTAL.saturating_sub(used(entries)));
-    let mut file = tempfile::tempfile()?;
+    std::fs::create_dir_all(scratch)
+        .map_err(|error| CommandError::context("Failed to create the resource cache", error))?;
+    let mut file = tempfile::tempfile_in(scratch)
+        .map_err(|error| CommandError::context("Failed to create a resource snapshot", error))?;
     let ready = source.is_some();
     let size = if let Some(source) = source {
         let metadata = source.metadata()?;
@@ -199,9 +211,10 @@ pub async fn resource_open_file(
         if !std::fs::metadata(&source.path)?.is_file() {
             return Err(invalid("Resource must be a regular file"));
         }
+        let scratch = scratch_dir(&app)?;
         let resources = app.state::<ResourceFiles>();
         let mut entries = resources.0.lock()?;
-        insert(&mut entries, Some(File::open(&source.path)?))
+        insert(&mut entries, &scratch, Some(File::open(&source.path)?))
     })
     .await
 }
@@ -233,18 +246,20 @@ pub async fn resource_open_book(
             };
             File::open(path)?
         };
+        let scratch = scratch_dir(&app)?;
         let resources = app.state::<ResourceFiles>();
         let mut entries = resources.0.lock()?;
-        insert(&mut entries, Some(file)).map(Some)
+        insert(&mut entries, &scratch, Some(file)).map(Some)
     })
     .await
 }
 #[tauri::command]
 pub async fn resource_create(app: tauri::AppHandle) -> Result<ResourceInfo, CommandError> {
     crate::storage::blocking("resource_create", move || {
+        let scratch = scratch_dir(&app)?;
         let resources = app.state::<ResourceFiles>();
         let mut entries = resources.0.lock()?;
-        insert(&mut entries, None)
+        insert(&mut entries, &scratch, None)
     })
     .await
 }
@@ -291,10 +306,11 @@ pub async fn resource_open_cover(
                     .unwrap_or_else(|| "application/octet-stream".into()),
             )
         };
+        let scratch = scratch_dir(&app)?;
         let resources = app.state::<ResourceFiles>();
         let mut entries = resources.0.lock()?;
         Ok(Some(CoverResourceInfo {
-            resource: insert(&mut entries, Some(file))?,
+            resource: insert(&mut entries, &scratch, Some(file))?,
             mime_type,
         }))
     })
@@ -414,8 +430,9 @@ mod tests {
     use crate::save_targets::LocalFiles;
     #[test]
     fn importing_requires_a_sealed_lease_and_keeps_it_alive_after_release() {
+        let scratch = tempfile::tempdir().unwrap();
         let mut entries = HashMap::new();
-        let info = insert(&mut entries, None).unwrap();
+        let info = insert(&mut entries, scratch.path(), None).unwrap();
         append(&mut entries, &info.id, 0, b"import me").unwrap();
         assert!(lease(&mut entries, &info.id).is_err());
         entries.get_mut(&info.id).unwrap().ready = true;
@@ -428,8 +445,9 @@ mod tests {
     }
     #[test]
     fn staged_bytes_are_bounded_sealed_and_atomically_exported() {
+        let scratch = tempfile::tempdir().unwrap();
         let mut entries = HashMap::new();
-        let info = insert(&mut entries, None).unwrap();
+        let info = insert(&mut entries, scratch.path(), None).unwrap();
         assert_eq!(append(&mut entries, &info.id, 0, b"hello").unwrap(), 5);
         assert!(append(&mut entries, &info.id, 0, b"again").is_err());
         assert!(read(&mut entries, &info.id, 0, 5).is_err());
@@ -462,15 +480,46 @@ mod tests {
     }
     #[test]
     fn selected_files_are_independent_snapshots_and_expire() {
+        let scratch = tempfile::tempdir().unwrap();
         let mut entries = HashMap::new();
         let mut source = tempfile::NamedTempFile::new().unwrap();
         source.write_all(b"original").unwrap();
-        let info = insert(&mut entries, Some(File::open(source.path()).unwrap())).unwrap();
+        let info = insert(
+            &mut entries,
+            scratch.path(),
+            Some(File::open(source.path()).unwrap()),
+        )
+        .unwrap();
         std::fs::write(source.path(), "changed").unwrap();
         assert_eq!(read(&mut entries, &info.id, 0, 100).unwrap(), b"original");
         entries.get_mut(&info.id).unwrap().created = Instant::now() - LIFETIME;
         assert!(read(&mut entries, &info.id, 0, 1).is_err());
         assert!(entries.is_empty());
+    }
+    /// Android before 13 defaults temp files to unwritable /data/local/tmp,
+    /// so snapshots must land in the directory the caller resolved.
+    #[test]
+    fn snapshots_are_created_in_the_given_scratch_directory_only() {
+        let root = tempfile::tempdir().unwrap();
+        let scratch = root.path().join("cache").join("resources");
+        let mut entries = HashMap::new();
+        let info = insert(&mut entries, &scratch, None).unwrap();
+        assert!(scratch.is_dir());
+        // Anonymous: the snapshot never shows up as a named file.
+        assert_eq!(std::fs::read_dir(&scratch).unwrap().count(), 0);
+        assert_eq!(append(&mut entries, &info.id, 0, b"kept").unwrap(), 4);
+
+        // An unusable scratch directory fails the snapshot instead of
+        // falling back to the platform temp directory.
+        let blocked = root.path().join("not-a-directory");
+        std::fs::write(&blocked, "file").unwrap();
+        let Err(error) = insert(&mut entries, &blocked.join("resources"), None) else {
+            panic!("a blocked scratch directory must fail the snapshot");
+        };
+        assert!(error
+            .message
+            .starts_with("Failed to create the resource cache"));
+        assert_eq!(entries.len(), 1);
     }
 }
 
@@ -535,10 +584,11 @@ pub async fn resource_open_plugin_asset(
                 &expected_revision,
             )?
         };
+        let scratch = scratch_dir(&app)?;
         let resources = app.state::<ResourceFiles>();
         let mut entries = resources.0.lock()?;
         Ok(AssetResourceInfo {
-            resource: insert(&mut entries, Some(file))?,
+            resource: insert(&mut entries, &scratch, Some(file))?,
             name: asset.name,
             mime_type: asset.mime_type,
         })

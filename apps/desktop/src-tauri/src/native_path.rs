@@ -53,23 +53,30 @@ pub(crate) fn materialize(app: &AppHandle, raw: &str) -> Result<MaterializedPath
         .fs()
         .open(FilePath::Url(url), options)
         .map_err(|error| CommandError::context("Failed to open selected book", error))?;
-    // Before Android 13, the default temp directory is /data/local/tmp,
-    // which ordinary apps cannot write. Always resolve our private cache.
     materialize_reader(app, source)
+}
+
+/// The `name` subdirectory of the app's private cache; callers create it.
+///
+/// Native scratch files belong here, never in `std::env::temp_dir()` or the
+/// `tempfile` defaults that read it: before Android 13 the default is
+/// `/data/local/tmp`, which ordinary apps cannot write, so every such file
+/// fails with "Permission denied" (HarmonyOS 4 reports Android 12).
+pub(crate) fn private_cache_dir(app: &AppHandle, name: &str) -> Result<PathBuf, CommandError> {
+    Ok(app
+        .path()
+        .app_cache_dir()
+        .map_err(|error| {
+            CommandError::context("Failed to locate the app cache", tauri_error(error))
+        })?
+        .join(name))
 }
 
 pub(crate) fn materialize_reader(
     app: &AppHandle,
     source: impl Read,
 ) -> Result<MaterializedPath, CommandError> {
-    let cache_dir = app
-        .path()
-        .app_cache_dir()
-        .map_err(|error| {
-            CommandError::context("Failed to locate the import cache", tauri_error(error))
-        })?
-        .join("book-imports");
-    stage_reader(source, &cache_dir)
+    stage_reader(source, &private_cache_dir(app, "book-imports")?)
 }
 
 fn stage_reader(mut source: impl Read, cache_dir: &Path) -> Result<MaterializedPath, CommandError> {

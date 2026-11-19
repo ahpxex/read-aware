@@ -15,7 +15,7 @@ fn artifact() -> Vec<u8> {
     include_bytes!("../../../../packages/core/src/context-bundle.golden.json").to_vec()
 }
 fn staged(entries: &mut HashMap<String, Entry>, bytes: &[u8]) -> ResourceInfo {
-    let info = insert(entries, None).unwrap();
+    let info = insert(entries, &std::env::temp_dir(), None).unwrap();
     for (index, chunk) in bytes.chunks(MAX_CHUNK).enumerate() {
         append(entries, &info.id, (index * MAX_CHUNK) as u64, chunk).unwrap();
     }

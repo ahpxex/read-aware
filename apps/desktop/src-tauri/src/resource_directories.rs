@@ -212,7 +212,12 @@ pub async fn resource_open_directory_file(
             let mut grants = state.0.lock()?;
             file(get(&mut grants, &id)?, &relative_path)?
         };
-        super::insert(&mut *app.state::<ResourceFiles>().0.lock()?, Some(source))
+        let scratch = super::scratch_dir(&app)?;
+        super::insert(
+            &mut *app.state::<ResourceFiles>().0.lock()?,
+            &scratch,
+            Some(source),
+        )
     })
     .await
 }
@@ -260,8 +265,10 @@ mod tests {
         .unwrap();
         assert_eq!(next.entries[0].kind, "directory");
         let mut snapshots = HashMap::new();
+        let scratch = tempfile::tempdir().unwrap();
         let copied = super::super::insert(
             &mut snapshots,
+            scratch.path(),
             Some(file(get(&mut grants, &id).unwrap(), "a.txt").unwrap()),
         )
         .unwrap();

@@ -56,8 +56,20 @@ async function downloadReleaseMaps(bundle: Bundle): Promise<string[]> {
   const dir = await mkdtemp(join(tmpdir(), "ra-release-maps-"));
   const tag = `v${bundle.appVersion}`;
   console.error(`Downloading ${tag} source maps for ${bundle.platform}…`);
-  run(["gh", "release", "download", tag, "--pattern", `*-${bundle.platform}*-sourcemaps.zip`, "--dir", dir]);
-  return (await readdir(dir)).filter((name) => name.endsWith(".zip")).map((name) => join(dir, name));
+  const pattern = `*-${bundle.platform}*-sourcemaps.zip`;
+  const download = Bun.spawnSync(["gh", "release", "download", tag, "--pattern", pattern, "--dir", dir], {
+    stdout: "inherit",
+    stderr: "pipe",
+  });
+  const archives = (await readdir(dir)).filter((name) => name.endsWith(".zip")).map((name) => join(dir, name));
+  if (download.exitCode !== 0 || archives.length === 0) {
+    console.error(download.stderr.toString().trim());
+    usage(
+      `Release ${tag} has no ${pattern} archive (releases before source maps were archived have none). ` +
+        "Rebuild that release's frontend with maps and pass --maps; see docs/development/diagnostics.md.",
+    );
+  }
+  return archives;
 }
 
 const args = process.argv.slice(2);

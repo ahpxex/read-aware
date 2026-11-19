@@ -31,6 +31,16 @@ Three layers, strictly opt-in past the first:
   instead of hanging on the splash.
 - **Rule:** log messages carry ids and error text, never book content, notes,
   or conversation text. The bundle must stay safe to share.
+- Every webview line is made safe in `renderLine`, whoever logs it, since
+  error text is not always ours (plugins name methods and write messages and
+  stacks; failed requests name URLs):
+  - the line is capped at 4000 characters, then redacted;
+  - URLs are parsed (WHATWG) and lose userinfo, query and fragment; a path
+    that may hide credentials (an `@`, a leading `//`, encoded quotes, a
+    nested scheme) keeps only scheme and host, and text that does not parse
+    keeps only its scheme;
+  - continuation lines are indented, so no text can pose as a log line
+    (which starts at column 0).
 
 ### Plugin failures
 
@@ -38,8 +48,9 @@ Every plugin failure names its plugin as `id@version`:
 
 - A host call a plugin makes that fails (a service it invoked threw) is
   logged at the Worker boundary as `Plugin host call failed · <plugin> ·
-  <method> · <host error with stack>`, once per distinct failure per Worker
-  and at most 32 per Worker; cancellations are not logged.
+  <method> · <host error with stack>`, once per distinct failure per Worker,
+  at most 32 per Worker for network requests and 32 for every other host
+  call; cancellations are not logged.
 - A failure the Worker reports back (an action, service or migration it ran)
   is rebuilt on the host with its own message and code, and carries
   `caused by PluginWorker: thrown in plugin <plugin>` plus the Worker's

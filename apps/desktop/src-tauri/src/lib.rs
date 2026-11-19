@@ -1,5 +1,7 @@
 #[cfg(target_os = "android")]
 mod android_jni;
+#[cfg(test)]
+mod android_jni_keep_tests;
 mod android_update;
 mod app_environment;
 mod book_archive;

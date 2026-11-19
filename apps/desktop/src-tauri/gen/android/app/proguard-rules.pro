@@ -23,6 +23,9 @@
 # Rust and the Android WebView call these MainActivity methods by exact names
 # (JNI strings / @JavascriptInterface). R8 cannot see those native edges, so
 # release minification must keep the members and their runtime annotations.
+# A method missing here works in `tauri android dev` (unminified) and fails
+# only in release builds; src/android_jni_keep_tests.rs checks that every
+# MainActivity method Rust names is listed.
 -keepattributes RuntimeVisibleAnnotations
 -keepclassmembers class com.readaware.app.MainActivity {
     java.lang.String installUpdateApk(java.lang.String);
@@ -35,4 +38,8 @@
     public java.lang.String takeBookPickResult();
     public void startFontPick(int);
     public java.lang.String takeFontPickResult();
+    public void startFolderPick(int);
+    public java.lang.String takeFolderPickResult();
+    public int batteryLevelPercent();
+    public boolean batteryCharging();
 }

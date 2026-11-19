@@ -65,24 +65,72 @@ function describe(value: unknown, depth = 0): string {
 /** One file log line; exported for its tests. */
 export function renderLine(module: string, message: string, detail: unknown[]): string {
   const parts = [`[${module}] ${message}`, ...detail.map((value) => describe(value))];
-  const line = redactUrls(parts.join(" · ")).replace(/\n(?=\S)/g, "\n  ");
-  return line.length > MAX_DETAIL_CHARS ? `${line.slice(0, MAX_DETAIL_CHARS)}…` : line;
+  // Capped before redaction, so its cost stays bounded; a URL the cap cuts
+  // in half no longer parses and is redacted whole.
+  const joined = parts.join(" · ");
+  const capped = joined.length > MAX_DETAIL_CHARS ? `${joined.slice(0, MAX_DETAIL_CHARS)}…` : joined;
+  return redactUrls(capped).replace(/\n(?=\S)/g, "\n  ");
 }
 
 /**
- * `https://user:secret@host/path?key=…` → `https://<redacted>@host/path?<redacted>`:
- * keys and tokens ride in userinfo and query strings; host and path stay to
- * say which request failed. A stack frame's `:line:column` after a query (dev
- * builds load modules as `x.ts?t=…`) is kept.
+ * A URL in a log line: a scheme, then everything up to the next whitespace.
+ * Userinfo may hold any other character (quotes, parentheses), and a URL may
+ * nest another in its query, so nothing narrower may end the token; a token
+ * that swallowed several values is caught after parsing (`SWALLOWED`). The
+ * line is capped before redaction, which bounds the token.
+ */
+const URL_TOKEN = /\b[a-z][a-z0-9+.-]*:\/\/\S+/gi;
+/** Closing punctuation that wraps a URL in prose and JSON, restored after redaction. */
+const CLOSING = new Set([")", "]", "}", ">", '"', "'", "`", ",", ".", ";"]);
+/**
+ * A parsed path that may hide credentials: encoded quotes or brackets or a
+ * nested scheme (several values run together), a leading `//` (an empty port
+ * pushed another authority into the path), or an `@` (an authority the parser
+ * did not take as one, or just `/@user.rss`). Such a path is redacted; the
+ * parsed host stays to say which server the request went to.
+ */
+const SWALLOWED = /%22|%27|%60|%3C|%3E|:\/\/|@|^\/\//i;
+
+/** `:12:34` at the very end of `value`, found by a linear scan; `""` otherwise. */
+function framePosition(value: string): string {
+  const last = value.lastIndexOf(":");
+  const previous = last > 0 ? value.lastIndexOf(":", last - 1) : -1;
+  if (previous < 0) return "";
+  const digits = (text: string) => text.length > 0 && text.length <= 7 && /^\d+$/.test(text);
+  return digits(value.slice(previous + 1, last)) && digits(value.slice(last + 1)) ? value.slice(previous) : "";
+}
+
+/**
+ * `wss://user:secret@host/path?key=…#token` → `wss://<redacted>@host/path?<redacted>#<redacted>`:
+ * keys and tokens ride in userinfo, query strings and fragments; scheme, host
+ * and path stay to say which request failed. Each URL is parsed the way the
+ * HTTP clients parse it (WHATWG), so what counts as userinfo or query is what
+ * was sent. Whatever does not parse cleanly keeps only its scheme. A module
+ * frame's `:line:column` after a query (dev builds load `x.ts?t=…`) is kept.
  */
 function redactUrls(text: string): string {
-  return text.replace(
-    /\b(https?:\/\/)([^\s/?#()@]+@)?([^\s?#()]+)(\?[^\s#()]*)?/g,
-    (_url, scheme: string, userinfo: string | undefined, rest: string, query: string | undefined) => {
-      const position = query?.match(/:\d+:\d+$/)?.[0] ?? "";
-      return `${scheme}${userinfo ? "<redacted>@" : ""}${rest}${query ? `?<redacted>${position}` : ""}`;
-    },
-  );
+  return text.replace(URL_TOKEN, (token) => {
+    let end = token.length;
+    while (end > 0 && CLOSING.has(token[end - 1]!)) end -= 1;
+    const value = token.slice(0, end);
+    const trailing = token.slice(end);
+    const queryAt = value.search(/[?#]/);
+    const module = /\.(c|m)?[jt]sx?$/.test(queryAt === -1 ? value : value.slice(0, queryAt));
+    const position = module && queryAt !== -1 ? framePosition(value) : "";
+    const raw = value.slice(0, value.length - position.length);
+    const scheme = raw.slice(0, raw.indexOf("://") + 3);
+    let url: URL;
+    try {
+      url = new URL(raw);
+    } catch {
+      return `${scheme}<redacted>${trailing}`;
+    }
+    const userinfo = url.username || url.password ? "<redacted>@" : "";
+    if (SWALLOWED.test(url.pathname)) return `${url.protocol}//${userinfo}${url.host}/<redacted>${trailing}`;
+    const query = url.search ? "?<redacted>" : "";
+    const fragment = url.hash ? "#<redacted>" : "";
+    return `${url.protocol}//${userinfo}${url.host}${url.pathname}${query}${fragment}${position}${trailing}`;
+  });
 }
 
 /**

@@ -23,6 +23,7 @@ mod fonts;
 mod import;
 mod local_api;
 mod native_path;
+mod os_facts;
 mod palm_book;
 mod plugin_sandbox_policy;
 mod plugin_updates;
@@ -1402,6 +1403,7 @@ pub fn run() {
             external_open::external_open_take,
             external_open::external_open_is_current,
             diagnostics::diagnostics_read_logs,
+            diagnostics::diagnostics_environment,
             diagnostics::diagnostics_log_dir,
             book_file_size,
             read_book_head,

@@ -44,6 +44,13 @@ pub fn diagnostics_log_dir(app: tauri::AppHandle) -> Result<String, CommandError
     Ok(log_dir(&app)?.to_string_lossy().into_owned())
 }
 
+/// Build and operating-system facts (see `os_facts`). A JNI attach and a
+/// `getprop` child process on Android: blocking work, off the async executor.
+#[tauri::command]
+pub async fn diagnostics_environment() -> Result<crate::os_facts::OsFacts, CommandError> {
+    crate::storage::blocking("diagnostics_environment", || Ok(crate::os_facts::read())).await
+}
+
 /// Tails of the app's log files, newest file first, capped at
 /// `MAX_TOTAL_BYTES` across the set. Newest-first means the cap always spends
 /// its budget on the most recent history.

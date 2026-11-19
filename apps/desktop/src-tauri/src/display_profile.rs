@@ -51,7 +51,7 @@ fn epd_properties_in(listing: &str) -> Vec<String> {
 }
 
 #[cfg(target_os = "android")]
-fn build_field(env: &mut jni::JNIEnv, field: &str) -> String {
+pub(crate) fn build_field(env: &mut jni::JNIEnv, field: &str) -> String {
     let read = |env: &mut jni::JNIEnv| -> jni::errors::Result<String> {
         let value = env
             .get_static_field("android/os/Build", field, "Ljava/lang/String;")?

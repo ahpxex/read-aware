@@ -1760,6 +1760,59 @@ test("ordinary API arguments can transfer callback ownership to a live view with
   }
 });
 
+test("plugin failures crossing the Worker boundary name the plugin in the log", async () => {
+  const warn = spyOn(console, "warn").mockImplementation(() => {});
+  const native = spyOn(storagePolicyIpc, "invoke").mockRejectedValue(new AppError("db/locked", "Storage locked"));
+  const { worker, close } = await hostFixture();
+  try {
+    // A host service the plugin called fails: logged once, with the host error, at the boundary.
+    for (const id of [41, 42])
+      await worker.deliver({ t: "call", id, method: "services.storage.policy", args: worker.callbacks.encode([]) });
+    const hostFailures = warn.mock.calls.filter((call) => call[1] === "Plugin host call failed");
+    expect(hostFailures).toHaveLength(1);
+    expect(hostFailures[0]!.slice(2)).toEqual([
+      "callback-host-test@1.0.0",
+      "services.storage.policy",
+      expect.objectContaining({ code: "db/locked" }),
+    ]);
+
+    // A callback the Worker ran fails: the host error keeps its code and carries the plugin and Worker stack.
+    await worker.deliver({
+      t: "call",
+      id: 43,
+      method: "contributions.commands.register",
+      args: worker.callbacks.encode([{ id: "test", title: "Test", run: () => null }]),
+    });
+    const command = getDefaultStore()
+      .get(pluginCommandsAtom)
+      .find((item) => item.pluginId === "callback-host-test")!;
+    const pending = Promise.resolve(command.run()).catch((error: unknown) => error);
+    const invocation = worker.sent.find((message) => message.t === "invoke")!;
+    await worker.deliver({
+      t: "result",
+      id: invocation.id,
+      ok: false,
+      error: "Cannot read properties of undefined (reading 'split')",
+      code: "plugin/invalid-input",
+      stack: "TypeError: Cannot read properties of undefined\n    at run (main.js:12:7)",
+    });
+    const failure = (await pending) as Error;
+    expect(failure).toMatchObject({
+      code: "plugin/invalid-input",
+      message: expect.stringContaining("reading 'split'"),
+    });
+    expect(failure.cause).toMatchObject({
+      name: "PluginWorker",
+      message: "thrown in plugin callback-host-test@1.0.0",
+      stack: expect.stringContaining("    at run (main.js:12:7)"),
+    });
+  } finally {
+    await close();
+    native.mockRestore();
+    warn.mockRestore();
+  }
+});
+
 test("host releases malformed and unmatched callback results and disposed registrations", async () => {
   const { worker, close } = await hostFixture();
   try {

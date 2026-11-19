@@ -43,12 +43,29 @@ test("host call failures are logged once per distinct failure, never for cancell
   failures.report("services.resources.pick", denied);
   failures.report("services.resources.pick", new AppError("fs/permission", "Permission denied"));
   failures.report("services.resources.pick", new AppError("plugin/cancelled", "Plugin call cancelled"));
-  failures.report("services.network.fetch", new AppError("plugin/network-failed", "failed", { cause: new Error("a") }));
-  failures.report("services.network.fetch", new AppError("plugin/network-failed", "failed", { cause: new Error("b") }));
-  failures.report("services.network.fetch", new AppError("plugin/network-failed", "failed", { cause: new Error("c") }));
+  failures.report("services.storage.get", new AppError("db/locked", "locked"));
+  failures.report("services.storage.set", new AppError("db/locked", "locked"));
   expect(lines).toEqual([
     ["Plugin host call failed", "rss@1.0.0", "services.resources.pick", denied],
-    ["Plugin host call failed", "rss@1.0.0", "services.network.fetch", expect.any(AppError)],
+    ["Plugin host call failed", "rss@1.0.0", "services.storage.get", expect.any(AppError)],
     ["Further plugin host call failures are not logged", "rss@1.0.0"],
   ]);
+});
+
+test("network failures have a budget of their own", () => {
+  const lines: unknown[][] = [];
+  const failures = new HostCallFailureLog("rss@1.0.0", (...line) => lines.push(line), 2);
+  for (const feed of ["a", "b", "c"])
+    failures.report(
+      "services.network.fetch",
+      new AppError("plugin/network-failed", "failed", { cause: new Error(feed) }),
+    );
+  failures.report("services.resources.pick", new AppError("fs/permission", "Permission denied"));
+  expect(lines.map((line) => line[0])).toEqual([
+    "Plugin host call failed",
+    "Plugin host call failed",
+    "Further plugin network call failures are not logged",
+    "Plugin host call failed",
+  ]);
+  expect(lines[3]![2]).toBe("services.resources.pick");
 });

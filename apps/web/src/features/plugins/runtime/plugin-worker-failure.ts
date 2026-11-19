@@ -41,11 +41,16 @@ export function workerFailure(plugin: string, message: string, code?: string, st
  * Logs each distinct failure of a host call a plugin made once per Worker,
  * with the host-side error and its stack: the only record of where a host
  * service broke, since the Worker receives just the message and code.
+ * Network requests keep a budget of their own, so a plugin polling many
+ * unreachable feeds cannot use up the one its other failures need.
  * Cancellations are the caller's doing and are not reported.
  */
 export class HostCallFailureLog {
-  private readonly seen = new Set<string>();
-  private suppressed = false;
+  private readonly seen = new Map<"network" | "host", Set<string>>([
+    ["network", new Set()],
+    ["host", new Set()],
+  ]);
+  private readonly suppressed = new Set<"network" | "host">();
 
   constructor(
     private readonly plugin: string,
@@ -55,6 +60,8 @@ export class HostCallFailureLog {
 
   report(method: string, failure: unknown): void {
     if (errorCode(failure) === "plugin/cancelled") return;
+    const budget = method.startsWith("services.network.") ? "network" : "host";
+    const seen = this.seen.get(budget)!;
     const text = (value: unknown) => (value instanceof Error ? value.message : String(value));
     const key = [
       method,
@@ -62,15 +69,15 @@ export class HostCallFailureLog {
       text(failure),
       failure instanceof Error ? text(failure.cause) : "",
     ].join("\u0000");
-    if (this.seen.has(key)) return;
-    if (this.seen.size >= this.limit) {
-      if (!this.suppressed) {
-        this.suppressed = true;
-        this.warn("Further plugin host call failures are not logged", this.plugin);
+    if (seen.has(key)) return;
+    if (seen.size >= this.limit) {
+      if (!this.suppressed.has(budget)) {
+        this.suppressed.add(budget);
+        this.warn(`Further plugin ${budget} call failures are not logged`, this.plugin);
       }
       return;
     }
-    this.seen.add(key);
+    seen.add(key);
     this.warn("Plugin host call failed", this.plugin, method, failure);
   }
 }

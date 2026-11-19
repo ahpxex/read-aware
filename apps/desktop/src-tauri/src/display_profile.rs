@@ -62,8 +62,8 @@ fn build_field(env: &mut jni::JNIEnv, field: &str) -> String {
         Ok(env.get_string(&jni::objects::JString::from(value))?.into())
     };
     read(env).unwrap_or_else(|err| {
-        log::warn!("display_profile: Build.{field} unreadable: {err}");
-        let _ = env.exception_clear();
+        let failure = crate::android_jni::take_failure(env, err);
+        log::warn!("display_profile: Build.{field} unreadable: {failure}");
         String::new()
     })
 }

@@ -1,3 +1,5 @@
+#[cfg(target_os = "android")]
+mod android_jni;
 mod android_update;
 mod app_environment;
 mod book_archive;
@@ -165,8 +167,8 @@ async fn set_status_bar_hidden(app: tauri::AppHandle, hidden: bool) -> Result<()
             "(Z)V",
             &[jni::objects::JValue::Bool(hidden as u8)],
         ) {
-            log::error!("setStatusBarHidden JNI call failed: {err}");
-            let _ = env.exception_clear();
+            let failure = crate::android_jni::take_failure(&mut env, err);
+            log::error!("setStatusBarHidden JNI call failed: {failure}");
         }
     })
     .await
@@ -196,8 +198,8 @@ async fn sync_safe_area(app: tauri::AppHandle) -> Result<(), CommandError> {
         };
         let activity = unsafe { jni::objects::JObject::from_raw(ctx.context_jobject.cast()) };
         if let Err(err) = env.call_method(&activity, "syncSafeArea", "()V", &[]) {
-            log::error!("syncSafeArea JNI call failed: {err}");
-            let _ = env.exception_clear();
+            let failure = crate::android_jni::take_failure(&mut env, err);
+            log::error!("syncSafeArea JNI call failed: {failure}");
         }
     })
     .await
@@ -234,8 +236,8 @@ async fn set_volume_key_capture(app: tauri::AppHandle, captured: bool) -> Result
             "(Z)V",
             &[jni::objects::JValue::Bool(captured as u8)],
         ) {
-            log::error!("setVolumeKeyCapture JNI call failed: {err}");
-            let _ = env.exception_clear();
+            let failure = crate::android_jni::take_failure(&mut env, err);
+            log::error!("setVolumeKeyCapture JNI call failed: {failure}");
         }
     })
     .await
@@ -267,8 +269,8 @@ async fn move_task_to_back(app: tauri::AppHandle) -> Result<(), CommandError> {
         };
         let activity = unsafe { jni::objects::JObject::from_raw(ctx.context_jobject.cast()) };
         if let Err(err) = env.call_method(&activity, "sendToBackground", "()V", &[]) {
-            log::error!("sendToBackground JNI call failed: {err}");
-            let _ = env.exception_clear();
+            let failure = crate::android_jni::take_failure(&mut env, err);
+            log::error!("sendToBackground JNI call failed: {failure}");
         }
     })
     .await
@@ -306,8 +308,8 @@ async fn book_pick_start(app: tauri::AppHandle, generation: i32) -> Result<(), C
             "(I)V",
             &[jni::objects::JValue::Int(generation)],
         ) {
-            log::error!("startBookPick JNI call failed: {err}");
-            let _ = env.exception_clear();
+            let failure = crate::android_jni::take_failure(&mut env, err);
+            log::error!("startBookPick JNI call failed: {failure}");
         }
     })
     .await
@@ -334,8 +336,8 @@ async fn book_pick_poll(app: tauri::AppHandle) -> Result<Option<String>, Command
             let value = env
                 .call_method(&activity, "takeBookPickResult", "()Ljava/lang/String;", &[])
                 .map_err(|err| {
-                    log::error!("takeBookPickResult JNI call failed: {err}");
-                    let _ = env.exception_clear();
+                    let failure = crate::android_jni::take_failure(&mut env, err);
+                    log::error!("takeBookPickResult JNI call failed: {failure}");
                 })
                 .ok()?;
             let obj = value.l().ok()?;
@@ -381,8 +383,8 @@ async fn font_pick_start(app: tauri::AppHandle, generation: i32) -> Result<(), C
             "(I)V",
             &[jni::objects::JValue::Int(generation)],
         ) {
-            log::error!("startFontPick JNI call failed: {err}");
-            let _ = env.exception_clear();
+            let failure = crate::android_jni::take_failure(&mut env, err);
+            log::error!("startFontPick JNI call failed: {failure}");
         }
     })
     .await
@@ -405,8 +407,8 @@ async fn font_pick_poll(app: tauri::AppHandle) -> Result<Option<String>, Command
             let value = env
                 .call_method(&activity, "takeFontPickResult", "()Ljava/lang/String;", &[])
                 .map_err(|err| {
-                    log::error!("takeFontPickResult JNI call failed: {err}");
-                    let _ = env.exception_clear();
+                    let failure = crate::android_jni::take_failure(&mut env, err);
+                    log::error!("takeFontPickResult JNI call failed: {failure}");
                 })
                 .ok()?;
             let obj = value.l().ok()?;
@@ -465,6 +467,17 @@ struct BatteryStatus {
     charging: bool,
 }
 
+/// The battery is polled for as long as a strip shows it, so a device whose
+/// battery read fails reports that once per run rather than once per poll.
+#[cfg(target_os = "android")]
+fn report_battery_failure(env: &mut jni::JNIEnv, method: &str, err: jni::errors::Error) {
+    static REPORTED: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+    let failure = crate::android_jni::take_failure(env, err);
+    if !REPORTED.swap(true, std::sync::atomic::Ordering::Relaxed) {
+        log::warn!("{method} JNI call failed (later failures are not logged): {failure}");
+    }
+}
+
 /// Battery pull API for the reader header/footer strips. `MainActivity` reads
 /// `BatteryManager` — a system-service query needing neither a permission nor
 /// the UI thread, so the command attaches to the JVM on the thread it already
@@ -485,10 +498,7 @@ async fn battery_status() -> Result<Option<BatteryStatus>, CommandError> {
         let percent = env
             .call_method(&activity, "batteryLevelPercent", "()I", &[])
             .and_then(|value| value.i())
-            .map_err(|err| {
-                log::error!("batteryLevelPercent JNI call failed: {err}");
-                let _ = env.exception_clear();
-            })
+            .map_err(|err| report_battery_failure(&mut env, "batteryLevelPercent", err))
             .ok()?;
         if !(0..=100).contains(&percent) {
             return None;
@@ -496,10 +506,7 @@ async fn battery_status() -> Result<Option<BatteryStatus>, CommandError> {
         let charging = env
             .call_method(&activity, "batteryCharging", "()Z", &[])
             .and_then(|value| value.z())
-            .map_err(|err| {
-                log::error!("batteryCharging JNI call failed: {err}");
-                let _ = env.exception_clear();
-            })
+            .map_err(|err| report_battery_failure(&mut env, "batteryCharging", err))
             .unwrap_or(false);
         Some(BatteryStatus {
             level: f64::from(percent) / 100.0,

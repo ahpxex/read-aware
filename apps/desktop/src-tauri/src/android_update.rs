@@ -365,9 +365,9 @@ async fn launch_installer(
                 &[jni::objects::JValue::Object(&path_object)],
             )
             .map_err(|err| {
-                let _ = env.exception_clear();
+                let failure = crate::android_jni::take_failure(&mut env, err);
                 installer(format!(
-                    "Failed to open the Android package installer: {err}"
+                    "Failed to open the Android package installer: {failure}"
                 ))
             })?;
         let object = value
@@ -408,9 +408,9 @@ async fn installed_version_code(app: &tauri::AppHandle) -> Result<u64, CommandEr
         let code = env
             .call_method(&activity, "installedVersionCode", "()J", &[])
             .map_err(|err| {
-                let _ = env.exception_clear();
+                let failure = crate::android_jni::take_failure(&mut env, err);
                 installer(format!(
-                    "Failed to read the installed Android versionCode: {err}"
+                    "Failed to read the installed Android versionCode: {failure}"
                 ))
             })?
             .j()

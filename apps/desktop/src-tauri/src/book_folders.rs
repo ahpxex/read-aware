@@ -235,8 +235,8 @@ pub async fn book_folder_pick_start(
                 "(I)V",
                 &[jni::objects::JValue::Int(generation)],
             ) {
-                log::error!("startFolderPick JNI call failed: {err}");
-                let _ = env.exception_clear();
+                let failure = crate::android_jni::take_failure(env, err);
+                log::error!("startFolderPick JNI call failed: {failure}");
             }
             Some(())
         });
@@ -259,8 +259,8 @@ pub async fn book_folder_pick_poll(app: tauri::AppHandle) -> Result<Option<Strin
                     &[],
                 )
                 .map_err(|err| {
-                    log::error!("takeFolderPickResult JNI call failed: {err}");
-                    let _ = env.exception_clear();
+                    let failure = crate::android_jni::take_failure(env, err);
+                    log::error!("takeFolderPickResult JNI call failed: {failure}");
                 })
                 .ok()?;
             let obj = value.l().ok()?;

@@ -10,6 +10,8 @@ export { PluginActivationError } from "./components/PluginActivationError";
 export { useOutdatedPluginUpdates } from "./hooks/useOutdatedPluginUpdates";
 // Install failures from a folder or zip share the marketplace's copy.
 export { describePluginInstallFailure } from "./lib/install-failure";
+// The diagnostics bundle lists what was installed beside a failing plugin.
+export { pluginInventory, type PluginInventoryEntry } from "./lib/plugin-inventory";
 
 export {
   headerActionsAtom,

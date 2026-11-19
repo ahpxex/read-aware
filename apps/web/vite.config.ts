@@ -1,6 +1,7 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
+import { execFileSync } from "node:child_process";
 import { defineConfig } from "vite";
 import { pluginSandboxPolicy, workerEntryFileName } from "./build/plugin-sandbox-policy";
 
@@ -10,12 +11,32 @@ const isStorybook = process.argv.some((arg) => arg.includes("storybook"));
 // address, so the webview on the device/emulator can reach this dev server.
 const tauriDevHost = process.env.TAURI_DEV_HOST;
 
+/**
+ * The commit this bundle was built from, stamped into the diagnostics bundle
+ * so a report can be checked against the source maps archived for its build
+ * (scripts/symbolicate-diagnostics.ts). `-dirty` marks a build from a worktree
+ * with uncommitted changes, whose maps exist only on that machine.
+ */
+function buildCommit(): string {
+  if (process.env.GITHUB_SHA) return process.env.GITHUB_SHA;
+  try {
+    const run = (args: string[]) =>
+      execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+    const commit = run(["rev-parse", "HEAD"]).trim();
+    return run(["status", "--porcelain"]).trim() ? `${commit}-dirty` : commit;
+  } catch {
+    // Not a git checkout (a source tarball): the bundle says so instead of guessing.
+    return "unknown";
+  }
+}
+
 export default defineConfig({
   // Ground truth for "where is the dev machine?" — baked into the bundle so
   // runtime code (the dev relay URL, sync-scheduler.ts) never has to guess it
   // from the page host. Empty on desktop dev and in production builds.
   define: {
     "import.meta.env.VITE_TAURI_DEV_HOST": JSON.stringify(tauriDevHost ?? ""),
+    "import.meta.env.VITE_BUILD_COMMIT": JSON.stringify(buildCommit()),
   },
   plugins: [
     pluginSandboxPolicy(!isStorybook),

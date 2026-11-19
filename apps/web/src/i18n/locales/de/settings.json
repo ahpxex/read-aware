@@ -671,7 +671,7 @@
     },
     "diagnostics": {
       "title": "Diagnose",
-      "description": "Diagnoseprotokolle und Prüfbeispiele können persönliche Buch-, Notiz- oder Gesprächsdaten enthalten. Prüfe das Paket vor Export oder Versand. Ohne deine Bestätigung wird nichts gesendet.",
+      "description": "Diagnoseprotokolle und Prüfbeispiele können persönliche Buch-, Notiz- oder Gesprächsdaten enthalten. Prüfe das Paket vor Export oder Versand. Ohne deine Bestätigung wird nichts gesendet. Es nennt außerdem dein Gerätemodell, die Systemversion und die installierten Plugins.",
       "exportRow": {
         "title": "Diagnosepaket exportieren",
         "description": "Als JSON-Datei speichern, um es an eine E-Mail oder ein Issue anzuhängen.",
@@ -688,7 +688,7 @@
         "button": "Im Ordner zeigen"
       },
       "dialogTitle": "Diagnosebericht senden",
-      "previewBody": "Prüfe das vollständige Paket vor Export oder Versand. Protokolle und Prüfbeispiele können persönliche Daten enthalten.",
+      "previewBody": "Prüfe das vollständige Paket vor Export oder Versand. Protokolle und Prüfbeispiele können persönliche Daten enthalten. Es enthält außerdem dein Gerätemodell, die Systemversion und die installierten Plugins.",
       "send": "Senden",
       "cancel": "Abbrechen",
       "done": "Fertig",

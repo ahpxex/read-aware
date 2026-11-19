@@ -671,7 +671,7 @@
     },
     "diagnostics": {
       "title": "Diagnostics",
-      "description": "Diagnostic logs and integrity-check samples may include personal data, including book, note or conversation records. Review the bundle before exporting or sending it. Nothing is sent without your confirmation.",
+      "description": "Diagnostic logs and integrity-check samples may include personal data, including book, note or conversation records. Review the bundle before exporting or sending it. Nothing is sent without your confirmation. It also lists your device model, system version and installed plugins.",
       "exportRow": {
         "title": "Export diagnostics",
         "description": "Save the bundle as a JSON file to attach to an email or issue.",
@@ -688,7 +688,7 @@
         "button": "Reveal"
       },
       "dialogTitle": "Send diagnostics report",
-      "previewBody": "Review the complete bundle below before exporting or sending. Logs and integrity-check samples may contain personal data.",
+      "previewBody": "Review the complete bundle below before exporting or sending. Logs and integrity-check samples may contain personal data. It also includes your device model, system version and installed plugins.",
       "send": "Send",
       "cancel": "Cancel",
       "done": "Done",

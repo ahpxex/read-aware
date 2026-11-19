@@ -671,7 +671,7 @@
     },
     "diagnostics": {
       "title": "Diagnostic",
-      "description": "Les journaux et échantillons de vérification peuvent contenir des données personnelles de livres, notes ou conversations. Vérifiez le paquet avant de l'exporter ou de l'envoyer. Rien n'est envoyé sans votre confirmation.",
+      "description": "Les journaux et échantillons de vérification peuvent contenir des données personnelles de livres, notes ou conversations. Vérifiez le paquet avant de l'exporter ou de l'envoyer. Rien n'est envoyé sans votre confirmation. Il indique aussi le modèle de votre appareil, la version du système et les plugins installés.",
       "exportRow": {
         "title": "Exporter le diagnostic",
         "description": "Enregistrer le paquet en JSON pour le joindre à un e-mail ou à un ticket.",
@@ -688,7 +688,7 @@
         "button": "Afficher dans le dossier"
       },
       "dialogTitle": "Envoyer le rapport de diagnostic",
-      "previewBody": "Vérifiez le paquet complet ci-dessous avant export ou envoi. Les journaux et échantillons peuvent contenir des données personnelles.",
+      "previewBody": "Vérifiez le paquet complet ci-dessous avant export ou envoi. Les journaux et échantillons peuvent contenir des données personnelles. Il contient aussi le modèle de votre appareil, la version du système et les plugins installés.",
       "send": "Envoyer",
       "cancel": "Annuler",
       "done": "Terminé",

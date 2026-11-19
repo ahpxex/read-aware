@@ -19,6 +19,7 @@ import { isAndroid, isIOS, isMacOS, isTauri, isWindows } from "../../../platform
 import { exportTextFile } from "../../../platform/export-file";
 import { appHttpFetch } from "../../../platform/http-client";
 import { relayBaseUrl } from "../../../platform/sync/sync-scheduler";
+import { pluginInventory, type PluginInventoryEntry } from "../../plugins";
 
 type LogFileTail = {
   name: string;
@@ -27,12 +28,36 @@ type LogFileTail = {
   truncated: boolean;
 };
 
+/** What `diagnostics_environment` reports (apps/desktop/src-tauri/src/os_facts.rs). */
+type NativeEnvironment = {
+  buildProfile: "release" | "debug";
+  os: string;
+  arch: string;
+  osVersion: string | null;
+  osBuild: string | null;
+  android: {
+    sdkInt: number | null;
+    manufacturer: string;
+    brand: string;
+    model: string;
+    harmonyOsProperty: string | null;
+  } | null;
+};
+
 export type DiagnosticsBundle = {
   generatedAt: string;
   appVersion: string | null;
   platform: string;
+  /** The frontend build: its commit pairs a report with that build's archived source maps. */
+  build: { commit: string; mode: string };
+  /** Native build profile and OS facts the user agent cannot carry. */
+  environment: NativeEnvironment | { unavailable: string };
+  /** The zone the device was in when the bundle was made; log lines carry their own offset. */
+  timeZone: string;
+  utcOffsetMinutes: number;
   userAgent: string;
   language: string;
+  plugins: PluginInventoryEntry[];
   logs: LogFileTail[] | { unavailable: string };
   /** The event-log ⇄ projection self-check; its failure is itself a finding. */
   projections: ProjectionReport | { unavailable: string };
@@ -53,23 +78,32 @@ function describeFailure(error: unknown): { unavailable: string } {
 
 export async function assembleDiagnosticsBundle(origin: DomainActor = "user"): Promise<DiagnosticsBundle> {
   origin = causalActor(origin);
-  const [logs, projections] = isTauri()
+  const [logs, projections, environment] = isTauri()
     ? await Promise.all([
         invoke<LogFileTail[]>("diagnostics_read_logs").catch(describeFailure),
         verifyProjectionReport(origin).catch(describeFailure),
+        invoke<NativeEnvironment>("diagnostics_environment").catch(describeFailure),
       ])
     : [
         { unavailable: "log files exist only in the desktop/mobile app" },
         { unavailable: "storage self-check exists only in the desktop/mobile app" },
+        { unavailable: "native environment exists only in the desktop/mobile app" },
       ];
+  const now = new Date();
 
   return stampEventCause(
     {
-      generatedAt: new Date().toISOString(),
+      generatedAt: now.toISOString(),
       appVersion: await readCurrentAppVersion(),
       platform: platformName(),
+      build: { commit: import.meta.env.VITE_BUILD_COMMIT as string, mode: import.meta.env.MODE },
+      environment,
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      // getTimezoneOffset is minutes *behind* UTC; the bundle states the offset as written (UTC-5 → -300).
+      utcOffsetMinutes: -now.getTimezoneOffset(),
       userAgent: navigator.userAgent,
       language: navigator.language,
+      plugins: pluginInventory(),
       logs,
       projections,
     },

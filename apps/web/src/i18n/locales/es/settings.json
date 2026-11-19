@@ -671,7 +671,7 @@
     },
     "diagnostics": {
       "title": "Diagnóstico",
-      "description": "Los registros y muestras de integridad pueden incluir datos personales de libros, notas o conversaciones. Revisa el paquete antes de exportarlo o enviarlo. No se envía nada sin tu confirmación.",
+      "description": "Los registros y muestras de integridad pueden incluir datos personales de libros, notas o conversaciones. Revisa el paquete antes de exportarlo o enviarlo. No se envía nada sin tu confirmación. También indica el modelo de tu dispositivo, la versión del sistema y los complementos instalados.",
       "exportRow": {
         "title": "Exportar diagnóstico",
         "description": "Guardar el paquete como archivo JSON para adjuntarlo a un correo o un issue.",
@@ -688,7 +688,7 @@
         "button": "Mostrar en la carpeta"
       },
       "dialogTitle": "Enviar informe de diagnóstico",
-      "previewBody": "Revisa el paquete completo antes de exportarlo o enviarlo. Los registros y muestras pueden contener datos personales.",
+      "previewBody": "Revisa el paquete completo antes de exportarlo o enviarlo. Los registros y muestras pueden contener datos personales. También incluye el modelo de tu dispositivo, la versión del sistema y los complementos instalados.",
       "send": "Enviar",
       "cancel": "Cancelar",
       "done": "Hecho",

@@ -7,8 +7,13 @@ test("report submission requires an acknowledged, nonempty bounded receipt", asy
     generatedAt: "2026-09-11",
     appVersion: "1",
     platform: "test",
+    build: { commit: "abc", mode: "test" },
+    environment: { unavailable: "test" },
+    timeZone: "UTC",
+    utcOffsetMinutes: 0,
     userAgent: "test",
     language: "en",
+    plugins: [],
     logs: [],
     projections: { consistent: true, eventsReplayed: 0, drift: [] },
   };

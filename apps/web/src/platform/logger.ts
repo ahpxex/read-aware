@@ -14,6 +14,11 @@
  *   be safe to share.
  * - Worker code has no Tauri IPC. Plugins use services.logging for bounded
  *   structured events; sandbox infrastructure errors reach the host onerror.
+ * - Error text is not always ours: a plugin names the method it called and
+ *   writes its own messages and stacks, and a failed request names its URL.
+ *   So every rendered line is made safe here, for every caller: continuation
+ *   lines are indented (nothing can pose as a line of its own, which starts
+ *   at column 0) and URLs lose their credentials and query strings.
  */
 import { isTauri } from "./environment";
 
@@ -60,8 +65,24 @@ function describe(value: unknown, depth = 0): string {
 /** One file log line; exported for its tests. */
 export function renderLine(module: string, message: string, detail: unknown[]): string {
   const parts = [`[${module}] ${message}`, ...detail.map((value) => describe(value))];
-  const line = parts.join(" · ");
+  const line = redactUrls(parts.join(" · ")).replace(/\n(?=\S)/g, "\n  ");
   return line.length > MAX_DETAIL_CHARS ? `${line.slice(0, MAX_DETAIL_CHARS)}…` : line;
+}
+
+/**
+ * `https://user:secret@host/path?key=…` → `https://<redacted>@host/path?<redacted>`:
+ * keys and tokens ride in userinfo and query strings; host and path stay to
+ * say which request failed. A stack frame's `:line:column` after a query (dev
+ * builds load modules as `x.ts?t=…`) is kept.
+ */
+function redactUrls(text: string): string {
+  return text.replace(
+    /\b(https?:\/\/)([^\s/?#()@]+@)?([^\s?#()]+)(\?[^\s#()]*)?/g,
+    (_url, scheme: string, userinfo: string | undefined, rest: string, query: string | undefined) => {
+      const position = query?.match(/:\d+:\d+$/)?.[0] ?? "";
+      return `${scheme}${userinfo ? "<redacted>@" : ""}${rest}${query ? `?<redacted>${position}` : ""}`;
+    },
+  );
 }
 
 /**

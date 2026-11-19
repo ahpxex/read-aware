@@ -18,7 +18,9 @@
 # the desktop updater (latest.json), the Android updater (latest-android.json)
 # and the landing's alias links all keep resolving to the previous stable
 # release. The updater-manifest job then assembles latest.json from the
-# uploaded updater payloads.
+# uploaded updater payloads. Each build job also attaches the source maps its
+# frontend build held out of the bundle (ReadAware-vX.Y.Z-<platform>-<arch>-
+# sourcemaps.zip, never aliased) for scripts/symbolicate-diagnostics.ts.
 #
 # Android signing comes from two repository secrets:
 #   ANDROID_KEYSTORE_B64      — base64 of the release keystore (.jks)
@@ -197,6 +199,9 @@ jobs:
           if [[ "$RELEASE_TAG" != *-* ]]; then
             cp "$APK" ReadAware-android-arm64.apk
           fi
+          # Source maps of this job's frontend build, held out of the APK
+          # (apps/web/build/archive-sourcemaps.ts); see docs/development/diagnostics.md.
+          (cd apps/web/sourcemaps && zip -qr "$GITHUB_WORKSPACE/ReadAware-${{ env.RELEASE_TAG }}-android-arm64-sourcemaps.zip" .)
 
       - name: Attach to release
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
@@ -205,6 +210,7 @@ jobs:
           name: ReadAware ${{ env.RELEASE_TAG }}
           files: |
             ReadAware-*android-arm64.apk
+            ReadAware-*-android-arm64-sourcemaps.zip
             latest-android.json
           generate_release_notes: true
           prerelease: ${{ contains(env.RELEASE_TAG, '-') }}
@@ -283,6 +289,7 @@ jobs:
           if [[ "$RELEASE_TAG" != *-* ]]; then
             cp "$IPA" release-assets/ReadAware-ios-arm64.ipa
           fi
+          (cd apps/web/sourcemaps && zip -qr "$GITHUB_WORKSPACE/release-assets/ReadAware-${{ env.RELEASE_TAG }}-ios-arm64-sourcemaps.zip" .)
           ls -la release-assets
 
       - name: Attach to release
@@ -454,6 +461,13 @@ jobs:
               cp "$EXE_DIR/read-aware-desktop.exe" "$RUNNER_TEMP/portable/ReadAware.exe"
               (cd "$RUNNER_TEMP/portable" && 7z a "$OLDPWD/release-assets/$BASE-portable.zip" ReadAware.exe)
               ;;
+          esac
+          # Source maps of this job's frontend build, held out of the bundle
+          # (apps/web/build/archive-sourcemaps.ts). Never aliased: only
+          # scripts/symbolicate-diagnostics.ts reads them.
+          case "${{ matrix.platform }}" in
+            windows-*) (cd apps/web/sourcemaps && 7z a "$OLDPWD/release-assets/$BASE-sourcemaps.zip" .) ;;
+            *) (cd apps/web/sourcemaps && zip -qr "$OLDPWD/release-assets/$BASE-sourcemaps.zip" .) ;;
           esac
           if [[ "$RELEASE_TAG" != *-* ]]; then
             case "${{ matrix.platform }}" in

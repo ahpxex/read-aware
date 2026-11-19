@@ -55,6 +55,14 @@ if (!result.success) {
   for (const log of result.logs) console.error(log);
   throw new Error(`Failed to build plugin "${manifest.id}"`);
 }
+// The desktop crate embeds plugins/*/dist verbatim: nothing there may carry
+// or point at a source map (apps/web/build/archive-sourcemaps.ts holds the
+// app's own maps out of its bundle the same way).
+for (const output of result.outputs) {
+  if (output.path.endsWith(".map") || (await output.text()).includes("sourceMappingURL=")) {
+    throw new Error(`Plugin "${manifest.id}" output would ship a source map: ${output.path}`);
+  }
+}
 
 await cp(manifestPath, join(distDir, "manifest.json"));
 

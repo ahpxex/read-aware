@@ -43,3 +43,7 @@ target
 *.sw?
 demo
 .devin/
+
+# Source maps of the last production build, archived per release by CI
+# (build/archive-sourcemaps.ts); never part of dist/.
+/apps/web/sourcemaps/

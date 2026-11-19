@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react";
 import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import { execFileSync } from "node:child_process";
 import { defineConfig } from "vite";
+import { archiveSourcemaps } from "./build/archive-sourcemaps";
 import { pluginSandboxPolicy, workerEntryFileName } from "./build/plugin-sandbox-policy";
 
 const isStorybook = process.argv.some((arg) => arg.includes("storybook"));
@@ -30,14 +31,19 @@ function buildCommit(): string {
   }
 }
 
+const commit = buildCommit();
+
 export default defineConfig({
   // Ground truth for "where is the dev machine?" — baked into the bundle so
   // runtime code (the dev relay URL, sync-scheduler.ts) never has to guess it
   // from the page host. Empty on desktop dev and in production builds.
   define: {
     "import.meta.env.VITE_TAURI_DEV_HOST": JSON.stringify(tauriDevHost ?? ""),
-    "import.meta.env.VITE_BUILD_COMMIT": JSON.stringify(buildCommit()),
+    "import.meta.env.VITE_BUILD_COMMIT": JSON.stringify(commit),
   },
+  // Maps for exactly the bytes that ship, written beside them and moved out of
+  // dist/ before anything can bundle it (build/archive-sourcemaps.ts).
+  build: { sourcemap: isStorybook ? false : "hidden" },
   plugins: [
     pluginSandboxPolicy(!isStorybook),
     tailwindcss(),
@@ -47,6 +53,7 @@ export default defineConfig({
     // surfaces are split at the component level in App.tsx instead.
     !isStorybook && tanstackRouter({ target: "react", autoCodeSplitting: false }),
     react(),
+    !isStorybook && archiveSourcemaps(commit),
   ].filter(Boolean),
   worker: {
     rollupOptions: { output: { entryFileNames: workerEntryFileName } },

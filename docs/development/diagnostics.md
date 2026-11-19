@@ -18,6 +18,12 @@ Three layers, strictly opt-in past the first:
   with 4 files kept.
 - Level: `Info` in release, `Debug` in dev. Rust panics are captured by a
   panic hook (`install_panic_log_hook`) — message, location, backtrace.
+- Line format: `[2026-11-18][16:10:44-05:00][LEVEL][target] message`. The
+  time is the device's wall clock with its UTC offset (`log_timestamp`); a
+  device whose local offset cannot be read logs UTC as `+00:00`.
+- A logged error renders its stack and its `cause` chain, two links deep,
+  each with its stack. A failed JNI call into `MainActivity` logs the Java
+  exception's `toString()` (`android_jni::take_failure`).
 - The webview logs through the seam in `apps/web/src/platform/logger.ts`
   (`createLogger("<module>")`): console in dev, forwarded into the same file
   inside Tauri. Uncaught errors / unhandled rejections are captured by
@@ -26,13 +32,39 @@ Three layers, strictly opt-in past the first:
 - **Rule:** log messages carry ids and error text, never book content, notes,
   or conversation text. The bundle must stay safe to share.
 
+### Plugin failures
+
+Every plugin failure names its plugin as `id@version`:
+
+- A host call a plugin makes that fails (a service it invoked threw) is
+  logged at the Worker boundary as `Plugin host call failed · <plugin> ·
+  <method> · <host error with stack>`, once per distinct failure per Worker
+  and at most 32 per Worker; cancellations are not logged.
+- A failure the Worker reports back (an action, service or migration it ran)
+  is rebuilt on the host with its own message and code, and carries
+  `caused by PluginWorker: thrown in plugin <plugin>` plus the Worker's
+  stack (bounded to 4 KiB, every line indented) as its cause.
+
 ## 2. The bundle
 
-`apps/web/src/features/settings/lib/diagnostics.ts` assembles: app version,
-platform, locale/user-agent, the tail of the log files (≤ 256 KiB, via the
-`diagnostics_read_logs` command), and the `verify_projections` self-check
-(event log ⇄ projection drift). Export writes it as
-`readaware-diagnostics-<date>.json`.
+`apps/web/src/features/settings/lib/diagnostics.ts` assembles:
+
+- `appVersion`, `platform`, `userAgent`, `language`;
+- `build`: the frontend's `commit` (`-dirty` for a build from a worktree
+  with uncommitted changes) and Vite `mode`;
+- `environment` (`diagnostics_environment`, `os_facts.rs`): the native
+  `buildProfile` (`release` builds are minified; Android release builds run
+  R8, so a dev build passing proves nothing about them), OS version and
+  build from the platform (the user agent freezes desktop versions), and on
+  Android the SDK level, maker, model and the raw
+  `hw_sc.build.platform.version` property (HarmonyOS 2–4; unverified);
+- `timeZone` and `utcOffsetMinutes` when the bundle was made;
+- `plugins`: every installed plugin's id, version, enabled state, source
+  and, for one that is not running, its failure code;
+- the tail of the log files (≤ 256 KiB, via `diagnostics_read_logs`);
+- the `verify_projections` self-check (event log ⇄ projection drift).
+
+Export writes it as `readaware-diagnostics-<date>.json`.
 
 ## 3. Reports on the relay
 
@@ -59,3 +91,33 @@ Deploying the endpoint needs the D1 migration applied once:
 ```sh
 bunx wrangler d1 migrations apply read-aware-relay --remote
 ```
+
+## 4. Source maps
+
+Production frontend builds write hidden source maps and move them out of
+`apps/web/dist/` into `apps/web/sourcemaps/` (git-ignored) before the shell
+bundles `dist/` (`apps/web/build/archive-sourcemaps.ts`). The build fails if a
+map, or a `sourceMappingURL` in the bundler's output, would ship; plugin
+builds (`scripts/build-plugin.ts`) fail the same way. Plugin bundles are not
+minified and need no maps.
+
+Each release job attaches its archive as
+`ReadAware-vX.Y.Z-<platform>-<arch>-sourcemaps.zip`; the App Store build
+keeps a 90-day `sourcemaps-ios-appstore-vX.Y.Z` Actions artifact. Asset file
+names are content hashes and frontend builds are reproducible (rebuilding
+v0.6.11 locally gave the Android release's exact hashes), so a frame's file
+name selects its map; `build.json` records the commit as a cross-check.
+
+To map a bundle's stack frames back to source:
+
+```sh
+bun scripts/symbolicate-diagnostics.ts readaware-diagnostics-2026-11-18.json --out /tmp/mapped.txt
+```
+
+Without `--maps` it downloads the release's archives for the bundle's
+version and platform with `gh`. A release older than the archives (v0.6.11
+and before) can be rebuilt: in a worktree at its tag, add
+`build: { sourcemap: "hidden" }` to `apps/web/vite.config.ts`, run
+`bun run --filter @read-aware/desktop build:frontend`, and pass
+`--maps apps/web/dist` from that worktree. Frames whose asset has no map are
+listed, never guessed.

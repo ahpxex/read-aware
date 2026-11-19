@@ -30,6 +30,9 @@ tauri = { version = "2", features = ["image-png"] }
 # bundle; never uploaded automatically.
 log = "0.4"
 tauri-plugin-log = "2"
+# The log line timestamp (`log_timestamp` in lib.rs) formats the `OffsetDateTime`
+# tauri-plugin-log hands out; same 0.3 the plugin already locks.
+time = { version = "0.3", default-features = false, features = ["std"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 base64 = "0.22"

@@ -815,7 +815,39 @@ fn build_log_plugin<R: tauri::Runtime>() -> tauri::plugin::TauriPlugin<R> {
         .rotation_strategy(RotationStrategy::KeepSome(4))
         .max_file_size(5_000_000)
         .timezone_strategy(TimezoneStrategy::UseLocal)
+        // After `timezone_strategy`, which installs a formatter of its own
+        // (date and time without an offset) that this one replaces.
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "{}[{}][{}] {}",
+                log_timestamp(TimezoneStrategy::UseLocal.get_now()),
+                record.level(),
+                record.target(),
+                message
+            ))
+        })
         .build()
+}
+
+/// `[2026-11-18][16:10:44-05:00]`: the device's wall-clock time with its UTC
+/// offset. Without the offset a diagnostics bundle cannot be lined up with
+/// its own UTC `generatedAt`, nor with a user's "it broke at 9 pm". When the
+/// local offset is unavailable the plugin falls back to UTC, which then
+/// reads `+00:00` instead of passing for local time.
+fn log_timestamp(now: time::OffsetDateTime) -> String {
+    let (hours, minutes, _) = now.offset().as_hms();
+    format!(
+        "[{:04}-{:02}-{:02}][{:02}:{:02}:{:02}{}{:02}:{:02}]",
+        now.year(),
+        u8::from(now.month()),
+        now.day(),
+        now.hour(),
+        now.minute(),
+        now.second(),
+        if now.offset().is_negative() { '-' } else { '+' },
+        hours.unsigned_abs(),
+        minutes.unsigned_abs()
+    )
 }
 
 /// Route panics through the file logger before the default hook aborts. A
@@ -1484,4 +1516,23 @@ pub fn run() {
             );
         }
     });
+}
+
+#[cfg(test)]
+mod log_timestamp_tests {
+    use super::log_timestamp;
+    use time::{OffsetDateTime, UtcOffset};
+
+    #[test]
+    fn keeps_the_wall_clock_and_names_its_offset() {
+        // The tablet's last log line: 21:10:44Z on a device at UTC-5.
+        let instant = OffsetDateTime::from_unix_timestamp(1_795_036_244).unwrap();
+        let at =
+            |hours, minutes| instant.to_offset(UtcOffset::from_hms(hours, minutes, 0).unwrap());
+        assert_eq!(log_timestamp(at(-5, 0)), "[2026-11-18][16:10:44-05:00]");
+        assert_eq!(log_timestamp(instant), "[2026-11-18][21:10:44+00:00]");
+        assert_eq!(log_timestamp(at(5, 30)), "[2026-11-19][02:40:44+05:30]");
+        // Negative with zero whole hours keeps its sign.
+        assert_eq!(log_timestamp(at(0, -30)), "[2026-11-18][20:40:44-00:30]");
+    }
 }

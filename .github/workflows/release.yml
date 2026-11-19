@@ -199,9 +199,6 @@ jobs:
           if [[ "$RELEASE_TAG" != *-* ]]; then
             cp "$APK" ReadAware-android-arm64.apk
           fi
-          # Source maps of this job's frontend build, held out of the APK
-          # (apps/web/build/archive-sourcemaps.ts); see docs/development/diagnostics.md.
-          (cd apps/web/sourcemaps && zip -qr "$GITHUB_WORKSPACE/ReadAware-${{ env.RELEASE_TAG }}-android-arm64-sourcemaps.zip" .)
 
       - name: Attach to release
         uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
@@ -210,7 +207,6 @@ jobs:
           name: ReadAware ${{ env.RELEASE_TAG }}
           files: |
             ReadAware-*android-arm64.apk
-            ReadAware-*-android-arm64-sourcemaps.zip
             latest-android.json
           generate_release_notes: true
           prerelease: ${{ contains(env.RELEASE_TAG, '-') }}
@@ -222,6 +218,19 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: scripts/publish-beta-manifest.sh latest-android.json "$GITHUB_REPOSITORY"
+
+      # Source maps of this job's frontend build, held out of the bundle by
+      # apps/web/build/archive-sourcemaps.ts, for scripts/symbolicate-diagnostics.ts.
+      # Last in the job and never aliased: a problem here fails the job after
+      # everything it ships is already published.
+      - name: Attach source maps
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ARCHIVE="ReadAware-${RELEASE_TAG}-android-arm64-sourcemaps.zip"
+          (cd apps/web/sourcemaps && zip -qr "$OLDPWD/$ARCHIVE" .)
+          gh release upload "$RELEASE_TAG" "$ARCHIVE" --repo "$GITHUB_REPOSITORY" --clobber
 
   # iOS: unsigned arm64 IPA via `tauri ios build --no-sign` (the CLI overrides
   # the codesigning identity to "" and still runs beforeBuildCommand plus the
@@ -289,7 +298,6 @@ jobs:
           if [[ "$RELEASE_TAG" != *-* ]]; then
             cp "$IPA" release-assets/ReadAware-ios-arm64.ipa
           fi
-          (cd apps/web/sourcemaps && zip -qr "$GITHUB_WORKSPACE/release-assets/ReadAware-${{ env.RELEASE_TAG }}-ios-arm64-sourcemaps.zip" .)
           ls -la release-assets
 
       - name: Attach to release
@@ -300,6 +308,19 @@ jobs:
           files: release-assets/*
           generate_release_notes: true
           prerelease: ${{ contains(env.RELEASE_TAG, '-') }}
+
+      # Source maps of this job's frontend build, held out of the bundle by
+      # apps/web/build/archive-sourcemaps.ts, for scripts/symbolicate-diagnostics.ts.
+      # Last in the job and never aliased: a problem here fails the job after
+      # everything it ships is already published.
+      - name: Attach source maps
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ARCHIVE="ReadAware-${RELEASE_TAG}-ios-arm64-sourcemaps.zip"
+          (cd apps/web/sourcemaps && zip -qr "$OLDPWD/$ARCHIVE" .)
+          gh release upload "$RELEASE_TAG" "$ARCHIVE" --repo "$GITHUB_REPOSITORY" --clobber
 
   # The public TestFlight beta (see testflight.yml). Stable tags only, like the
   # landing's download links; nothing depends on it, so an App Store Connect
@@ -462,13 +483,6 @@ jobs:
               (cd "$RUNNER_TEMP/portable" && 7z a "$OLDPWD/release-assets/$BASE-portable.zip" ReadAware.exe)
               ;;
           esac
-          # Source maps of this job's frontend build, held out of the bundle
-          # (apps/web/build/archive-sourcemaps.ts). Never aliased: only
-          # scripts/symbolicate-diagnostics.ts reads them.
-          case "${{ matrix.platform }}" in
-            windows-*) (cd apps/web/sourcemaps && 7z a "$OLDPWD/release-assets/$BASE-sourcemaps.zip" .) ;;
-            *) (cd apps/web/sourcemaps && zip -qr "$OLDPWD/release-assets/$BASE-sourcemaps.zip" .) ;;
-          esac
           if [[ "$RELEASE_TAG" != *-* ]]; then
             case "${{ matrix.platform }}" in
               macos-*)
@@ -495,6 +509,24 @@ jobs:
           files: release-assets/*
           generate_release_notes: true
           prerelease: ${{ contains(env.RELEASE_TAG, '-') }}
+
+      # Source maps of this job's frontend build, held out of the bundle by
+      # apps/web/build/archive-sourcemaps.ts, for scripts/symbolicate-diagnostics.ts.
+      # Last in the job and never aliased: a problem here fails the job after
+      # everything it ships is already published.
+      - name: Attach source maps
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PLATFORM: ${{ matrix.platform }}
+        run: |
+          ARCHIVE="ReadAware-${RELEASE_TAG}-${PLATFORM}-sourcemaps.zip"
+          if [[ "$PLATFORM" == windows-* ]]; then
+            (cd apps/web/sourcemaps && 7z a "$OLDPWD/$ARCHIVE" .)
+          else
+            (cd apps/web/sourcemaps && zip -qr "$OLDPWD/$ARCHIVE" .)
+          fi
+          gh release upload "$RELEASE_TAG" "$ARCHIVE" --repo "$GITHUB_REPOSITORY" --clobber
 
   # latest.json must exist once, after every desktop artifact is uploaded —
   # composing it in a dedicated job avoids the cross-job merge races the

@@ -9,10 +9,12 @@
  * phrase in the middle of a sentence stays as it is, because its edges are
  * far from any boundary.
  *
- * Sentence boundaries come from `buildChapterLayout`, the same segmentation
- * the reading addresses use, so a snapped mark ends where those sentences end.
- * This module works on plain text; `selection-snap-range.ts` maps a DOM Range
- * to and from it.
+ * Sentence boundaries start from `buildChapterLayout`, the segmentation the
+ * reading addresses use, with one correction: the Unicode sentence rules
+ * attach an opening quote to the end of the sentence before it, and here it is
+ * given back to the sentence it opens. Inside a sentence, clause punctuation
+ * and quotation marks are weaker boundaries. This module works on plain text;
+ * `selection-snap-range.ts` maps a DOM Range to and from it.
  */
 import { buildChapterLayout } from "@read-aware/core";
 
@@ -39,6 +41,8 @@ export type SelectionSnapResult = { start: number; end: number };
 const EDGE_TOLERANCE = 2;
 /** Smaller selections are taken as deliberate words or phrases; only trimming and word completion apply. */
 const MIN_SNAP_UNITS = 4;
+/** Moving edges outward may add at most this share of what the reader selected. */
+const MAX_OUTWARD_SHARE = 1 / 3;
 /** A selection running off the page extends to the end of its paragraph only within this many characters. */
 const MAX_BLOCK_EXTENSION = 4000;
 
@@ -213,6 +217,12 @@ function boundaries(text: string, blockStarts: readonly number[], locale: string
       if (run.from > span.lo) endStops.add(run.from);
       startStops.add(contentOf(text, run.to, span.hi).lo);
     }
+    // A quotation inside the sentence: `他说“画蛇添足”。` begins after `“` and ends before `”`.
+    for (let at = span.lo + 1; at < span.hi - 1; at++) {
+      const char = text[at]!;
+      if (opens(at) && WORD.test(text[at + 1]!)) startStops.add(at + 1);
+      else if (!opens(at) && CLOSER.test(char) && WORD.test(text[at - 1]!)) endStops.add(at);
+    }
   });
   const blocks = layout.paragraphs
     .map((from, index) => contentOf(text, from, layout.paragraphs[index + 1] ?? text.length))
@@ -291,12 +301,18 @@ function snapToBoundaries(
   let start = selectionStart;
   let end = selectionEnd;
 
-  // 1. Edges a character or two away from a sentence or clause boundary.
-  //    An edge separated from its sentence's start or end only by punctuation
-  //    is left to step 3, which checks that the selection is sentence-shaped.
+  // 1. Edges a character or two away from a sentence, clause or quotation
+  //    boundary. An edge already on one stays. An edge separated from its
+  //    sentence's start or end only by punctuation is left to step 3, which
+  //    checks that the selection is sentence-shaped. Outward moves together may
+  //    add only a small share of the selection, so a short phrase near a
+  //    sentence's start (`所谓[量子纠缠]是指`) is not taken for a clipped sentence.
+  const selected = readingUnits(text.slice(start, end));
+  let startMove: { to: number; outward: boolean; cost: number } | null = null;
+  let endMove: { to: number; outward: boolean; cost: number } | null = null;
   {
     const sentence = sentences[spanAt(sentences, start)]!;
-    if (start > sentence.lo && readingUnits(text.slice(sentence.lo, start)) > 0) {
+    if (!startStops.includes(start) && start > sentence.lo && readingUnits(text.slice(sentence.lo, start)) > 0) {
       const before = lastBelow(startStops, start);
       const after = firstAbove(startStops, start);
       const snapped = nearest(
@@ -312,12 +328,17 @@ function snapToBoundaries(
               kept: text.slice(after, end),
             },
       );
-      if (snapped !== null) start = snapped;
+      if (snapped !== null)
+        startMove = {
+          to: snapped,
+          outward: snapped < start,
+          cost: readingUnits(text.slice(Math.min(snapped, start), Math.max(snapped, start))),
+        };
     }
   }
   {
     const sentence = sentences[spanAt(sentences, end - 1)]!;
-    if (end < sentence.hi && readingUnits(text.slice(end, sentence.hi)) > 0) {
+    if (!endStops.includes(end) && end < sentence.hi && readingUnits(text.slice(end, sentence.hi)) > 0) {
       const after = firstAbove(endStops, end);
       const before = lastBelow(endStops, end);
       const snapped = nearest(
@@ -331,42 +352,56 @@ function snapToBoundaries(
               kept: text.slice(start, before),
             },
       );
-      if (snapped !== null) end = snapped;
+      if (snapped !== null)
+        endMove = {
+          to: snapped,
+          outward: snapped > end,
+          cost: readingUnits(text.slice(Math.min(snapped, end), Math.max(snapped, end))),
+        };
+    }
+  }
+  const added = (startMove?.outward ? startMove.cost : 0) + (endMove?.outward ? endMove.cost : 0);
+  const outwardAllowed = added <= selected * MAX_OUTWARD_SHARE;
+  if (startMove && (outwardAllowed || !startMove.outward)) start = startMove.to;
+  if (endMove && (outwardAllowed || !endMove.outward)) end = endMove.to;
+
+  // 2. A selection the page edge cut off mid-sentence continues to the end
+  //    of that sentence, and to the end of its paragraph when it began with
+  //    the paragraph. One that ends on a sentence boundary at the edge is
+  //    complete as it is. An edge step 1 pulled back stays back.
+  if (input.continuesAfter && end >= selectionEnd) {
+    const sentence = sentences[spanAt(sentences, selectionEnd - 1)]!;
+    if (selectionEnd < sentence.hi && readingUnits(text.slice(selectionEnd, sentence.hi)) > 0) {
+      end = sentence.hi;
+      const block = blocks[spanAt(blocks, end - 1)];
+      const startBlock = blocks[spanAt(blocks, start)];
+      if (block && startBlock && start <= startBlock.lo && end < block.hi && block.hi - start <= MAX_BLOCK_EXTENSION)
+        end = block.hi;
+    }
+  }
+  if (input.continuesBefore && start <= selectionStart) {
+    const sentence = sentences[spanAt(sentences, selectionStart)]!;
+    if (selectionStart > sentence.lo && readingUnits(text.slice(sentence.lo, selectionStart)) > 0) {
+      start = sentence.lo;
+      const block = blocks[spanAt(blocks, start)];
+      const endBlock = blocks[spanAt(blocks, end - 1)];
+      if (block && endBlock && end >= endBlock.hi && start > block.lo && end - block.lo <= MAX_BLOCK_EXTENSION)
+        start = block.lo;
     }
   }
 
-  // 2. A selection that runs to the edge of the visible page continues to
-  //    the end of its sentence there, and to the end of its paragraph when it
-  //    began with that paragraph. An edge step 1 pulled back stays back.
-  if (input.continuesAfter && end >= selectionEnd) {
-    const sentence = sentences[spanAt(sentences, end - 1)]!;
-    if (end < sentence.hi) end = sentence.hi;
-    const block = blocks[spanAt(blocks, end - 1)];
-    const startBlock = blocks[spanAt(blocks, start)];
-    if (block && startBlock && start <= startBlock.lo && end < block.hi && block.hi - start <= MAX_BLOCK_EXTENSION)
-      end = block.hi;
-  }
-  if (input.continuesBefore && start <= selectionStart) {
-    const sentence = sentences[spanAt(sentences, start)]!;
-    if (start > sentence.lo) start = sentence.lo;
-    const block = blocks[spanAt(blocks, start)];
-    const endBlock = blocks[spanAt(blocks, end - 1)];
-    if (block && endBlock && end >= endBlock.hi && start > block.lo && end - block.lo <= MAX_BLOCK_EXTENSION)
-      start = block.lo;
-  }
-
-  // 3. Punctuation: a selection shaped like whole sentences or clauses takes
-  //    its sentence's closing punctuation and closing quote, and its opening
-  //    quote or bracket. A phrase from mid-sentence does not. An edge short of
-  //    its sentence only by punctuation counts as at the sentence, so a quoted
-  //    sentence missing both quotes takes both.
+  // 3. Punctuation: a selection shaped like whole sentences takes its
+  //    sentence's closing punctuation and closing quote, and its opening quote
+  //    or bracket. A clause, quotation or phrase from inside a sentence does
+  //    not. An edge short of its sentence only by punctuation counts as at the
+  //    sentence, so a quoted sentence missing both quotes takes both.
   const first = sentences[spanAt(sentences, start)]!;
   const last = sentences[spanAt(sentences, end - 1)]!;
   const punctuationBefore = start > first.lo && readingUnits(text.slice(first.lo, start)) === 0;
   const punctuationAfter = end < last.hi && readingUnits(text.slice(end, last.hi)) === 0;
   const spansSentences = sentences.some((sentence) => sentence.lo > start && sentence.lo < end);
-  const startsWhole = startStops.includes(start) || punctuationBefore || spansSentences;
-  const endsWhole = endStops.includes(end) || punctuationAfter || spansSentences;
+  const startsWhole = sentenceStops.has(start) || punctuationBefore || spansSentences;
+  const endsWhole = sentenceStops.has(end) || punctuationAfter || spansSentences;
   if (punctuationAfter && startsWhole) end = last.hi;
   if (punctuationBefore && endsWhole) start = first.lo;
 

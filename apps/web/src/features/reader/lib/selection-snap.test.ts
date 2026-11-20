@@ -136,7 +136,18 @@ describe("deliberate selections stay", () => {
 
   test("a clause ends at its comma instead of growing into the sentence", () => {
     expect(snap("[我们明天早上就出]发，然后去车站。")).toBe("[我们明天早上就出发]，然后去车站。");
-    expect(snap("我们明天早上就出发，[然后去火车站坐车]。")).toBe("我们明天早上就出发，[然后去火车站坐车。]");
+    // A clause from inside a sentence does not take the sentence's full stop.
+    expect(snap("我们明天早上就出发，[然后去火车站坐车]。")).toBe("我们明天早上就出发，[然后去火车站坐车]。");
+  });
+
+  test("a short phrase near a sentence start is not taken for a clipped sentence", () => {
+    expect(snap("所谓[量子纠缠]是指一种现象。")).toBe("所谓[量子纠缠]是指一种现象。");
+    expect(snap("所谓[量子纠缠]是指……。")).toBe("所谓[量子纠缠]是指……。");
+  });
+
+  test("a quotation inside a sentence stays a quotation", () => {
+    expect(snap("他说“[画蛇添足]”。")).toBe("他说“[画蛇添足]”。");
+    expect(snap("他说这是“[画蛇添足]”的典型。")).toBe("他说这是“[画蛇添足]”的典型。");
   });
 
   test("an exact sentence is unchanged", () => {
@@ -165,6 +176,27 @@ describe("selections that run off the visible page", () => {
   test("continue back to the start of the sentence", () => {
     expect(snap("前面一句。这件事其实[非常重要，大家都知道。]后面一句。", { continuesBefore: true })).toBe(
       "前面一句。[这件事其实非常重要，大家都知道。]后面一句。",
+    );
+  });
+
+  test("a selection that ends on a sentence end at the page edge is complete", () => {
+    const { marked, blocks } = paragraphs("[第一句话在这里。第二句话在这里。]第三句话在这里。", "下一段。");
+    expect(snap(marked, { continuesAfter: true }, blocks)).toBe(
+      "[第一句话在这里。第二句话在这里。]第三句话在这里。\n下一段。",
+    );
+  });
+
+  test("a selection that begins on a sentence start at the page top is complete", () => {
+    const { marked, blocks } = paragraphs("第一句话在这里。[第二句话在这里。第三句话在这里。]", "下一段。");
+    expect(snap(marked, { continuesBefore: true }, blocks)).toBe(
+      "第一句话在这里。[第二句话在这里。第三句话在这里。]\n下一段。",
+    );
+  });
+
+  test("a selection cut off at the page top continues back to its paragraph's start", () => {
+    const { marked, blocks } = paragraphs("第一句话在这里。第二句[话在这里。第三句话在这里。]", "下一段。");
+    expect(snap(marked, { continuesBefore: true }, blocks)).toBe(
+      "[第一句话在这里。第二句话在这里。第三句话在这里。]\n下一段。",
     );
   });
 

@@ -21,4 +21,6 @@ export type NativeInputBridge = {
   context(event: Event): object;
   selectionChanged(doc: Document, context: object): void;
   focusDocument(doc: Document, context: object): void;
+  /** Whether this selection change is one the host made and already handled, not the reader dragging. */
+  ownsSelection?(doc: Document, event: Event): boolean;
 };

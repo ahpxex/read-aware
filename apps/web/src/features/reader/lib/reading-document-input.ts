@@ -201,6 +201,7 @@ function focusWithContext(element: Element, context: object, focus: () => void):
 export const readingNativeInput: NativeInputBridge = {
   context: readingInputContext,
   selectionChanged: rememberReadingSelection,
+  ownsSelection: (doc, event) => readingSelectionFeedback(doc, event).handled,
   focusDocument: (doc, context) =>
     focusWithContext(doc.activeElement ?? doc.body, context, () => doc.defaultView?.focus()),
 };

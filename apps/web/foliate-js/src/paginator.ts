@@ -423,6 +423,9 @@ export class Paginator extends HTMLElement {
       doc.addEventListener("keyup", () => (isKeyboardSelecting = false));
       doc.addEventListener("selectionchange", (event) => {
         if (this.scrolled) return;
+        // A selection the host set (snapping a drag, revealing a passage) may
+        // reach past the page on purpose; only the reader's own drag is followed.
+        if (this.inputBridge?.ownsSelection?.(doc, event)) return;
         const range = this.#lastVisibleRange;
         if (!range) return;
         const sel = doc.getSelection();

@@ -5,6 +5,7 @@ import {
   acknowledgeReadingSelection,
   focusWithReadingSource,
   readingInputContext,
+  readingNativeInput,
   readingSelectionFeedback,
   rememberReadingSelection,
 } from "./reading-document-input";
@@ -144,6 +145,29 @@ test("focus-caused scroll feedback matches the actual offset and is invalidated 
     f.a.scrollTop = 19;
     f.a.dispatchEvent(new f.dom.window.Event("wheel", { bubbles: true }));
     expect(actorCause(scroll())?.root).not.toBe(actorCause(origin)?.root);
+  } finally {
+    f.dom.window.close();
+  }
+});
+
+test("the engine is told a selection change is the host's own only while the host's selection stands", () => {
+  const f = fixture();
+  const dispatch = () => {
+    const event = new f.dom.window.Event("selectionchange");
+    f.doc.dispatchEvent(event);
+    return readingNativeInput.ownsSelection?.(f.doc, event);
+  };
+  try {
+    // The reader drags: not the host's.
+    f.select(f.a);
+    expect(dispatch()).toBe(false);
+    // The host replaces the selection (a snapped drag) and acknowledges it.
+    f.select(f.b, 3);
+    acknowledgeReadingSelection(f.doc, causalActor("user"));
+    expect(dispatch()).toBe(true);
+    // The reader moves it again.
+    f.select(f.b, 6);
+    expect(dispatch()).toBe(false);
   } finally {
     f.dom.window.close();
   }

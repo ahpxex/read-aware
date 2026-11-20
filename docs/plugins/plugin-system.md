@@ -4705,10 +4705,12 @@ acceptance.
 An edge within two units (a CJK character counts one, a spaced-script word two)
 of a sentence or clause boundary moves onto it, in or out. A sentence-shaped
 selection takes its closing punctuation and quotes. A cut word is completed. A
-selection that runs off the visible page continues to its sentence's end, or to
-its paragraph's end when it began at the paragraph's start. Selections under
-four units, and phrases far from any boundary, stay as made. Only the first
-capture of a live selection snaps: later handle drags stand. Selections the
+paged layout's selection that the page edge cut off mid-sentence continues to
+its sentence's end, or to its paragraph's end when it began at the paragraph's
+start; a continuous scroll has no page edge. Outward moves may add at most a
+third of the selection. Selections under four units, quotations and phrases
+inside a sentence stay as made. Only the first capture of a live selection
+snaps: later handle drags (Android keeps handles after capture) stand. Selections the
 host makes, such as an Agent or plugin selecting a passage, never snap. PDF text layers
 are only trimmed and word-completed. Like the page-turn paths, book targets
 reject the path and a reading reset leaves it unchanged.

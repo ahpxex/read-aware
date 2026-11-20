@@ -2,7 +2,7 @@ import { expect, test } from "bun:test";
 import { JSDOM } from "jsdom";
 import { snapSelectionRange } from "./selection-snap-range";
 
-const visible = { isVisible: () => true };
+const visible = { isOnPage: () => true };
 
 function documentWith(body: string) {
   return new JSDOM(`<!doctype html><html lang="zh"><body>${body}</body></html>`).window.document;
@@ -57,9 +57,14 @@ test("a selection running off the page continues to the end of its sentence", ()
   const range = rangeIn(doc, ["这件事", 0], ["非常", 1]);
   const hiddenFrom = range.endOffset;
   const snapped = snapSelectionRange(range, {
-    isVisible: (probe) => probe.startOffset < hiddenFrom,
+    isOnPage: (probe) => probe.startOffset < hiddenFrom,
   });
   expect(snapped?.toString()).toBe("这件事其实非常重要，大家都知道。");
+});
+
+test("without a page (a continuous scroll) the viewport edge does not extend a selection", () => {
+  const doc = documentWith("<p>前面一句。这件事其实非常重要，大家都知道。后面一句。</p>");
+  expect(snapSelectionRange(rangeIn(doc, ["这件事", 0], ["非常", 1]))).toBeNull();
 });
 
 test("an exact selection is left alone", () => {

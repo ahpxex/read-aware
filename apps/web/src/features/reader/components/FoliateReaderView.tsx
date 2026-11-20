@@ -12,7 +12,7 @@ import { appShortcutForEvent, isAppSurfaceShortcut } from "../../settings/lib/sh
 import type { LibraryBook, ReaderProgress } from "../../library/lib/library-types";
 import { emitAppEvent } from "../../../platform/app-events";
 import { createLogger } from "../../../platform/logger";
-import { actorOrigin, causalActor, stampEventCause, type DomainActor } from "../../../platform/domain-actor";
+import { causalActor, stampEventCause, type DomainActor } from "../../../platform/domain-actor";
 import { resolveReaderModeUnit } from "../../plugins/lib/reader-mode";
 import {
   getNormalizedSelectionText,
@@ -838,7 +838,13 @@ export function FoliateReaderView({
       {
         suppressContentClick = false,
         origin: source = "user",
-      }: { suppressContentClick?: boolean; origin?: DomainActor } = {},
+        snap = false,
+      }: {
+        suppressContentClick?: boolean;
+        origin?: DomainActor;
+        /** The selection is the reader's own drag, settled: smart selection may adjust it. */
+        snap?: boolean;
+      } = {},
     ) => {
       const origin = causalActor(source);
       const view = viewRef.current;
@@ -858,19 +864,18 @@ export function FoliateReaderView({
       // clause and word edges it nearly reaches, before anything reads it, so
       // the text, anchor and every action use the snapped range. Only the
       // first capture of a live selection snaps; dragging its handles again
-      // (touch) is a deliberate adjustment. Host-made selections never snap.
+      // (touch) is a deliberate adjustment. Host-made selections never snap:
+      // only the pointer and touch-settle listeners ask for it.
       if (!selectionRef.current) selectionSnappedRef.current = false;
-      if (
-        snapSelectionsRef.current &&
-        !selectionSnappedRef.current &&
-        actorOrigin(origin) === "user" &&
-        selectionInDoc.rangeCount > 0
-      ) {
+      if (snap && snapSelectionsRef.current && !selectionSnappedRef.current && selectionInDoc.rangeCount > 0) {
         const snapped = snapSelectionRange(selectionInDoc.getRangeAt(0), {
-          isVisible: (probe) =>
-            Array.from(probe.getClientRects()).some(
-              (rect) => rect.width > 0 && visibleFrameRectInRoot(rect, mapping) != null,
-            ),
+          isOnPage:
+            readingModeRef.current === "scroll"
+              ? undefined
+              : (probe) =>
+                  Array.from(probe.getClientRects()).some(
+                    (rect) => rect.width > 0 && visibleFrameRectInRoot(rect, mapping) != null,
+                  ),
         });
         if (snapped) {
           selectionInDoc.removeAllRanges();
@@ -1987,7 +1992,7 @@ export function FoliateReaderView({
           const hasSelection =
             !!sel && sel.rangeCount > 0 && !sel.getRangeAt(0).collapsed && getNormalizedSelectionText(sel).length > 0;
           if (hasSelection) {
-            captureSelectionFromDoc(doc, index, { suppressContentClick: true, origin: feedback.origin });
+            captureSelectionFromDoc(doc, index, { suppressContentClick: true, origin: feedback.origin, snap: true });
           } else if (selectionRef.current) {
             // The system selection was dismissed (tap elsewhere, Cut/Copy…);
             // don't leave our menu floating over nothing.
@@ -2081,7 +2086,7 @@ export function FoliateReaderView({
           !!sel && sel.rangeCount > 0 && !sel.getRangeAt(0).collapsed && getNormalizedSelectionText(sel).length > 0;
 
         if (hasSelection) {
-          captureSelectionFromDoc(doc, index, { suppressContentClick: true });
+          captureSelectionFromDoc(doc, index, { suppressContentClick: true, snap: true });
           shouldOpenShellOnClickRef.current = false;
           return;
         }

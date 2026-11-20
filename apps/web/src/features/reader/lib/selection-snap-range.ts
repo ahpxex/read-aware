@@ -14,8 +14,12 @@ import { indexText } from "../../../../foliate-js/src/text-index";
 import { snapSelection } from "./selection-snap";
 
 export type SelectionSnapRangeOptions = {
-  /** Whether any part of `range` shows in the reader's viewport. */
-  isVisible: (range: Range) => boolean;
+  /**
+   * Whether any part of `range` shows on the visible page. Given only for
+   * paged layouts: there, a selection cut off at the page's edge continues
+   * onto the next page. A continuous scroll has no page edge to stop a drag.
+   */
+  isOnPage?: (range: Range) => boolean;
 };
 
 /** Characters of context gathered beyond each edge of the selection. */
@@ -176,7 +180,7 @@ function collectWindow(walker: TreeWalker, blockOf: (node: Node) => Node, first:
  * The selection with its edges snapped, or null when they stay where they
  * are. `range` itself is not modified.
  */
-export function snapSelectionRange(range: Range, { isVisible }: SelectionSnapRangeOptions): Range | null {
+export function snapSelectionRange(range: Range, { isOnPage }: SelectionSnapRangeOptions = {}): Range | null {
   const doc = range.startContainer.ownerDocument;
   if (!doc || range.collapsed) return null;
   const textLayer = doc.querySelector(".textLayer");
@@ -216,8 +220,8 @@ export function snapSelectionRange(range: Range, { isVisible }: SelectionSnapRan
     result.setEnd(window.nodes[mapped.endIndex]!, mapped.endOffset);
     return result;
   };
-  // Whether the reading text next to an edge is out of view: the drag ran to the page's edge.
-  const hiddenAt = (offset: number) => !isVisible(toRange(offset, offset + 1));
+  // Whether the reading text next to an edge is off the page: the drag ran to the page's edge.
+  const offPage = (offset: number) => isOnPage !== undefined && !isOnPage(toRange(offset, offset + 1));
   let next = to;
   while (next < index.text.length && IGNORABLE.test(index.text[next]!)) next++;
   let previous = from;
@@ -230,8 +234,8 @@ export function snapSelectionRange(range: Range, { isVisible }: SelectionSnapRan
     end: to,
     locale: languageOf(start.node),
     mode: textLayer ? "words" : "text",
-    continuesAfter: next < index.text.length && hiddenAt(next),
-    continuesBefore: previous > 0 && hiddenAt(previous - 1),
+    continuesAfter: next < index.text.length && offPage(next),
+    continuesBefore: previous > 0 && offPage(previous - 1),
   });
   return snapped ? toRange(snapped.start, snapped.end) : null;
 }

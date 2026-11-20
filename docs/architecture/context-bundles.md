@@ -151,8 +151,9 @@ The product UI reaches the same gate as the user: Settings → Data gains a
 conversations from the global threads), "Capture now" action, twenty-version
 history and per-version "Save…" all go through the memory domain with the
 host's full grants. Saving exports into a settings-owned ResourceOwner, opens
-the native save dialog and releases the handle whatever the outcome; outside
-the desktop app the group only explains that it needs it. There is no second
+the native save dialog and releases the handle whatever the outcome. On a
+phone or tablet the group is not shown; the web preview only explains that it
+needs the desktop app. There is no second
 authorization or disclosure path for the UI.
 
 `export` captures the durable source clock before the archive read, performs

@@ -19,7 +19,7 @@ import { IconButton, ScrollArea } from "@read-aware/ui";
 import { cn } from "@read-aware/ui/cn";
 import { usePhoneViewport } from "@read-aware/ui/media";
 import { useBackInterceptor } from "../../hooks/useBackInterceptor";
-import { isIOS } from "../../platform/environment";
+import { isIOS, isMobileOS } from "../../platform/environment";
 import { usePanelSwipeDismiss } from "../reader";
 import { useTranslation } from "../../i18n";
 import {
@@ -59,6 +59,8 @@ type SettingsSection = {
   id: SectionId;
   icon: Icon;
   Panel: () => React.JSX.Element;
+  /** Whether this platform has anything to set here; listed when absent. */
+  available?: () => boolean;
 };
 
 // Three bands: what the product is (general/reading/ai/plugins), making it
@@ -70,7 +72,8 @@ const SECTIONS: SettingsSection[] = [
   { id: "plugins", icon: PuzzlePiece, Panel: PluginsPanel },
   { id: "appearance", icon: Palette, Panel: AppearancePanel },
   { id: "menus", icon: Rows, Panel: MenusPanel },
-  { id: "shortcuts", icon: Keyboard, Panel: ShortcutsPanel },
+  // Keyboard shortcuts; a phone's volume keys are set under Reading.
+  { id: "shortcuts", icon: Keyboard, Panel: ShortcutsPanel, available: () => !isMobileOS() },
   { id: "dataSync", icon: Database, Panel: DataSyncPanel },
   { id: "about", icon: Info, Panel: AboutPanel },
 ];
@@ -116,7 +119,9 @@ export function SettingsDialog({ open, onClose, workspaceToken = 0 }: SettingsDi
   const installedPlugins = useAtomValue(installedPluginsAtom);
   const pluginPages = useAtomValue(pluginSettingsPagesAtom);
   const entries: NavEntry[] = [
-    ...SECTIONS.map((section): NavEntry => ({ kind: "core", section })),
+    ...SECTIONS.filter((section) => section.available?.() ?? true).map(
+      (section): NavEntry => ({ kind: "core", section }),
+    ),
     ...installedPlugins
       .filter(
         (plugin) =>

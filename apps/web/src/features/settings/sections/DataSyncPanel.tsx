@@ -2,6 +2,7 @@ import { useState, useSyncExternalStore } from "react";
 import { Button, Dialog, InlineError, TextField, useToast } from "@read-aware/ui";
 import { ERR_DATA_WIPE_INCOMPLETE, errorCode } from "@read-aware/core";
 import { createLogger } from "../../../platform/logger";
+import { isMobileOS } from "../../../platform/environment";
 import { useTranslation } from "../../../i18n";
 import { SettingsGroup } from "../components/SettingsGroup";
 import { SettingsPage } from "../components/SettingsPage";
@@ -66,7 +67,9 @@ export function DataSyncPanel() {
     <SettingsPage title={t("dataSync.title")} description={t("dataSync.description")}>
       <SyncAccountGroup />
 
-      <DataLocationGroup />
+      {/* The data directory and context bundles are desktop-only; on a phone
+          they would be a disabled button and a block of disabled controls. */}
+      {!isMobileOS() && <DataLocationGroup />}
 
       <SettingsGroup title={t("dataSync.backup.title")} description={t("dataSync.backup.description")}>
         <SettingsRow
@@ -104,7 +107,7 @@ export function DataSyncPanel() {
       <BackupExportDialog flow={exportDialog} />
       <BackupImportDialog flow={importDialog} />
 
-      <ContextBundlesGroup />
+      {!isMobileOS() && <ContextBundlesGroup />}
 
       <SettingsGroup title={t("dataSync.dangerZone")}>
         <SettingsRow

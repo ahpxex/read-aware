@@ -138,6 +138,14 @@
         "downForward": "Volume − pour avancer",
         "upForward": "Volume + pour avancer"
       }
+    },
+    "selection": {
+      "title": "Sélection de texte",
+      "description": "Comment une sélection de texte dans un livre est traitée. Enregistré sur cet appareil et utilisé pour tous les livres.",
+      "snapToText": {
+        "title": "Sélection intelligente",
+        "description": "Ajuste une sélection à la phrase ou au mot qu'elle couvre presque : un premier caractère ou une ponctuation finale oubliés sont ajoutés, un caractère de trop de la phrase suivante est retiré, et une sélection qui atteint le bord de la page se prolonge jusqu'à la fin de la phrase. Si vous déplacez à nouveau les poignées, votre ajustement est conservé."
+      }
     }
   },
   "shortcuts": {

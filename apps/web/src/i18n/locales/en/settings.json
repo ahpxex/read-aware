@@ -138,6 +138,14 @@
         "downForward": "Volume down reads on",
         "upForward": "Volume up reads on"
       }
+    },
+    "selection": {
+      "title": "Text Selection",
+      "description": "How a text selection you make in a book is handled. Saved on this device and used for every book.",
+      "snapToText": {
+        "title": "Smart selection",
+        "description": "Snaps a selection to the sentence or word it nearly covers: a missed first character or closing punctuation is added, a stray character from the next sentence is dropped, and a selection that runs off the page continues to the end of its sentence. Dragging the handles again keeps your adjustment."
+      }
     }
   },
   "shortcuts": {

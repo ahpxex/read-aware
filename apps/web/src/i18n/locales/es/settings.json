@@ -138,6 +138,14 @@
         "downForward": "Bajar volumen avanza",
         "upForward": "Subir volumen avanza"
       }
+    },
+    "selection": {
+      "title": "Selección de texto",
+      "description": "Cómo se trata una selección de texto en un libro. Se guarda en este dispositivo y se aplica a todos los libros.",
+      "snapToText": {
+        "title": "Selección inteligente",
+        "description": "Ajusta la selección a la frase o palabra que casi abarca: se añade el primer carácter o la puntuación final que faltaban, se quita un carácter sobrante de la frase siguiente y una selección que llega al borde de la página continúa hasta el final de la frase. Si vuelves a mover los tiradores, se mantiene tu ajuste."
+      }
     }
   },
   "shortcuts": {

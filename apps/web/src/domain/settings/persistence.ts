@@ -7,6 +7,7 @@ import { GENERAL_SETTINGS_KEY } from "../../features/settings/lib/general-settin
 import { SHELF_VIEW_KEY } from "../../features/shelf/lib/shelf-view";
 import { PAGE_TURN_SETTINGS_KEY } from "./page-turn-settings";
 import { HEADER_FOOTER_SETTINGS_KEY } from "./header-footer-settings";
+import { SELECTION_SETTINGS_KEY } from "./selection-settings";
 import { SHORTCUT_BINDINGS_KEY } from "../../features/settings/lib/shortcut-bindings";
 import { AI_PREFERENCES_KEY } from "../../features/settings/lib/ai-preferences";
 import { READER_PREFERENCES_KEY } from "../../features/settings/lib/reader-settings";
@@ -40,6 +41,7 @@ export async function settingsChangeKeys(
     else if (path.startsWith("shelf.")) key = SHELF_VIEW_KEY;
     else if (path.startsWith("shortcuts.")) key = SHORTCUT_BINDINGS_KEY;
     else if (path.startsWith("reading.pageTurn.")) key = PAGE_TURN_SETTINGS_KEY;
+    else if (path.startsWith("reading.selection.")) key = SELECTION_SETTINGS_KEY;
     else if (path.startsWith("menus.headerFooter.")) key = HEADER_FOOTER_SETTINGS_KEY;
     else if (path.startsWith("reading.")) {
       key = READER_PREFERENCES_KEY;
@@ -77,6 +79,7 @@ export function settingsDraftEntries(
   record(READER_PREFERENCES_KEY, before.reading, next.reading);
   record(READER_OVERRIDES_KEY, before.readerOverrides, next.readerOverrides);
   record(PAGE_TURN_SETTINGS_KEY, before.pageTurn, next.pageTurn);
+  record(SELECTION_SETTINGS_KEY, before.selection, next.selection);
   record(HEADER_FOOTER_SETTINGS_KEY, before.headerFooter, next.headerFooter);
   record(CONTENT_TYPOGRAPHY_KEY, before.contentTypography, next.contentTypography);
   if (before.defaultMarkColor !== next.defaultMarkColor) entries.set(DEFAULT_COLOR_KEY, next.defaultMarkColor);

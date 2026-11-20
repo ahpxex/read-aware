@@ -68,6 +68,7 @@ import {
   type HeaderFooterPosition,
   type HeaderFooterSettings,
 } from "./header-footer-settings";
+import type { SelectionSettings } from "./selection-settings";
 import { shortcutPreferenceDefinitions } from "./shortcut-preferences";
 import type { ShortcutEnvironment } from "../../features/settings/lib/shortcut-catalog";
 import type { ShortcutBindings } from "../../features/settings/lib/shortcuts";
@@ -85,6 +86,8 @@ export type SettingsDraft = {
   pageTurn: PageTurnSettings;
   /** Device-local reader header/footer strips (global-only). */
   headerFooter: HeaderFooterSettings;
+  /** Device-local smart selection (global-only). */
+  selection: SelectionSettings;
   /** Derived source-language hints, not writable settings. */
   bookLanguages?: ReaderBookLanguages;
   contentTypography: ContentTypographySettings;
@@ -410,6 +413,25 @@ function pageTurnDefinitions(): SettingDefinition[] {
           ...state.pageTurn,
           volumeKeyDirection: value as VolumeKeyDirection,
         };
+      },
+    },
+  ];
+}
+
+/** Smart selection. Global-only like page turning: a selection habit belongs to the device, not to one book. */
+function selectionDefinitions(): SettingDefinition[] {
+  return [
+    {
+      path: "reading.selection.snapToText",
+      section: "reading",
+      label: "Smart selection",
+      description:
+        "Device-local; applies to every book and is never overridden per book. When on, a text selection made by hand snaps to what it nearly covers: an edge a character or two (one word in English) short of or past a sentence or clause boundary moves onto it, a selection shaped like whole sentences takes its closing punctuation and quotes, a word cut in half is completed, and a selection that runs off the visible page continues to the end of its sentence (and paragraph, when it began with the paragraph). A phrase in the middle of a sentence is left as selected, and adjusting a snapped selection's handles keeps the adjustment. Every selection action (highlight, note, copy, look up, Ask AI) uses the snapped text. PDF text is only trimmed and word-completed.",
+      kind: "boolean",
+      supportedTargets: ["global"],
+      read: (state) => state.selection.snapToText,
+      write: (state, value) => {
+        state.selection = { ...state.selection, snapToText: value as boolean };
       },
     },
   ];
@@ -894,6 +916,7 @@ export function buildSettingDefinitions(draft: SettingsDraft): SettingDefinition
       });
     }),
     ...pageTurnDefinitions(),
+    ...selectionDefinitions(),
     ...headerFooterDefinitions(),
     ...AI_FEATURE_KEYS.map((key) =>
       globalDefinition({

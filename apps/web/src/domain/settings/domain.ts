@@ -40,6 +40,7 @@ import {
   readerPreferencesAtom,
   pageTurnSettingsAtom,
   headerFooterSettingsAtom,
+  selectionSettingsAtom,
 } from "../../state/ui";
 import { menuConfigAtom } from "../../features/menus/state/menu-config";
 import { agentVisiblePluginSettings, readPluginSettingsValues } from "../../features/plugins/lib/plugin-settings";
@@ -113,6 +114,7 @@ function readDraft(): SettingsDraft {
     reading: store.get(readerPreferencesAtom),
     readerOverrides: store.get(readerOverridesAtom),
     pageTurn: store.get(pageTurnSettingsAtom),
+    selection: store.get(selectionSettingsAtom),
     headerFooter: store.get(headerFooterSettingsAtom),
     bookLanguages: store.get(readerBookLanguagesAtom),
     contentTypography: store.get(contentTypographyAtom),

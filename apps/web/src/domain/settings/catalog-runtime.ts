@@ -85,6 +85,7 @@ function cloneDraft(draft: SettingsDraft): SettingsDraft {
     appearance: { ...draft.appearance },
     reading: { ...draft.reading },
     pageTurn: { ...draft.pageTurn },
+    selection: { ...draft.selection },
     headerFooter: {
       ...draft.headerFooter,
       slots: Object.fromEntries(
@@ -135,6 +136,7 @@ function mutableFingerprint(draft: SettingsDraft): string {
     appearance: draft.appearance,
     reading: draft.reading,
     pageTurn: draft.pageTurn,
+    selection: draft.selection,
     headerFooter: draft.headerFooter,
     contentTypography: draft.contentTypography,
     defaultMarkColor: draft.defaultMarkColor,

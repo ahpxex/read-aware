@@ -62,6 +62,12 @@ import {
   type PageTurnSettings,
 } from "../domain/settings/page-turn-settings";
 import {
+  SELECTION_SETTINGS_KEY,
+  getSelectionSettings,
+  saveSelectionSettings,
+  type SelectionSettings,
+} from "../domain/settings/selection-settings";
+import {
   HEADER_FOOTER_SETTINGS_KEY,
   getHeaderFooterSettings,
   saveHeaderFooterSettings,
@@ -280,6 +286,9 @@ onLocalKVChange((key, _value, origin) => {
     case HEADER_FOOTER_SETTINGS_KEY:
       store.set(headerFooterSettingsBaseAtom, getHeaderFooterSettings());
       break;
+    case SELECTION_SETTINGS_KEY:
+      store.set(selectionSettingsBaseAtom, getSelectionSettings());
+      break;
     case SHORTCUT_BINDINGS_KEY:
       store.set(shortcutBindingsBaseAtom, getShortcutBindings());
       break;
@@ -349,6 +358,17 @@ export const pageTurnSettingsAtom = atom(
   (_get, set, next: PageTurnSettings) => {
     set(pageTurnSettingsBaseAtom, next);
     savePageTurnSettings(next);
+  },
+);
+
+const selectionSettingsBaseAtom = atom<SelectionSettings>(getSelectionSettings());
+
+/** Smart selection in the reader. Device-local, never per book. */
+export const selectionSettingsAtom = atom(
+  (get) => get(selectionSettingsBaseAtom),
+  (_get, set, next: SelectionSettings) => {
+    set(selectionSettingsBaseAtom, next);
+    saveSelectionSettings(next);
   },
 );
 

@@ -138,6 +138,14 @@
         "downForward": "Leiser liest weiter",
         "upForward": "Lauter liest weiter"
       }
+    },
+    "selection": {
+      "title": "Textauswahl",
+      "description": "Wie eine Textauswahl im Buch behandelt wird. Auf diesem Gerät gespeichert und für alle Bücher verwendet.",
+      "snapToText": {
+        "title": "Intelligente Auswahl",
+        "description": "Passt eine Auswahl an den Satz oder das Wort an, das sie fast erfasst: Ein ausgelassenes erstes Zeichen oder Satzzeichen am Ende wird ergänzt, ein überzähliges Zeichen aus dem nächsten Satz entfernt, und eine Auswahl bis zum Seitenrand wird bis zum Satzende fortgesetzt. Wenn Sie die Griffe erneut ziehen, bleibt Ihre Anpassung erhalten."
+      }
     }
   },
   "shortcuts": {

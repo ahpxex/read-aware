@@ -2,7 +2,12 @@ import { useAtom, useAtomValue } from "jotai";
 import { ChoiceGroup, Select, Stack, Toggle } from "@read-aware/ui";
 import { useTranslation } from "../../../i18n";
 import { pluginThemesAtom } from "../../plugins/state/plugin-store";
-import { effectiveReaderSettingsAtom, pageTurnSettingsAtom, readerPreferencesAtom } from "../../../state/ui";
+import {
+  effectiveReaderSettingsAtom,
+  pageTurnSettingsAtom,
+  readerPreferencesAtom,
+  selectionSettingsAtom,
+} from "../../../state/ui";
 import { isAndroid } from "../../../platform/environment";
 import { FontField } from "../components/FontField";
 import { ReaderTypographyControls } from "../components/ReaderTypographyControls";
@@ -76,6 +81,8 @@ export function ReadingPanel() {
       </SettingsGroup>
 
       <PageTurnGroup />
+
+      <SelectionGroup />
 
       {/* In e-ink mode every page is black on white whatever is chosen, so
           the choice is kept but not offered. */}
@@ -158,6 +165,29 @@ function PageTurnGroup() {
           </>
         )}
       </Stack>
+    </SettingsGroup>
+  );
+}
+
+/** Smart selection: a device-local selection habit, never per book. */
+function SelectionGroup() {
+  const { t } = useTranslation("settings");
+  const [selection, setSelection] = useAtom(selectionSettingsAtom);
+  return (
+    <SettingsGroup title={t("reading.selection.title")} description={t("reading.selection.description")}>
+      <SettingsRow
+        borderless
+        className="py-0"
+        title={t("reading.selection.snapToText.title")}
+        description={t("reading.selection.snapToText.description")}
+        control={
+          <Toggle
+            aria-label={t("reading.selection.snapToText.title")}
+            checked={selection.snapToText}
+            onChange={(snapToText) => setSelection({ ...selection, snapToText })}
+          />
+        }
+      />
     </SettingsGroup>
   );
 }

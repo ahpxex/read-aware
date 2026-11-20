@@ -7,12 +7,12 @@ import { cn } from "@read-aware/ui/cn";
 import { ReaderFailureView } from "./ReaderFailureView";
 import { ReaderBackgroundLayer } from "../../settings";
 import { describeError, useTranslation } from "../../../i18n";
-import { pageTurnSettingsAtom, textUnitModeSettingsAtom } from "../../../state/ui";
+import { pageTurnSettingsAtom, selectionSettingsAtom, textUnitModeSettingsAtom } from "../../../state/ui";
 import { appShortcutForEvent, isAppSurfaceShortcut } from "../../settings/lib/shortcut-dispatch";
 import type { LibraryBook, ReaderProgress } from "../../library/lib/library-types";
 import { emitAppEvent } from "../../../platform/app-events";
 import { createLogger } from "../../../platform/logger";
-import { causalActor, stampEventCause, type DomainActor } from "../../../platform/domain-actor";
+import { actorOrigin, causalActor, stampEventCause, type DomainActor } from "../../../platform/domain-actor";
 import { resolveReaderModeUnit } from "../../plugins/lib/reader-mode";
 import {
   getNormalizedSelectionText,
@@ -107,6 +107,7 @@ import {
   readingSelectionFeedback,
 } from "../lib/reading-document-input";
 import { captureReadingSelection, type SelectionContentIdentity } from "../lib/selection-range";
+import { snapSelectionRange } from "../lib/selection-snap-range";
 import { useSelectionRender } from "../hooks/useSelectionRender";
 import { useReaderViewportResize } from "../hooks/useReaderViewportResize";
 import { createReadingSelectionAdapter } from "../lib/reading-selection-adapter";
@@ -406,6 +407,12 @@ export function FoliateReaderView({
   const tocEntriesRef = useRef<TocEntry[]>([]);
   const currentChapterHrefRef = useRef<string | null>(null);
   const selectionRef = useRef<ReaderSelectionState | null>(null);
+  /** The live selection has been snapped once: the reader's later handle drags stand as made. */
+  const selectionSnappedRef = useRef(false);
+  const selectionSettings = useAtomValue(selectionSettingsAtom);
+  // Read at capture time by listeners bound once per section document.
+  const snapSelectionsRef = useRef(selectionSettings.snapToText);
+  snapSelectionsRef.current = selectionSettings.snapToText;
   const clearNativeSelectionRef = useRef<((origin: DomainActor) => void) | null>(null);
   const suppressContentClickRef = useRef(false);
   const suppressContentClickTimeoutRef = useRef<number | null>(null);
@@ -845,6 +852,31 @@ export function FoliateReaderView({
       if (!mapping || !selectionInDoc) {
         clearSelection(origin);
         return false;
+      }
+
+      // Smart selection: a drag the reader just made moves onto the sentence,
+      // clause and word edges it nearly reaches, before anything reads it, so
+      // the text, anchor and every action use the snapped range. Only the
+      // first capture of a live selection snaps; dragging its handles again
+      // (touch) is a deliberate adjustment. Host-made selections never snap.
+      if (!selectionRef.current) selectionSnappedRef.current = false;
+      if (
+        snapSelectionsRef.current &&
+        !selectionSnappedRef.current &&
+        actorOrigin(origin) === "user" &&
+        selectionInDoc.rangeCount > 0
+      ) {
+        const snapped = snapSelectionRange(selectionInDoc.getRangeAt(0), {
+          isVisible: (probe) =>
+            Array.from(probe.getClientRects()).some(
+              (rect) => rect.width > 0 && visibleFrameRectInRoot(rect, mapping) != null,
+            ),
+        });
+        if (snapped) {
+          selectionInDoc.removeAllRanges();
+          selectionInDoc.addRange(snapped);
+          selectionSnappedRef.current = true;
+        }
       }
 
       const text = getNormalizedSelectionText(selectionInDoc);

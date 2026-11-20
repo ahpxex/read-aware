@@ -629,12 +629,11 @@
   },
   "about": {
     "title": "Acerca de",
-    "description": "Versión, compilación y el motor que impulsa la lectura.",
+    "description": "Versión y soporte.",
     "version": "Versión",
-    "build": "Compilación",
-    "buildAndroid": "Android (Tauri)",
-    "buildIos": "iOS (Tauri)",
-    "buildDesktop": "Escritorio (Tauri)",
+    "buildAndroid": "Android",
+    "buildIos": "iOS",
+    "buildDesktop": "Escritorio",
     "buildWeb": "Vista previa web",
     "updates": {
       "title": "Actualizaciones",
@@ -660,26 +659,16 @@
       "installerOpen": "Instalador del sistema abierto",
       "failed": "Error al actualizar"
     },
-    "engine": {
-      "title": "Motor de lectura",
-      "description": "Cada formato — EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, PDF — se abre en un mismo lector, con el mismo modelo de selección, anotación y progreso."
-    },
-    "foliate": {
-      "description": "El motor de lectura de código abierto en el que se basa ReadAware."
-    },
-    "vendored": "Vendorizado",
-    "help": "Ayuda",
     "website": {
-      "title": "Sitio web",
-      "description": "Novedades, descargas y documentación."
+      "title": "Sitio web"
     },
     "contact": {
-      "title": "Contacto",
-      "description": "Preguntas, errores o comentarios — escríbenos directamente."
+      "title": "Contacto"
     },
+    "links": "Enlaces",
     "diagnostics": {
       "title": "Diagnóstico",
-      "description": "Los registros y muestras de integridad pueden incluir datos personales de libros, notas o conversaciones. Revisa el paquete antes de exportarlo o enviarlo. No se envía nada sin tu confirmación. También indica el modelo de tu dispositivo, la versión del sistema y los complementos instalados.",
+      "description": "Si algo falla, envíanos un informe o guárdalo en un archivo. El paquete puede incluir datos personales; lo verás completo antes de enviarlo o guardarlo.",
       "exportRow": {
         "title": "Exportar diagnóstico",
         "description": "Guardar el paquete como archivo JSON para adjuntarlo a un correo o un issue.",

@@ -73,12 +73,8 @@ export function DiagnosticsGroup() {
             }
           />
         )}
+        {isTauri() && <ProjectionRepair />}
       </SettingsGroup>
-      {isTauri() && (
-        <SettingsGroup title={t("about.diagnostics.repair.title")}>
-          <ProjectionRepair />
-        </SettingsGroup>
-      )}
 
       <Dialog
         open={report !== null}

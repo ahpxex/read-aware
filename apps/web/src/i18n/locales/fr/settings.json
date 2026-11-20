@@ -629,12 +629,11 @@
   },
   "about": {
     "title": "À propos",
-    "description": "Version, build et le moteur qui alimente la lecture.",
+    "description": "Version et assistance.",
     "version": "Version",
-    "build": "Build",
-    "buildAndroid": "Android (Tauri)",
-    "buildIos": "iOS (Tauri)",
-    "buildDesktop": "Bureau (Tauri)",
+    "buildAndroid": "Android",
+    "buildIos": "iOS",
+    "buildDesktop": "Bureau",
     "buildWeb": "Aperçu web",
     "updates": {
       "title": "Mises à jour",
@@ -660,26 +659,16 @@
       "installerOpen": "Programme d’installation système ouvert",
       "failed": "Échec de la mise à jour"
     },
-    "engine": {
-      "title": "Moteur de lecture",
-      "description": "Chaque format — EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, PDF — s’ouvre dans un même lecteur, avec le même modèle de sélection, d’annotation et de progression."
-    },
-    "foliate": {
-      "description": "Le moteur de lecture open source sur lequel ReadAware est bâti."
-    },
-    "vendored": "Intégré",
-    "help": "Aide",
     "website": {
-      "title": "Site web",
-      "description": "Actualités, téléchargements et documentation."
+      "title": "Site web"
     },
     "contact": {
-      "title": "Contact",
-      "description": "Questions, bugs ou commentaires — contactez-nous directement."
+      "title": "Contact"
     },
+    "links": "Liens",
     "diagnostics": {
       "title": "Diagnostic",
-      "description": "Les journaux et échantillons de vérification peuvent contenir des données personnelles de livres, notes ou conversations. Vérifiez le paquet avant de l'exporter ou de l'envoyer. Rien n'est envoyé sans votre confirmation. Il indique aussi le modèle de votre appareil, la version du système et les plugins installés.",
+      "description": "En cas de problème, envoyez-nous un rapport ou enregistrez-le dans un fichier. Le paquet peut contenir des données personnelles ; vous le voyez en entier avant tout envoi ou enregistrement.",
       "exportRow": {
         "title": "Exporter le diagnostic",
         "description": "Enregistrer le paquet en JSON pour le joindre à un e-mail ou à un ticket.",

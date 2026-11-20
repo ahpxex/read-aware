@@ -629,12 +629,11 @@
   },
   "about": {
     "title": "About",
-    "description": "Version, build, and the engine that powers reading.",
+    "description": "Version and support.",
     "version": "Version",
-    "build": "Build",
-    "buildAndroid": "Android (Tauri)",
-    "buildIos": "iOS (Tauri)",
-    "buildDesktop": "Desktop (Tauri)",
+    "buildAndroid": "Android",
+    "buildIos": "iOS",
+    "buildDesktop": "Desktop",
     "buildWeb": "Web preview",
     "updates": {
       "title": "Updates",
@@ -660,26 +659,16 @@
       "installerOpen": "System installer opened",
       "failed": "Update failed"
     },
-    "engine": {
-      "title": "Reading engine",
-      "description": "Every format — EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, PDF — opens in one reader, with the same selection, annotation and progress model."
-    },
-    "foliate": {
-      "description": "The open-source reading engine ReadAware is built on."
-    },
-    "vendored": "Vendored",
-    "help": "Help",
     "website": {
-      "title": "Website",
-      "description": "Product news, downloads, and docs."
+      "title": "Website"
     },
     "contact": {
-      "title": "Contact",
-      "description": "Questions, bugs, or feedback — reach out directly."
+      "title": "Contact"
     },
+    "links": "Links",
     "diagnostics": {
       "title": "Diagnostics",
-      "description": "Diagnostic logs and integrity-check samples may include personal data, including book, note or conversation records. Review the bundle before exporting or sending it. Nothing is sent without your confirmation. It also lists your device model, system version and installed plugins.",
+      "description": "If something goes wrong, send us a report or save it to a file. The bundle can include personal data, and you see all of it before anything is sent or saved.",
       "exportRow": {
         "title": "Export diagnostics",
         "description": "Save the bundle as a JSON file to attach to an email or issue.",

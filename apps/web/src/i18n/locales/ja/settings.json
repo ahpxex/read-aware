@@ -629,12 +629,11 @@
   },
   "about": {
     "title": "アプリについて",
-    "description": "バージョン、ビルド、そして読書を支えるエンジン。",
+    "description": "バージョン情報とサポート。",
     "version": "バージョン",
-    "build": "ビルド",
-    "buildAndroid": "Android（Tauri）",
-    "buildIos": "iOS（Tauri）",
-    "buildDesktop": "デスクトップ（Tauri）",
+    "buildAndroid": "Android",
+    "buildIos": "iOS",
+    "buildDesktop": "デスクトップ",
     "buildWeb": "Webプレビュー",
     "updates": {
       "title": "更新",
@@ -660,26 +659,16 @@
       "installerOpen": "システムインストーラーを開きました",
       "failed": "アップデートに失敗しました"
     },
-    "engine": {
-      "title": "読書エンジン",
-      "description": "すべての形式 — EPUB、MOBI、AZW3、FB2、CBZ、CBR、TXT、HTML、PDF — が1つのリーダーで開き、選択・注釈・進捗のモデルを共有します。"
-    },
-    "foliate": {
-      "description": "ReadAwareの基盤となっているオープンソースの読書エンジン。"
-    },
-    "vendored": "ベンダー化",
-    "help": "ヘルプ",
     "website": {
-      "title": "ウェブサイト",
-      "description": "製品情報、ダウンロード、ドキュメント。"
+      "title": "ウェブサイト"
     },
     "contact": {
-      "title": "お問い合わせ",
-      "description": "質問・バグ・フィードバックはお気軽にどうぞ。"
+      "title": "お問い合わせ"
     },
+    "links": "リンク",
     "diagnostics": {
       "title": "診断",
-      "description": "診断ログや整合性検査のサンプルには、書籍・メモ・会話などの個人データが含まれる場合があります。書き出しや送信の前に内容をご確認ください。確認なしに送信されることはありません。端末のモデル、システムのバージョン、インストール済みのプラグインも記載されます。",
+      "description": "問題が起きたときは、診断パッケージを送信するかファイルに保存できます。個人データが含まれる場合があるため、送信・保存の前に内容をすべて確認できます。",
       "exportRow": {
         "title": "診断バンドルを書き出す",
         "description": "メールや issue に添付できる JSON ファイルとして保存します。",

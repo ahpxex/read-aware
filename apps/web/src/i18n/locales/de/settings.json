@@ -629,12 +629,11 @@
   },
   "about": {
     "title": "Über",
-    "description": "Version, Build und die Engine, die das Lesen antreibt.",
+    "description": "Version und Support.",
     "version": "Version",
-    "build": "Build",
-    "buildAndroid": "Android (Tauri)",
-    "buildIos": "iOS (Tauri)",
-    "buildDesktop": "Desktop (Tauri)",
+    "buildAndroid": "Android",
+    "buildIos": "iOS",
+    "buildDesktop": "Desktop",
     "buildWeb": "Web-Vorschau",
     "updates": {
       "title": "Updates",
@@ -660,26 +659,16 @@
       "installerOpen": "Systeminstallationsprogramm geöffnet",
       "failed": "Update fehlgeschlagen"
     },
-    "engine": {
-      "title": "Lese-Engine",
-      "description": "Jedes Format — EPUB, MOBI, AZW3, FB2, CBZ, CBR, TXT, HTML, PDF — öffnet sich in einem Reader, mit demselben Modell für Auswahl, Anmerkungen und Fortschritt."
-    },
-    "foliate": {
-      "description": "Die Open-Source-Lese-Engine, auf der ReadAware aufbaut."
-    },
-    "vendored": "Mitgeliefert",
-    "help": "Hilfe",
     "website": {
-      "title": "Website",
-      "description": "Neuigkeiten, Downloads und Dokumentation."
+      "title": "Website"
     },
     "contact": {
-      "title": "Kontakt",
-      "description": "Fragen, Fehler oder Feedback — melde dich direkt."
+      "title": "Kontakt"
     },
+    "links": "Links",
     "diagnostics": {
       "title": "Diagnose",
-      "description": "Diagnoseprotokolle und Prüfbeispiele können persönliche Buch-, Notiz- oder Gesprächsdaten enthalten. Prüfe das Paket vor Export oder Versand. Ohne deine Bestätigung wird nichts gesendet. Es nennt außerdem dein Gerätemodell, die Systemversion und die installierten Plugins.",
+      "description": "Wenn etwas schiefgeht, senden Sie uns einen Bericht oder speichern Sie ihn als Datei. Das Paket kann persönliche Daten enthalten; Sie sehen es vollständig, bevor es gesendet oder gespeichert wird.",
       "exportRow": {
         "title": "Diagnosepaket exportieren",
         "description": "Als JSON-Datei speichern, um es an eine E-Mail oder ein Issue anzuhängen.",

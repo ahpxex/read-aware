@@ -629,12 +629,11 @@
   },
   "about": {
     "title": "关于",
-    "description": "版本、构建，以及驱动阅读体验的引擎。",
+    "description": "版本信息与支持。",
     "version": "版本",
-    "build": "构建",
-    "buildAndroid": "Android 版（Tauri）",
-    "buildIos": "iOS 版（Tauri）",
-    "buildDesktop": "桌面版（Tauri）",
+    "buildAndroid": "Android 版",
+    "buildIos": "iOS 版",
+    "buildDesktop": "桌面版",
     "buildWeb": "Web 预览",
     "updates": {
       "title": "更新",
@@ -660,26 +659,16 @@
       "installerOpen": "已打开系统安装器",
       "failed": "更新失败"
     },
-    "engine": {
-      "title": "阅读引擎",
-      "description": "所有格式 —— EPUB、MOBI、AZW3、FB2、CBZ、CBR、TXT、HTML、PDF —— 都在同一个阅读器里打开，共用同一套选区、批注与进度模型。"
-    },
-    "foliate": {
-      "description": "ReadAware 所基于的开源阅读引擎。"
-    },
-    "vendored": "已内置",
-    "help": "帮助",
     "website": {
-      "title": "官网",
-      "description": "产品动态、下载与文档。"
+      "title": "官网"
     },
     "contact": {
-      "title": "联系",
-      "description": "有疑问、Bug 或反馈，欢迎直接联系。"
+      "title": "联系"
     },
+    "links": "相关链接",
     "diagnostics": {
       "title": "诊断",
-      "description": "诊断日志和一致性检查样本可能包含书籍、笔记、对话等个人记录。请在导出或发送前检查诊断包，未经你确认不会发送。诊断包还会列出设备型号、系统版本和已安装的插件。",
+      "description": "遇到问题时，可以把诊断包发给我们或存成文件。诊断包可能包含个人数据，发送或保存前你会看到完整内容。",
       "exportRow": {
         "title": "导出诊断包",
         "description": "保存为 JSON 文件,便于附在邮件或 issue 里。",

@@ -16,6 +16,7 @@ export function siteBaseUrl(): string {
 export const PROJECT_REPOSITORY_URL = "https://github.com/ahpxex/read-aware";
 export const PROJECT_DISCORD_URL = "https://discord.gg/whDrKXwHWU";
 export const PROJECT_AUTHOR_URL = "https://ahpx.me";
+export const PROJECT_CONTACT_EMAIL = "ahpxex@gmail.com";
 
 /**
  * The invitation to the WeChat readers' group, offered to Chinese-language

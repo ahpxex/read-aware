@@ -1,24 +1,27 @@
-import { expect, mock, spyOn, test } from "bun:test";
+import { expect, spyOn, test } from "bun:test";
 import { JSDOM } from "jsdom";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 
 test("reading time reaches the store in whole milliseconds, losing none of the clock's fractions", async () => {
   // The native command takes `deltaMs` as an integer and refuses anything
-  // else, which the reader surfaced as an error toast on close.
+  // else, which the reader surfaced as an error toast on close. The fake sits
+  // at the shell boundary: the trace runtime binds its store when it first
+  // loads, so a module mock would miss it whenever an earlier test file in the
+  // same process loaded it first.
   const stored: number[] = [];
-  const platform = await import("../../../platform/reading-session");
-  mock.module("../../../platform/reading-session", () => ({
-    ...platform,
-    accrueReadingSession: async (_bookId: string, deltaMs: number) => {
-      if (!Number.isSafeInteger(deltaMs)) throw new Error(`deltaMs ${deltaMs} is not an integer`);
-      stored.push(deltaMs);
+  const invoke = async (command: string, args: { deltaMs?: number }) => {
+    if (command === "reading_sessions_pending") return [];
+    if (command === "reading_session_accrue") {
+      if (!Number.isSafeInteger(args.deltaMs)) throw new Error(`deltaMs ${args.deltaMs} is not an integer`);
+      stored.push(args.deltaMs!);
       return null;
-    },
-    noteReadingPosition: async () => null,
-  }));
+    }
+    throw new Error(`Unexpected IPC ${command}`);
+  };
   const dom = new JSDOM("<div id='root'></div>", { url: "http://localhost", pretendToBeVisual: true });
   dom.window.document.hasFocus = () => true;
+  Object.assign(dom.window, { __TAURI_INTERNALS__: { invoke } });
   let now = 1000.1;
   const values = {
     window: dom.window,
@@ -53,6 +56,8 @@ test("reading time reaches the store in whole milliseconds, losing none of the c
         sample?.();
       });
     }
+    // Retiring the session drains its write queue and rethrows a refused write.
+    await act(async () => readingTraces.settle());
     expect(stored.length).toBeGreaterThan(0);
     expect(stored.every(Number.isSafeInteger)).toBe(true);
     // Every whole millisecond read is stored; less than one stays pending.

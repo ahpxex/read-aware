@@ -171,6 +171,49 @@
     "leadIn": ". ",
     "entries": [
       {
+        "version": "0.6.12",
+        "date": "2026-11-22",
+        "codename": "Cambria",
+        "summary": "Dieses Cambria-Update lässt eine Textauswahl auf den Satz oder das Wort einrasten, das du gemeint hast, bringt die Akkuanzeige und den Ordnerimport auf Android zurück und sorgt dafür, dass sich Plugins auf Handys und älteren Android-Tablets installieren und ausführen lassen.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Intelligente Auswahl",
+                "body": "Eine Auswahl, die du von Hand triffst, rastet auf dem Satz oder dem Wort ein, das sie fast abdeckt: Ein übersehenes erstes Zeichen oder schließende Satzzeichen werden ergänzt, abgeschnittene Wörter werden vervollständigt, und in seitenbasierten Layouts läuft eine Auswahl, die über die Seite hinausgeht, bis zum Ende ihres Satzes weiter. Kurze Wendungen und Zitate bleiben so, wie du sie getroffen hast. Ausschalten lässt sich das unter Einstellungen → Lesen → Textauswahl."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "title": "Übersichtlichere Einstellungen",
+                "body": "Die Seite Über ist kürzer, mit Community und Hilfe in einer Reihe von Links. Auf Handys listet Einstellungen keine Tastenkürzel mehr und keine Datensteuerungen, die es nur am Desktop gibt."
+              },
+              {
+                "title": "Nützlichere Diagnose",
+                "body": "Ein Diagnosepaket nennt den Build, das Gerät, die Zeitzone und die installierten Plugins, und Logzeilen tragen ihren UTC-Offset, sodass sich ein von dir gemeldetes Problem leichter zurückverfolgen lässt."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "title": "Akku und Ordnerimport auf Android",
+                "body": "Die Akkuanzeige im Leser und der Ordnerimport funktionieren wieder in Android-Release-Builds."
+              },
+              {
+                "title": "Plugins auf Handys und älterem Android",
+                "body": "Ein Plugin zu installieren funktioniert auf Mobilgeräten, aus einer Zip-Datei. Unter Android 12 und älter, HarmonyOS 4 eingeschlossen, schlagen Plugins nicht mehr mit „Permission denied“ fehl, wenn sie mit Dateien arbeiten."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.6.11",
         "date": "2026-11-18",
         "codename": "Cambria",

@@ -171,6 +171,49 @@
     "leadIn": " : ",
     "entries": [
       {
+        "version": "0.6.12",
+        "date": "2026-11-22",
+        "codename": "Cambria",
+        "summary": "Ce correctif de Cambria aligne une sélection de texte sur la phrase ou le mot que vous visiez, rétablit l'indicateur de batterie et l'import de dossier sur Android, et permet aux extensions de s'installer et de fonctionner sur les téléphones et les tablettes Android plus anciennes.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Sélection intelligente",
+                "body": "Une sélection faite à la main s'aligne sur la phrase ou le mot qu'elle recouvre presque : un premier caractère oublié ou une ponctuation finale est ajouté, les mots entamés sont complétés, et dans les mises en page paginées une sélection qui déborde de la page se poursuit jusqu'à la fin de sa phrase. Les expressions courtes et les citations restent telles que vous les avez faites. Désactivez-la dans Paramètres → Lecture → Sélection de texte."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "title": "Des réglages plus ordonnés",
+                "body": "La page À propos est plus courte, avec la communauté et l'aide réunies dans une rangée de liens. Sur les téléphones, Paramètres ne liste plus les raccourcis clavier ni les commandes de données propres à l'ordinateur."
+              },
+              {
+                "title": "Des diagnostics plus utiles",
+                "body": "Un ensemble de diagnostic indique la version, l'appareil, le fuseau horaire et les extensions installées, et les lignes de journal portent leur décalage UTC ; un problème que vous signalez est ainsi plus facile à retracer."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "title": "Batterie et import de dossier sur Android",
+                "body": "L'indicateur de batterie du lecteur et l'import de dossier fonctionnent de nouveau dans les builds de publication sur Android."
+              },
+              {
+                "title": "Les extensions sur téléphones et anciens Android",
+                "body": "Installer une extension fonctionne sur mobile, à partir d'un fichier zip. Sur Android 12 et antérieur, y compris HarmonyOS 4, les extensions n'échouent plus avec « Permission denied » lorsqu'elles travaillent avec des fichiers."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.6.11",
         "date": "2026-11-18",
         "codename": "Cambria",

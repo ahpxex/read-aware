@@ -171,6 +171,49 @@
     "leadIn": ". ",
     "entries": [
       {
+        "version": "0.6.12",
+        "date": "2026-11-22",
+        "codename": "Cambria",
+        "summary": "This Cambria patch snaps a text selection to the sentence or word you meant, brings back the battery indicator and folder import on Android, and makes plugins install and run on phones and older Android tablets.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Smart selection",
+                "body": "A selection you make by hand snaps to the sentence or word it nearly covers: a missed first character or closing punctuation is added, cut words are completed, and in paged layouts a selection that runs off the page continues to the end of its sentence. Short phrases and quotations stay as you made them. Turn it off under Settings → Reading → Text Selection."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "title": "Tidier settings",
+                "body": "The About page is shorter, with community and help in one row of links. On phones, Settings no longer lists keyboard shortcuts or desktop-only data controls."
+              },
+              {
+                "title": "More useful diagnostics",
+                "body": "A diagnostics bundle names the build, device, time zone and installed plugins, and log lines carry their UTC offset, so a problem you report is easier to trace."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "title": "Battery and folder import on Android",
+                "body": "The reader's battery indicator and folder import work again in Android release builds."
+              },
+              {
+                "title": "Plugins on phones and older Android",
+                "body": "Installing a plugin works on mobile, from a zip file. On Android 12 and earlier, including HarmonyOS 4, plugins no longer fail with \"Permission denied\" when they work with files."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.6.11",
         "date": "2026-11-18",
         "codename": "Cambria",

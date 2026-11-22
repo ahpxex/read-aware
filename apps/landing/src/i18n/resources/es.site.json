@@ -171,6 +171,49 @@
     "leadIn": ". ",
     "entries": [
       {
+        "version": "0.6.12",
+        "date": "2026-11-22",
+        "codename": "Cambria",
+        "summary": "Este parche de Cambria ajusta una selección de texto a la frase o a la palabra que querías, recupera el indicador de batería y la importación de carpetas en Android, y hace que los plugins se instalen y funcionen en teléfonos y en tabletas Android más antiguas.",
+        "groups": [
+          {
+            "kind": "new",
+            "items": [
+              {
+                "title": "Selección inteligente",
+                "body": "Una selección hecha a mano se ajusta a la frase o a la palabra que casi cubre: se añade el primer carácter perdido o el signo de puntuación de cierre, las palabras cortadas se completan, y en el modo paginado una selección que se sale de la página continúa hasta el final de su frase. Las frases cortas y las citas se mantienen tal como las hiciste. Se desactiva en Ajustes → Lectura → Selección de texto."
+              }
+            ]
+          },
+          {
+            "kind": "improved",
+            "items": [
+              {
+                "title": "Ajustes más ordenados",
+                "body": "La página Acerca de es más corta, con la comunidad y la ayuda en una sola fila de enlaces. En los teléfonos, Ajustes ya no enumera los atajos de teclado ni los controles de datos que solo existen en el escritorio."
+              },
+              {
+                "title": "Diagnósticos más útiles",
+                "body": "Un paquete de diagnóstico indica la compilación, el dispositivo, la zona horaria y los plugins instalados, y las líneas del registro incluyen su desfase UTC, así un problema que reportas es más fácil de rastrear."
+              }
+            ]
+          },
+          {
+            "kind": "fixed",
+            "items": [
+              {
+                "title": "Batería e importación de carpetas en Android",
+                "body": "El indicador de batería del lector y la importación de carpetas vuelven a funcionar en las compilaciones de lanzamiento de Android."
+              },
+              {
+                "title": "Plugins en teléfonos y en Android más antiguo",
+                "body": "Instalar un plugin funciona en el móvil desde un archivo zip. En Android 12 y anteriores, incluida HarmonyOS 4, los plugins ya no fallan con «Permission denied» al trabajar con archivos."
+              }
+            ]
+          }
+        ]
+      },
+      {
         "version": "0.6.11",
         "date": "2026-11-18",
         "codename": "Cambria",
